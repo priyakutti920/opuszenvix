@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Check, 
   Minus,
@@ -9,12 +9,8 @@ import {
   Clock, 
   Cpu, 
   HelpCircle, 
-  ChevronDown, 
-  ChevronUp, 
   CreditCard,
   MessageCircle,
-  Copy,
-  Terminal,
   Server,
   Layers,
   Flame,
@@ -26,34 +22,6 @@ interface PricingPageProps {
   onSelectPlan: (tier: PlanTier) => void;
   onOpenCheckKey?: () => void;
 }
-
-interface FaqItem {
-  q: string;
-  a: string;
-}
-
-const FAQS: FaqItem[] = [
-  {
-    q: "How does the 5-hour rolling window work?",
-    a: "Unlike official Anthropic or Claude Pro which enforces strict 24-hour cliff cutoffs, Opuszyra continuously replenishes your token allowance on a 5-hour rolling schedule. If you burn through a burst of tokens running autonomous agents, your quota begins recovering in 5 hours instead of waiting until midnight tomorrow."
-  },
-  {
-    q: "How do I pay with UPI or Cards in INR?",
-    a: "Click 'Get this plan →' on any plan. You can pay via UPI (GPay, PhonePe, Paytm, BHIM), NetBanking, or Cards in INR. You can also click 'Contact Admin on WhatsApp' for instant human onboarding and manual key delivery."
-  },
-  {
-    q: "Are prompt cache reads really 100% free?",
-    a: "Yes! When you enable prompt caching with Claude 3.5 or Claude 3.7 using cache_control: {type: 'ephemeral'}, all cached token reads are zero-rated against your allowance. This reduces effective token burn by 70-90% for large codebase contexts in Cursor and Claude Code."
-  },
-  {
-    q: "Can I share my key across multiple tools or machines?",
-    a: "Absolutely. You can use your Opuszyra key simultaneously in Cursor, Claude Code CLI, Cline, Roo Code, Python scripts, and CI/CD pipelines as long as your concurrent usage stays within your plan's RPM and TPM limits."
-  },
-  {
-    q: "What models are supported?",
-    a: "All 13 standard Anthropic models: Claude 3.7 Sonnet (Hybrid thinking), Claude 3.5 Sonnet (v2), Claude 3.5 Haiku, Claude 3 Opus, and previous iterations. Request any model by its standard Anthropic model ID."
-  }
-];
 
 const COMPARISON_ROWS = [
   {
@@ -95,16 +63,7 @@ const COMPARISON_ROWS = [
 ];
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCheckKey }) => {
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [copiedCode, setCopiedCode] = useState(false);
-
   const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
-
-  const handleCopyConfig = () => {
-    navigator.clipboard.writeText('export ANTHROPIC_BASE_URL=https://api.opuszyra.live/v1\nexport ANTHROPIC_API_KEY=opm-live-your_key_here');
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
 
   return (
     <div className="min-h-screen py-10 md:py-16 animate-fadeIn transition-colors text-stone-900 dark:text-[#F5F2EB]">
@@ -398,110 +357,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-
-        {/* ========================================================
-            3-STEP ACTIVATION FLOW WITH COPYABLE TERMINAL SNIPPET
-            ======================================================== */}
-        <div className="mb-20">
-          <div className="text-center max-w-xl mx-auto mb-10">
-            <h2 className="text-2xl font-extrabold tracking-tight">
-              Get Started in 30 Seconds
-            </h2>
-            <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">
-              Zero complicated configurations. Works with any tool that supports Anthropic.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="p-6 rounded-3xl bg-[#FDFCFB] dark:bg-[#141312] border border-[#E7E2D8] dark:border-[#262422] relative">
-              <span className="text-3xl font-black text-[#EA580C] opacity-40 block mb-2">01</span>
-              <h3 className="text-base font-bold mb-1">Select &amp; Pay</h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                Choose your capacity tier. Pay seamlessly with UPI (GPay/PhonePe) or Cards in INR.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-[#FDFCFB] dark:bg-[#141312] border border-[#E7E2D8] dark:border-[#262422] relative">
-              <span className="text-3xl font-black text-[#EA580C] opacity-40 block mb-2">02</span>
-              <h3 className="text-base font-bold mb-1">Instant Key Delivery</h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                Your key is generated automatically in 10 seconds and ready for terminal or IDE paste.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-[#FDFCFB] dark:bg-[#141312] border border-[#E7E2D8] dark:border-[#262422] relative">
-              <span className="text-3xl font-black text-[#EA580C] opacity-40 block mb-2">03</span>
-              <h3 className="text-base font-bold mb-1">Code Without Limits</h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                Set the base URL in Cursor, Claude Code, or Windsurf and enjoy uninterrupted agent swarms.
-              </p>
-            </div>
-          </div>
-
-          {/* Copyable Terminal Snippet Box */}
-          <div className="dark-code-box rounded-3xl bg-[#0F0E0D] border border-[#262320] p-5 sm:p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
-              <div className="flex items-center gap-2 text-xs font-mono text-stone-400">
-                <Terminal className="w-4 h-4 text-[#EA580C]" />
-                <span>Cursor &amp; Claude Code CLI Setup</span>
-              </div>
-              <button
-                onClick={handleCopyConfig}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-white transition-all font-mono"
-              >
-                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCode ? 'Copied to Clipboard!' : 'Copy Config'}</span>
-              </button>
-            </div>
-
-            <div className="font-mono text-xs text-amber-300 space-y-1 overflow-x-auto py-1">
-              <p><span className="text-stone-500"># Point Anthropic clients to Opuszyra Gateway</span></p>
-              <p className="text-emerald-400">export ANTHROPIC_BASE_URL="https://api.opuszyra.live/v1"</p>
-              <p className="text-emerald-400">export ANTHROPIC_API_KEY="opm-live-your_key_here"</p>
-              <p><span className="text-stone-500"># Run Claude Code CLI immediately with 5x / 20x capacity</span></p>
-              <p className="text-white">claude --model claude-3-7-sonnet-20250219</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Frequently Asked Questions */}
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-extrabold tracking-tight">Frequently Asked Questions</h2>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-              Everything you need to know about keys, billing, and rolling windows.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {FAQS.map((faq, idx) => {
-              const isOpen = openFaq === idx;
-              return (
-                <div
-                  key={idx}
-                  className="rounded-2xl border border-stone-200 dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#141312] overflow-hidden transition-all"
-                >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm"
-                  >
-                    <span>{faq.q}</span>
-                    {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-[#EA580C] shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-stone-400 shrink-0" />
-                    )}
-                  </button>
-                  {isOpen && (
-                    <div className="px-4 sm:px-5 pb-5 text-xs text-stone-600 dark:text-stone-400 leading-relaxed border-t border-stone-100 dark:border-white/5 pt-3">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         </div>
 
