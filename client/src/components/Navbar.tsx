@@ -60,13 +60,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="inline-flex items-center gap-2.5 text-left group"
           aria-label="Opuszyra home"
         >
-          <span
-            className="h-7 w-7 text-[12px] inline-flex items-center justify-center rounded-[6px] bg-brand-500 font-black text-white shadow-sm transition-transform group-hover:scale-105"
-            aria-hidden="true"
-          >
-            O
-          </span>
-          <span className="text-[15px] font-semibold tracking-[-0.02em] text-white font-mono">
+          <img
+            src="/logo.png"
+            alt="Opuszyra Logo"
+            className="h-8 w-8 rounded-lg object-contain shadow-sm transition-transform group-hover:scale-105"
+          />
+          <span className="text-[16px] font-bold tracking-tight text-white font-mono">
             Opus<span className="text-brand-500">zyra</span>
           </span>
         </button>

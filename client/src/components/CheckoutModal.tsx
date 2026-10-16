@@ -104,9 +104,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
         {step === 'pay' && (
           <div>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-2xl bg-orange-500/15 border border-orange-500/30 text-[#ea580c]">
-                <Zap className="w-6 h-6" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="Opuszyra Logo"
+                className="w-12 h-12 rounded-2xl object-contain shadow-md"
+              />
               <div>
                 <h3 className="text-xl font-extrabold tracking-tight text-white">
                   Activate <span className="text-[#ea580c]">{plan.name}</span>

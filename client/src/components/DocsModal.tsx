@@ -16,9 +16,11 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-dark-950/80">
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
-              <BookOpen className="h-4 w-4" />
-            </span>
+            <img
+              src="/logo.png"
+              alt="Opuszyra Logo"
+              className="h-8 w-8 rounded-lg object-contain shadow-sm"
+            />
             <div>
               <h2 className="text-lg font-bold text-white">Opuszyra Documentation &amp; Setup</h2>
               <p className="text-xs text-slate-400">Claude Code, Cursor, Python, and TypeScript integrations</p>

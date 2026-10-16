@@ -21,9 +21,11 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Brand Info */}
           <div className="col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <span className="h-7 w-7 text-[12px] inline-flex items-center justify-center rounded-[6px] bg-brand-500 font-black text-white">
-                O
-              </span>
+              <img
+                src="/logo.png"
+                alt="Opuszyra Logo"
+                className="h-8 w-8 rounded-lg object-contain shadow-sm"
+              />
               <span className="text-[16px] font-bold tracking-tight text-white font-mono">
                 Opus<span className="text-brand-500">zyra</span>
               </span>

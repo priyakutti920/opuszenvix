@@ -187,9 +187,11 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#262320] px-6 py-4 bg-[#141312]">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/15 text-[#EA580C]">
-              <Zap className="h-5 w-5" />
-            </span>
+            <img
+              src="/logo.png"
+              alt="Opuszyra Logo"
+              className="h-9 w-9 rounded-xl object-contain shadow-sm"
+            />
             <div>
               <h2 className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
               <p className="text-xs text-stone-400">Instant API keys · UPI (INR), USDT &amp; WhatsApp Onboarding</p>
