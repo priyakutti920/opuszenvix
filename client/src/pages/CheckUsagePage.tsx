@@ -41,7 +41,7 @@ export const CheckUsagePage: React.FC<CheckUsagePageProps> = ({
 
         {/* Embedded Full Key Inspector */}
         <div className="mb-14">
-          <KeyInspector initialKey={initialKey || 'opm-live-5x-9f8a3c2e1b4d7f0a'} isModal={false} />
+          <KeyInspector initialKey={initialKey || ''} isModal={false} />
         </div>
 
         {/* Information Grid: How the 5-Hour Cycle Works */}

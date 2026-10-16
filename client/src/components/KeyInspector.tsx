@@ -9,13 +9,8 @@ interface KeyInspectorProps {
   isModal?: boolean;
 }
 
-const DEMO_KEYS = [
-  { label: '5× Dev Plan', token: 'opm-live-5x-9f8a3c2e1b4d7f0a' },
-  { label: '20× Agentic Plan', token: 'opm-live-20x-8d7e6f5c4b3a2109' },
-];
-
 export const KeyInspector: React.FC<KeyInspectorProps> = ({
-  initialKey = 'opm-live-5x-9f8a3c2e1b4d7f0a',
+  initialKey = '',
   onClose,
   isModal = false,
 }) => {
@@ -107,25 +102,6 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
               Check live 5-hour rolling quota, window countdowns, and rate limits anonymously.
             </p>
-          </div>
-
-          {/* Preset Demo Buttons */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] uppercase tracking-wider text-slate-500 font-mono hidden sm:inline">
-              Try Demo:
-            </span>
-            {DEMO_KEYS.map((k) => (
-              <button
-                key={k.token}
-                onClick={() => {
-                  setInputKey(k.token);
-                  handleInspect(k.token);
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white border border-white/10 transition-colors"
-              >
-                {k.label}
-              </button>
-            ))}
           </div>
         </div>
 
