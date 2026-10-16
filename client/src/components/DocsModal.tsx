@@ -19,7 +19,7 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
             <img
               src="/logo.png"
               alt="Opuszyra Logo"
-              className="h-8 w-8 rounded-lg object-contain shadow-sm"
+              className="h-10 w-10 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
             />
             <div>
               <h2 className="text-lg font-bold text-white">Opuszyra Documentation &amp; Setup</h2>

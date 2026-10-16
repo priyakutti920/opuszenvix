@@ -57,15 +57,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand Logo */}
         <button
           onClick={() => setActiveView('home')}
-          className="inline-flex items-center gap-2.5 text-left group"
+          className="inline-flex items-center gap-3 text-left group"
           aria-label="Opuszyra home"
         >
           <img
             src="/logo.png"
             alt="Opuszyra Logo"
-            className="h-8 w-8 rounded-lg object-contain shadow-sm transition-transform group-hover:scale-105"
+            className="h-10 w-10 sm:h-11 sm:w-11 object-contain transition-transform group-hover:scale-105 drop-shadow-[0_2px_10px_rgba(234,88,12,0.35)]"
           />
-          <span className="text-[16px] font-bold tracking-tight text-white font-mono">
+          <span className="text-[17px] sm:text-[18px] font-bold tracking-tight text-white font-mono">
             Opus<span className="text-brand-500">zyra</span>
           </span>
         </button>

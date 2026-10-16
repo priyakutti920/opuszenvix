@@ -20,13 +20,13 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           {/* Brand Info */}
           <div className="col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <img
                 src="/logo.png"
                 alt="Opuszyra Logo"
-                className="h-8 w-8 rounded-lg object-contain shadow-sm"
+                className="h-10 w-10 sm:h-11 sm:w-11 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
               />
-              <span className="text-[16px] font-bold tracking-tight text-white font-mono">
+              <span className="text-[18px] font-bold tracking-tight text-white font-mono">
                 Opus<span className="text-brand-500">zyra</span>
               </span>
             </div>

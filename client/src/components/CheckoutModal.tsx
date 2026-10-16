@@ -107,7 +107,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
               <img
                 src="/logo.png"
                 alt="Opuszyra Logo"
-                className="w-12 h-12 rounded-2xl object-contain shadow-md"
+                className="w-14 h-14 object-contain drop-shadow-[0_2px_12px_rgba(234,88,12,0.35)]"
               />
               <div>
                 <h3 className="text-xl font-extrabold tracking-tight text-white">

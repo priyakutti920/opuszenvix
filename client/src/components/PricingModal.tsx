@@ -190,7 +190,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             <img
               src="/logo.png"
               alt="Opuszyra Logo"
-              className="h-9 w-9 rounded-xl object-contain shadow-sm"
+              className="h-11 w-11 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
             />
             <div>
               <h2 className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
