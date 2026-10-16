@@ -7,7 +7,6 @@ interface PricingProps {
 }
 
 export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
-  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
   const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
 
   return (
@@ -24,28 +23,9 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
           Never wait 24 hours again. Enjoy rolling 5-hour window replenishment, full SSE streaming, and 100% free prompt caching reads.
         </p>
 
-        {/* Currency Switcher */}
-        <div className="mt-6 inline-flex items-center p-1 rounded-full bg-stone-200/80 dark:bg-stone-900 border border-stone-300 dark:border-stone-800 shadow-inner">
-          <button
-            onClick={() => setCurrency('INR')}
-            className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-              currency === 'INR'
-                ? 'bg-white dark:bg-[#ea580c] text-stone-900 dark:text-white shadow-sm'
-                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
-            }`}
-          >
-            ₹ INR (Rupees)
-          </button>
-          <button
-            onClick={() => setCurrency('USD')}
-            className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-              currency === 'USD'
-                ? 'bg-white dark:bg-[#ea580c] text-stone-900 dark:text-white shadow-sm'
-                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
-            }`}
-          >
-            $ USD / USDT
-          </button>
+        {/* INR Badge */}
+        <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#EA580C] text-xs font-bold font-mono">
+          <span>₹ INR Pricing • Pay via UPI (GPay / PhonePe / Paytm / BHIM) &amp; Cards</span>
         </div>
       </div>
 
@@ -62,10 +42,10 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
 
             <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
               <span className="text-4xl font-black tracking-tight text-[#1C1917] dark:text-white">
-                {currency === 'INR' ? '₹4,999' : '$59'}
+                ₹4,999
               </span>
               <span className="text-xs font-semibold uppercase text-[#78716C] dark:text-[#A8A29E]">
-                {currency === 'INR' ? 'INR' : 'USD'} / month
+                INR / month
               </span>
             </div>
 
@@ -123,10 +103,10 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
 
             <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
               <span className="text-4xl font-black tracking-tight text-white">
-                {currency === 'INR' ? '₹6,999' : '$84'}
+                ₹6,999
               </span>
               <span className="text-xs font-semibold uppercase text-[#A8A29E]">
-                {currency === 'INR' ? 'INR' : 'USD'} / month
+                INR / month
               </span>
             </div>
 
@@ -183,10 +163,10 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
 
             <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
               <span className="text-4xl font-black tracking-tight text-[#1C1917] dark:text-white">
-                {currency === 'INR' ? '₹1,300' : '$15'}
+                ₹1,300
               </span>
               <span className="text-xs font-semibold uppercase text-[#78716C] dark:text-[#A8A29E]">
-                {currency === 'INR' ? 'INR' : 'USD'} / 1 week
+                INR / 1 week
               </span>
             </div>
 

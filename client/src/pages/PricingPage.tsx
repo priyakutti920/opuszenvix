@@ -38,8 +38,8 @@ const FAQS: FaqItem[] = [
     a: "Unlike official Anthropic or Claude Pro which enforces strict 24-hour cliff cutoffs, Opuszyra continuously replenishes your token allowance on a 5-hour rolling schedule. If you burn through a burst of tokens running autonomous agents, your quota begins recovering in 5 hours instead of waiting until midnight tomorrow."
   },
   {
-    q: "How do I pay with UPI, Indian Cards, or USDT?",
-    a: "Click 'Get this plan →' on any plan. You can pay via UPI (GPay, PhonePe, Paytm, BHIM), NetBanking/Cards in INR, or USDT (TRC-20). You can also click 'Contact Admin on WhatsApp' for instant human onboarding and manual key delivery."
+    q: "How do I pay with UPI or Cards in INR?",
+    a: "Click 'Get this plan →' on any plan. You can pay via UPI (GPay, PhonePe, Paytm, BHIM), NetBanking, or Cards in INR. You can also click 'Contact Admin on WhatsApp' for instant human onboarding and manual key delivery."
   },
   {
     q: "Are prompt cache reads really 100% free?",
@@ -82,7 +82,7 @@ const COMPARISON_ROWS = [
   },
   {
     feature: "Payment Flexibility",
-    opus: "UPI, GPay, PhonePe, Cards (INR) + USDT",
+    opus: "UPI, GPay, PhonePe, Cards (INR)",
     pro: "USD Credit Card Only",
     direct: "USD Pre-charge / Invoicing"
   },
@@ -96,7 +96,6 @@ const COMPARISON_ROWS = [
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCheckKey }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
   const [copiedCode, setCopiedCode] = useState(false);
 
   const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
@@ -124,28 +123,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
             Choose the capacity multiplier calibrated for your workflow. From everyday coding to 24/7 autonomous agent swarms with 100% free prompt caching reads.
           </p>
 
-          {/* Currency Toggle */}
-          <div className="mt-7 inline-flex items-center p-1 rounded-full bg-stone-200/80 dark:bg-[#181716] border border-stone-300 dark:border-[#2B2724] shadow-inner">
-            <button
-              onClick={() => setCurrency('INR')}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-                currency === 'INR'
-                  ? 'bg-white dark:bg-[#EA580C] text-stone-900 dark:text-white shadow-sm'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
-              }`}
-            >
-              ₹ INR (Rupees)
-            </button>
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-                currency === 'USD'
-                  ? 'bg-white dark:bg-[#EA580C] text-stone-900 dark:text-white shadow-sm'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
-              }`}
-            >
-              $ USD / USDT
-            </button>
+          {/* INR Badge */}
+          <div className="mt-7 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#EA580C] text-xs font-bold font-mono">
+            <span>₹ INR Pricing • Pay via UPI (GPay / PhonePe / Paytm / BHIM) &amp; Cards</span>
           </div>
         </div>
 
@@ -162,10 +142,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
               
               <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
                 <span className="text-4xl font-black tracking-tight text-[#1C1917] dark:text-white">
-                  {currency === 'INR' ? '₹4,999' : '$59'}
+                  ₹4,999
                 </span>
                 <span className="text-xs font-semibold uppercase text-[#78716C] dark:text-[#A8A29E]">
-                  {currency === 'INR' ? 'INR' : 'USD'} / month
+                  INR / month
                 </span>
               </div>
 
@@ -224,10 +204,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
 
               <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
                 <span className="text-4xl font-black tracking-tight text-white">
-                  {currency === 'INR' ? '₹6,999' : '$84'}
+                  ₹6,999
                 </span>
                 <span className="text-xs font-semibold uppercase text-[#A8A29E]">
-                  {currency === 'INR' ? 'INR' : 'USD'} / month
+                  INR / month
                 </span>
               </div>
 
@@ -284,10 +264,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
 
               <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
                 <span className="text-4xl font-black tracking-tight text-[#1C1917] dark:text-white">
-                  {currency === 'INR' ? '₹1,300' : '$15'}
+                  ₹1,300
                 </span>
                 <span className="text-xs font-semibold uppercase text-[#78716C] dark:text-[#A8A29E]">
-                  {currency === 'INR' ? 'INR' : 'USD'} / 1 week
+                  INR / 1 week
                 </span>
               </div>
 
@@ -439,7 +419,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
               <span className="text-3xl font-black text-[#EA580C] opacity-40 block mb-2">01</span>
               <h3 className="text-base font-bold mb-1">Select &amp; Pay</h3>
               <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                Choose your capacity tier. Pay seamlessly with UPI (GPay/PhonePe), Card, or USDT TRC-20.
+                Choose your capacity tier. Pay seamlessly with UPI (GPay/PhonePe) or Cards in INR.
               </p>
             </div>
 

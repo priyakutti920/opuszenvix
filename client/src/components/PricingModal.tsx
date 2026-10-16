@@ -15,7 +15,6 @@ const MODAL_PLANS: {
   title: string;
   badge: string;
   priceInr: string;
-  priceUsd: string;
   duration: string;
   features: string[];
 }[] = [
@@ -24,7 +23,6 @@ const MODAL_PLANS: {
     title: '5x Plan',
     badge: 'Standard Dev',
     priceInr: '₹4,999',
-    priceUsd: '$59',
     duration: '30 days',
     features: [
       '5× the usage of official Claude Pro',
@@ -40,7 +38,6 @@ const MODAL_PLANS: {
     title: '20x Plan',
     badge: 'Most Popular',
     priceInr: '₹6,999',
-    priceUsd: '$84',
     duration: '30 days',
     features: [
       '20× the usage of official Claude Pro',
@@ -57,7 +54,6 @@ const MODAL_PLANS: {
     title: '5x Plan 1 Week Trial',
     badge: '1 Week Trial',
     priceInr: '₹1,300',
-    priceUsd: '$15',
     duration: '7 days',
     features: [
       '5× the usage of official Claude Pro',
@@ -194,7 +190,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             />
             <div>
               <h2 className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
-              <p className="text-xs text-stone-400">Instant API keys · UPI (INR), USDT &amp; WhatsApp Onboarding</p>
+              <p className="text-xs text-stone-400">Instant API keys · UPI (INR) &amp; WhatsApp Onboarding</p>
             </div>
           </div>
           <button
@@ -291,7 +287,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                         <div className="mt-2 flex items-baseline gap-1.5">
                           <span className="text-2xl font-black text-white">{plan.priceInr}</span>
                           <span className="text-xs text-stone-400">INR</span>
-                          <span className="text-xs text-stone-500 font-mono">({plan.priceUsd})</span>
                         </div>
                       </div>
 

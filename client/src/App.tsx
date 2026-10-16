@@ -149,7 +149,7 @@ export function App() {
                   highlightWords={['API', 'access']}
                 />
                 <p className="mx-auto mt-6 max-w-md text-[16px] leading-relaxed text-slate-400">
-                  Over two thousand developers already build on Opuszyra. Sign up, pay in USDT, and
+                  Over two thousand developers already build on Opuszyra. Sign up, pay with UPI, and
                   have a key in your terminal before your coffee lands.
                 </p>
 

@@ -32,7 +32,7 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
             <p className="max-w-sm text-xs leading-relaxed text-slate-400">
               High-throughput Anthropic Claude API gateway. Unbuffered SSE streaming, 5-hour
-              rolling capacity windows, and instant USDT crypto activation.
+              rolling capacity windows, and instant UPI &amp; Card activation in INR.
             </p>
             <button
               onClick={onOpenStatus}

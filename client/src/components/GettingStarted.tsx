@@ -100,16 +100,16 @@ export const GettingStarted: React.FC<GettingStartedProps> = ({
                 02
               </span>
               <h3 className="mt-5 text-xl font-semibold tracking-[-0.02em] text-white">
-                Pay in USDT (TRC20)
+                Pay with UPI or Cards
               </h3>
               <p className="mt-2 text-[14px] leading-relaxed text-slate-400">
-                Plans from ₹1,000 ($10 USDT) on TRC20 — Binance, OKX, Bybit, Trust Wallet. Your
-                key lands the moment the transfer confirms on-chain.
+                Plans start from ₹1,300 in INR via any UPI app (GPay, PhonePe, Paytm, BHIM) or cards. Your
+                key is delivered immediately after payment.
               </p>
             </div>
             <div className="mt-6 flex items-center gap-2 text-xs font-mono text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-              <span>Automated 60s confirmation</span>
+              <span>Instant automated provisioning</span>
             </div>
           </motion.div>
 

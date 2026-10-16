@@ -73,11 +73,11 @@ const COMPONENTS: ComponentStatus[] = [
     description: 'Continuous quota replenish tracking and auto-resets'
   },
   {
-    name: 'USDT TRC-20 Blockchain Listener',
+    name: 'UPI & Instant Payment Gateway Node',
     category: 'Billing & Quota',
     status: 'operational',
-    latency: '1-block confirm',
-    description: 'Automated cryptographic deposit verification and instant key delivery'
+    latency: 'Real-time',
+    description: 'Automated payment verification and instant key delivery'
   }
 ];
 

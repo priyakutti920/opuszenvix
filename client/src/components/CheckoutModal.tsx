@@ -11,34 +11,25 @@ interface CheckoutModalProps {
   onKeyCreated: (newKey: any) => void;
 }
 
-const PLAN_META: Record<PlanTier, { name: string; priceInr: number; priceUsdt: number; duration: string }> = {
-  '5x': { name: '5x Plan', priceInr: 4999, priceUsdt: 30, duration: '30 days' },
-  '20x': { name: '20x Plan', priceInr: 6999, priceUsdt: 50, duration: '30 days' },
-  '5x_trial': { name: '5x Plan 1 Week Trial', priceInr: 1300, priceUsdt: 15, duration: '7 days' },
-  'custom': { name: 'Custom Enterprise', priceInr: 9999, priceUsdt: 100, duration: 'Custom' },
+const PLAN_META: Record<PlanTier, { name: string; priceInr: number; duration: string }> = {
+  '5x': { name: '5x Plan', priceInr: 4999, duration: '30 days' },
+  '20x': { name: '20x Plan', priceInr: 6999, duration: '30 days' },
+  '5x_trial': { name: '5x Plan 1 Week Trial', priceInr: 1300, duration: '7 days' },
+  'custom': { name: 'Custom Enterprise', priceInr: 9999, duration: 'Custom' },
 };
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = true, onClose, onKeyCreated }) => {
   if (!isOpen) return null;
 
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'usdt'>('upi');
   const [step, setStep] = useState<'pay' | 'verifying' | 'success'>('pay');
-  const [copiedAddr, setCopiedAddr] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string>('');
   const [txHash, setTxHash] = useState('');
 
   const plan = PLAN_META[tier] || PLAN_META['5x'];
-  const depositAddress = 'TJ8yQp3s9W8f2NmK1L9x7P4v6B3c8D1e0Z';
   const upiId = 'opuszyra@ybl';
   const whatsappUrl = `https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20the%20${encodeURIComponent(plan.name)}%20(₹${plan.priceInr}%20INR).`;
-
-  const handleCopyAddr = () => {
-    navigator.clipboard.writeText(depositAddress);
-    setCopiedAddr(true);
-    setTimeout(() => setCopiedAddr(false), 2000);
-  };
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -123,8 +114,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
                 <span className="text-[11px] text-stone-400 uppercase font-semibold block tracking-wider">Amount Due</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-white">₹{plan.priceInr.toLocaleString('en-IN')}</span>
-                  <span className="text-xs text-stone-400">INR</span>
-                  <span className="text-xs text-stone-500 font-mono">(${plan.priceUsdt} USDT)</span>
+                  <span className="text-xs text-stone-400 font-bold">INR</span>
                 </div>
               </div>
               <div className="text-right">
@@ -135,102 +125,55 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
               </div>
             </div>
 
-            {/* Payment Method Switcher */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-[#1a1918] rounded-xl border border-[#2b2724] mb-5">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('upi')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                  paymentMethod === 'upi'
-                    ? 'bg-[#ea580c] text-white shadow-md'
-                    : 'text-stone-400 hover:text-white'
-                }`}
-              >
-                <CreditCard className="w-3.5 h-3.5" />
-                <span>UPI / Cards (INR)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('usdt')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                  paymentMethod === 'usdt'
-                    ? 'bg-[#ea580c] text-white shadow-md'
-                    : 'text-stone-400 hover:text-white'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>USDT (TRC-20)</span>
-              </button>
-            </div>
-
-            {paymentMethod === 'upi' ? (
-              <div className="space-y-4 mb-6">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-stone-400">
-                    UPI ID (GPay / PhonePe / Paytm / BHIM):
-                  </label>
-                  <div className="p-3 rounded-xl bg-[#141312] border border-[#2b2724] flex items-center justify-between gap-2">
-                    <code className="text-xs font-mono font-bold text-white truncate">{upiId}</code>
-                    <button
-                      onClick={handleCopyUpi}
-                      className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-xs font-semibold text-stone-300 hover:text-white transition-colors flex items-center gap-1 shrink-0"
-                    >
-                      {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedUpi ? 'Copied' : 'Copy UPI'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-[#1a1918] border border-[#2b2724] text-xs text-stone-300 space-y-2">
-                  <div className="flex items-center gap-2 text-stone-200 font-semibold">
-                    <span>⚡ Quick WhatsApp Activation:</span>
-                  </div>
-                  <p className="text-[11px] text-stone-400 leading-relaxed">
-                    Pay ₹{plan.priceInr.toLocaleString('en-IN')} via any UPI app or card, and connect directly with Admin for priority instantaneous key provisioning.
-                  </p>
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all w-full justify-center shadow-md shadow-emerald-900/30"
+            {/* UPI Payment Details */}
+            <div className="space-y-4 mb-6">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-stone-400">
+                  UPI ID (GPay / PhonePe / Paytm / BHIM / Any UPI App):
+                </label>
+                <div className="p-3 rounded-xl bg-[#141312] border border-[#2b2724] flex items-center justify-between gap-2">
+                  <code className="text-xs font-mono font-bold text-white truncate">{upiId}</code>
+                  <button
+                    onClick={handleCopyUpi}
+                    className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-xs font-semibold text-stone-300 hover:text-white transition-colors flex items-center gap-1 shrink-0"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Contact Admin on WhatsApp</span>
-                  </a>
+                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedUpi ? 'Copied' : 'Copy UPI'}</span>
+                  </button>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4 mb-6">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-mono uppercase tracking-wider text-stone-400">
-                    USDT TRC-20 Deposit Address:
-                  </label>
-                  <div className="p-3 rounded-xl bg-[#141312] border border-[#2b2724] flex items-center justify-between gap-2">
-                    <code className="text-xs font-mono text-orange-400 truncate">{depositAddress}</code>
-                    <button
-                      onClick={handleCopyAddr}
-                      className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-xs font-semibold text-stone-300 hover:text-white transition-colors flex items-center gap-1 shrink-0"
-                    >
-                      {copiedAddr ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedAddr ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-                </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-mono text-stone-400">
-                    Transaction Hash / TxID (Optional):
-                  </label>
-                  <input
-                    type="text"
-                    value={txHash}
-                    onChange={(e) => setTxHash(e.target.value)}
-                    placeholder="e.g. 5a4b3c2d1e0f..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#141312] border border-[#2b2724] focus:border-orange-500/50 text-stone-200 font-mono text-xs outline-none"
-                  />
+              <div className="p-3.5 rounded-xl bg-[#1a1918] border border-[#2b2724] text-xs text-stone-300 space-y-2">
+                <div className="flex items-center gap-2 text-stone-200 font-semibold">
+                  <span>⚡ Quick WhatsApp Activation:</span>
                 </div>
+                <p className="text-[11px] text-stone-400 leading-relaxed">
+                  Pay ₹{plan.priceInr.toLocaleString('en-IN')} via any UPI app or card, and connect directly with Admin for priority instantaneous key provisioning.
+                </p>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all w-full justify-center shadow-md shadow-emerald-900/30"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Contact Admin on WhatsApp</span>
+                </a>
               </div>
-            )}
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono text-stone-400">
+                  UPI Reference / UTR Number (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={txHash}
+                  onChange={(e) => setTxHash(e.target.value)}
+                  placeholder="e.g. 429182749102"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#141312] border border-[#2b2724] focus:border-orange-500/50 text-stone-200 font-mono text-xs outline-none"
+                />
+              </div>
+            </div>
 
             {/* Instant Verification CTA */}
             <button
