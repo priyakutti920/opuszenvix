@@ -8,14 +8,11 @@ import {
   RotateCw, 
   Copy, 
   Check, 
-  Server, 
   Activity, 
-  Cpu, 
   Coins, 
   ChevronDown, 
   ChevronUp, 
-  Code2,
-  CheckCircle2
+  Code2
 } from 'lucide-react';
 import { checkKey, resetKeyWindow } from '../lib/api';
 import { CheckKeyData } from '../types';
@@ -425,68 +422,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
 
             </div>
 
-            {/* Technical Specifications Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Authorized Models with Full Visible Text (No ellipsis truncation) */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#10131d] border border-slate-200 dark:border-white/10 shadow-sm">
-                <div className="flex items-center gap-2 mb-3.5">
-                  <Cpu className="w-4 h-4 text-emerald-500" />
-                  <h4 className="text-xs font-bold font-mono text-slate-900 dark:text-white uppercase tracking-wider">
-                    Authorized Models with this Key
-                  </h4>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {(keyData.models_accessible || []).map((model) => (
-                    <div
-                      key={model}
-                      className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-3 shadow-sm hover:border-emerald-500/40 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-100 select-all">
-                          {model}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/25 shrink-0">
-                        Active
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* Upstream Gateway Architecture */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#10131d] border border-slate-200 dark:border-white/10 shadow-sm">
-                <div className="flex items-center gap-2 mb-3.5">
-                  <Server className="w-4 h-4 text-cyan-500" />
-                  <h4 className="text-xs font-bold font-mono text-slate-900 dark:text-white uppercase tracking-wider">
-                    Gateway &amp; Architecture Matrix
-                  </h4>
-                </div>
-
-                <div className="space-y-2.5 text-xs font-mono">
-                  <div className="p-2.5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-white/10 flex items-center justify-between shadow-sm">
-                    <span className="text-slate-600 dark:text-slate-400 font-medium">Upstream Host</span>
-                    <span className="text-slate-900 dark:text-white font-bold">api.opuszen.shop</span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-white/10 flex items-center justify-between shadow-sm">
-                    <span className="text-slate-600 dark:text-slate-400 font-medium">Provider Backend</span>
-                    <span className="text-slate-900 dark:text-white font-bold">
-                      {(keyData.allowedProviders || ['opuslive']).join(', ')}
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-white/10 flex items-center justify-between shadow-sm">
-                    <span className="text-slate-600 dark:text-slate-400 font-medium">Middle-Man Gateway</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Direct Streaming Bypass Enabled</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
 
             {/* Developer Raw JSON Payload Drawer */}
             <div className="rounded-2xl bg-slate-50 dark:bg-[#10131d] border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm">
