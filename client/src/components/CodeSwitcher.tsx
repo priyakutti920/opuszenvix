@@ -3,11 +3,25 @@ import { Check, Copy, Terminal, Code, Cpu, Sparkles } from 'lucide-react';
 
 const SNIPPETS = [
   {
+    id: 'setup',
+    name: '1-Step Setup CLI',
+    lang: 'bash',
+    filename: 'terminal.sh',
+    code: `# Instant 1-step interactive configuration
+npx opuszyra
+
+# Automatically configures Claude Code, Cursor, and shell environments
+# with https://api.opuszyra.live/v1 and your key!`,
+  },
+  {
     id: 'claudecode',
     name: 'Claude Code CLI',
     lang: 'bash',
     filename: 'terminal.sh',
-    code: `# Export Opuszyra gateway URL and API key
+    code: `# Auto-configure via CLI:
+npx opuszyra
+
+# Or export manually:
 export ANTHROPIC_BASE_URL="https://api.opuszyra.live/v1"
 export ANTHROPIC_API_KEY="opm-live-5x-your_api_key_here"
 

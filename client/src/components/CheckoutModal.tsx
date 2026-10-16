@@ -234,7 +234,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
             </div>
 
             <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-stone-400 text-left font-mono">
-              💡 Setup in Claude Code: <code className="text-orange-400">export ANTHROPIC_BASE_URL=https://api.opuszyra.live/v1</code>
+              💡 Instant Setup: <code className="text-orange-400 font-bold">npx opuszyra</code> (or export ANTHROPIC_BASE_URL=https://api.opuszyra.live/v1)
             </div>
 
             <button

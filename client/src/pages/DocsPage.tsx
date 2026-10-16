@@ -334,16 +334,46 @@ SUPABASE_ANON_KEY=...`}</code>
                 Quick Start
               </h2>
 
-              <h3 className="text-base font-bold mb-3">Connecting Clients to Your Gateway</h3>
+              {/* 1-Step CLI Setup Card */}
+              <div className="p-6 rounded-3xl border-2 border-orange-500/30 bg-orange-500/[0.04] mb-8 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold bg-[#EA580C] text-white px-2.5 py-1 rounded-lg">Recommended</span>
+                    <span className="text-sm font-bold text-stone-900 dark:text-white">1-Step CLI Setup</span>
+                  </div>
+                  <span className="text-xs text-stone-500 font-mono">Zero config needed</span>
+                </div>
+                <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
+                  Run the official setup command in your terminal. It automatically configures Claude Code CLI, Cursor, and your shell environment:
+                </p>
+
+                <div className="dark-code-box relative group rounded-2xl border border-[#262320] bg-[#0F0E0D] overflow-hidden shadow-md">
+                  <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
+                    <span>terminal</span>
+                    <button
+                      onClick={() => copyToClipboard('npx opuszyra', 'cli-quickstart')}
+                      className="flex items-center gap-1 text-stone-400 hover:text-white transition"
+                    >
+                      {copiedSnippetId === 'cli-quickstart' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedSnippetId === 'cli-quickstart' ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                  <pre className="p-4 text-xs font-mono text-white leading-relaxed overflow-x-auto">
+                    <code>npx opuszyra</code>
+                  </pre>
+                </div>
+              </div>
+
+              <h3 className="text-base font-bold mb-3">Manual Environment Variables</h3>
               <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
-                Configure your environment variables to point directly to your Opuszyra gateway:
+                Alternatively, configure your environment variables manually to point directly to your Opuszyra gateway:
               </p>
 
               <div className="dark-code-box relative group rounded-2xl border border-[#262320] bg-[#0F0E0D] overflow-hidden mb-6 shadow-md">
                 <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
                   <span>bash</span>
                   <button
-                    onClick={() => copyToClipboard(`export ANTHROPIC_BASE_URL="${cleanDomain}"\nexport ANTHROPIC_API_KEY="YOUR_API_KEY"`, 'env-quickstart')}
+                    onClick={() => copyToClipboard(`export ANTHROPIC_BASE_URL="${v1Base}"\nexport ANTHROPIC_API_KEY="YOUR_API_KEY"`, 'env-quickstart')}
                     className="flex items-center gap-1 text-stone-400 hover:text-white transition"
                   >
                     {copiedSnippetId === 'env-quickstart' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -351,7 +381,7 @@ SUPABASE_ANON_KEY=...`}</code>
                   </button>
                 </div>
                 <pre className="p-4 text-xs font-mono text-white leading-relaxed overflow-x-auto">
-                  <code>{`export ANTHROPIC_BASE_URL="${cleanDomain}"\nexport ANTHROPIC_API_KEY="YOUR_API_KEY"`}</code>
+                  <code>{`export ANTHROPIC_BASE_URL="${v1Base}"\nexport ANTHROPIC_API_KEY="YOUR_API_KEY"`}</code>
                 </pre>
               </div>
             </section>

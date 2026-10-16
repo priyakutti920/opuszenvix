@@ -25,7 +25,7 @@ export const Hero: React.FC<HeroProps> = ({
   const [activeModelIdx, setActiveModelIdx] = useState(0);
   const [copied, setCopied] = useState(false);
   const [typedText, setTypedText] = useState('');
-  const fullCommand = 'export ANTHROPIC_BASE_URL="https://api.opuszyra.live/v1"';
+  const fullCommand = 'npx opuszyra';
 
   // Typing effect on terminal
   useEffect(() => {
@@ -208,15 +208,15 @@ export const Hero: React.FC<HeroProps> = ({
                   <p className="break-all text-slate-200">
                     <span className="text-emerald-400 select-none">$ </span>
                     <span className="text-slate-400">export </span>
-                    <span className="text-brand-300">ANTHROPIC_API_KEY</span>
+                    <span className="text-brand-300">ANTHROPIC_BASE_URL</span>
                     <span className="text-slate-500">=</span>
-                    <span className="text-amber-300">"opm-live-5x-9f8a3c2e1b4..."</span>
+                    <span className="text-amber-300">"https://api.opuszyra.live/v1"</span>
                   </p>
 
                   <div className="pt-2 border-t border-white/5 text-[12px] text-slate-400 space-y-1">
                     <p className="text-emerald-400 flex items-center gap-2">
                       <span>✓</span>
-                      <span>1M context enabled with unbuffered pass-through</span>
+                      <span>Configured Claude Code &amp; Cursor automatically</span>
                     </p>
                     <p className="text-slate-400 flex items-center gap-2">
                       <span className="text-brand-400">⚡</span>

@@ -4,6 +4,9 @@
   "description": "Opuszyra - Anthropic-Compatible AI Proxy & API Gateway with React, Tailwind CSS, Node.js, and Supabase",
   "private": true,
   "type": "module",
+  "bin": {
+    "opuszyra": "./bin/cli.js"
+  },
   "workspaces": [
     "client",
     "server"

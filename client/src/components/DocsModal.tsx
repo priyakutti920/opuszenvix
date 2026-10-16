@@ -58,7 +58,7 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
               <div className="rounded-lg bg-dark-950 p-3 border border-white/5">
                 <span className="font-semibold text-slate-200 block">Does Claude Code work out of the box?</span>
                 <span className="mt-1 block">
-                  Yes! Simply run <code className="text-orange-400">export ANTHROPIC_BASE_URL="https://api.opuszyra.live"</code> and <code className="text-orange-400">export ANTHROPIC_API_KEY="opm-live-..."</code> before launching <code className="text-slate-200">claude</code>.
+                  Yes! Simply run <code className="text-orange-400">npx opuszyra</code> (or manually set <code className="text-orange-400">export ANTHROPIC_BASE_URL="https://api.opuszyra.live/v1"</code>) before launching <code className="text-slate-200">claude</code>.
                 </span>
               </div>
               <div className="rounded-lg bg-dark-950 p-3 border border-white/5">
