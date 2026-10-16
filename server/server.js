@@ -126,8 +126,14 @@ app.use(['/api', '/v1'], (req, res) => {
   });
 });
 
-// Start listener only when running standalone (not inside Vercel serverless functions)
-if (!process.env.VERCEL) {
+// Start listener only when running directly (never when imported as a serverless module)
+const isDirectRun = process.argv[1] && (
+  process.argv[1].endsWith('server.js') || 
+  process.argv[1].endsWith('server\\server.js') ||
+  process.argv[1].endsWith('server/server.js')
+);
+
+if (isDirectRun && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`=======================================================`);
     console.log(`🚀 Opuszyra Middle-Man AI Gateway running on port ${PORT}`);
