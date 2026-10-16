@@ -272,7 +272,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
                   <span>server/.env</span>
                   <button
-                    onClick={() => copyToClipboard(`PORT=5000\n\n# Upstream Passthrough API Base URL\nUPSTREAM_API_BASE=https://api.upstream-service.com\n\n# Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)\nUPSTREAM_API_KEY=\n\n# Public API Domain (The domain your users connect to)\nAPI_DOMAIN=${cleanDomain}\n\n# Supabase Configuration\nSUPABASE_URL=https://hakvgesghjxccbbufokf.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=\nSUPABASE_ANON_KEY=`, 'env-file-snippet')}
+                    onClick={() => copyToClipboard(`PORT=5000\nAPI_DOMAIN=${cleanDomain}\nUPSTREAM_API_BASE=https://api.upstream-service.com\nUPSTREAM_API_KEY=`, 'env-file-snippet')}
                     className="flex items-center gap-1 text-stone-400 hover:text-white transition"
                   >
                     {copiedSnippetId === 'env-file-snippet' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -281,20 +281,9 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 </div>
                 <pre className="p-4 text-xs font-mono text-white leading-relaxed overflow-x-auto">
                   <code>{`PORT=5000
-
-# Upstream Passthrough API Base URL
-UPSTREAM_API_BASE=https://api.upstream-service.com
-
-# Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)
-UPSTREAM_API_KEY=
-
-# Public API Domain (The domain your users connect to)
 API_DOMAIN=${cleanDomain}
-
-# Supabase Configuration
-SUPABASE_URL=https://hakvgesghjxccbbufokf.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
-SUPABASE_ANON_KEY=...`}</code>
+UPSTREAM_API_BASE=https://api.upstream-service.com
+UPSTREAM_API_KEY=`}</code>
                 </pre>
               </div>
 
