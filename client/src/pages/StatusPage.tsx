@@ -101,7 +101,7 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
     setPinging(true);
     const start = performance.now();
     try {
-      // Ping middle-man gateway /api/status which checks upstream status
+      // Ping gateway gateway /api/status which checks upstream status
       const res = await fetch('/api/status', { method: 'GET', headers: { 'Accept': 'application/json' } });
       const elapsed = Math.round(performance.now() - start);
       if (res.ok) {

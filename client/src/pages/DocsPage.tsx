@@ -37,7 +37,7 @@ interface DocsPageProps {
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview' },
-  { id: 'middleman-guide', title: 'Middle-Man Gateway Architecture' },
+  { id: 'gateway-guide', title: 'Gateway Architecture' },
   { id: 'quick-start', title: 'Quick Start' },
   { id: 'ide-configuration', title: 'IDE Configuration' },
   { id: 'sdks-examples', title: 'SDKs & Code Examples' },
@@ -85,13 +85,13 @@ export const DocsPage: React.FC<DocsPageProps> = ({
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-orange-500/20 bg-orange-500/10 text-xs font-semibold text-[#EA580C] mb-4 shadow-xs">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Developer Documentation &amp; Middle-Man AI Gateway</span>
+            <span>Developer Documentation &amp; AI Gateway</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3">
-            <span className="text-[#EA580C]">Opuszyra</span> API &amp; Middle-Man Docs
+            <span className="text-[#EA580C]">Opuszyra</span> API &amp; Gateway Docs
           </h1>
           <p className="text-stone-600 dark:text-stone-400 text-base max-w-3xl leading-relaxed">
-            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway. Run your own branded Middle-Man gateway with automatic passthrough bypass to the upstream inference engine, real-time token status inspections, and zero-latency SSE token streaming.
+            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway. Run your own branded API gateway with automatic passthrough bypass to the upstream inference engine, real-time token status inspections, and zero-latency SSE token streaming.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-1">
                 <Globe className="w-4 h-4" />
-                <span>Interactive Middle-Man Domain Configurator</span>
+                <span>Interactive Domain Configurator</span>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-400">
                 Type your custom domain below. All code examples, SDK snippets, cURL requests, and IDE configurations update instantly!
@@ -224,7 +224,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 Overview
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                Opuszyra is an ultra-low latency, Anthropic-compatible API gateway and proxy bypass system. It acts as a middle-man proxy forwarding requests seamlessly to the upstream inference engine. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your middle-man domain:{' '}
+                Opuszyra is an ultra-low latency, Anthropic-compatible API gateway and proxy bypass system. It acts as an API gateway proxy forwarding requests seamlessly to the upstream inference engine. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your gateway domain:{' '}
                 <code className="text-xs font-mono bg-orange-500/10 text-[#EA580C] px-1.5 py-0.5 rounded font-bold border border-orange-500/20">
                   {v1Base}
                 </code>.
@@ -234,7 +234,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 {[
                   {
                     emoji: '🔀',
-                    title: 'Middle-Man Passthrough Bypass',
+                    title: 'Direct Passthrough Bypass',
                     desc: 'Seamlessly forward /v1/messages, /v1/models, and /v1/chat/completions with zero buffering and low latency.'
                   },
                   {
@@ -276,11 +276,11 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               </div>
             </section>
 
-            {/* 2. MIDDLE-MAN GATEWAY ARCHITECTURE */}
-            <section id="middleman-guide" className="scroll-mt-24">
+            {/* 2. GATEWAY ARCHITECTURE */}
+            <section id="gateway-guide" className="scroll-mt-24">
               <h2 className="text-2xl font-bold mb-4 pb-3 border-b border-[#E8E3D9] dark:border-[#262422] flex items-center gap-3">
                 <span className="w-1.5 h-6 rounded-full bg-[#EA580C]" />
-                Middle-Man Gateway Architecture
+                API Gateway Architecture
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
                 When you deploy Opuszyra, you become the authoritative API gateway for your users. Clients send requests to your domain (<code className="font-mono text-[#EA580C]">{cleanDomain}</code>), and your server handles authentication, quota validation, and forwards traffic seamlessly to the upstream inference provider.
@@ -309,7 +309,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                     <div className="w-10 h-10 rounded-xl bg-[#EA580C] text-white flex items-center justify-center mx-auto mb-2 shadow-md">
                       <Server className="w-5 h-5" />
                     </div>
-                    <div className="text-xs font-bold text-[#EA580C]">Your Middle-Man Server</div>
+                    <div className="text-xs font-bold text-[#EA580C]">Your Gateway Server</div>
                     <div className="text-[11px] text-stone-500 font-mono mt-1">{cleanDomain}</div>
                     <div className="mt-2 text-[10px] text-stone-400">
                       • Auth &amp; Key Verification<br />
@@ -334,7 +334,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
               {/* Environment Variables Configuration Guide */}
               <h3 className="text-base font-bold mb-3 flex items-center gap-2">
                 <Settings className="w-4 h-4 text-[#EA580C]" />
-                <span>Configuring Your Middle-Man Server (.env)</span>
+                <span>Configuring Your Gateway Server (.env)</span>
               </h3>
               <p className="text-xs text-stone-600 dark:text-stone-400 mb-3">
                 In your backend server directory (<code className="font-mono bg-stone-100 dark:bg-[#1A1918] px-1 py-0.5 rounded">server/.env</code>), configure the upstream URL and your public gateway domain:
@@ -344,7 +344,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
                   <span>server/.env</span>
                   <button
-                    onClick={() => copyToClipboard(`PORT=5000\n\n# Upstream Passthrough API Base URL\nUPSTREAM_API_BASE=https://api.upstream-service.com\n\n# Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)\nUPSTREAM_API_KEY=\n\n# Middle-Man Public API Domain (The domain your users connect to)\nAPI_DOMAIN=${cleanDomain}\n\n# Supabase Configuration\nSUPABASE_URL=https://hakvgesghjxccbbufokf.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=\nSUPABASE_ANON_KEY=`, 'env-file-snippet')}
+                    onClick={() => copyToClipboard(`PORT=5000\n\n# Upstream Passthrough API Base URL\nUPSTREAM_API_BASE=https://api.upstream-service.com\n\n# Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)\nUPSTREAM_API_KEY=\n\n# Public API Domain (The domain your users connect to)\nAPI_DOMAIN=${cleanDomain}\n\n# Supabase Configuration\nSUPABASE_URL=https://hakvgesghjxccbbufokf.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=\nSUPABASE_ANON_KEY=`, 'env-file-snippet')}
                     className="flex items-center gap-1 text-stone-400 hover:text-white transition"
                   >
                     {copiedSnippetId === 'env-file-snippet' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -360,7 +360,7 @@ UPSTREAM_API_BASE=https://api.upstream-service.com
 # Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)
 UPSTREAM_API_KEY=
 
-# Middle-Man Public API Domain (The domain your users connect to)
+# Public API Domain (The domain your users connect to)
 API_DOMAIN=${cleanDomain}
 
 # Supabase Configuration
@@ -408,7 +408,7 @@ SUPABASE_ANON_KEY=...`}</code>
 
               <h3 className="text-base font-bold mb-3">Connecting Clients to Your Gateway</h3>
               <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
-                Configure your environment variables to point directly to your Middle-Man gateway:
+                Configure your environment variables to point directly to your Opuszyra gateway:
               </p>
 
               <div className="dark-code-box relative group rounded-2xl border border-[#262320] bg-[#0F0E0D] overflow-hidden mb-6 shadow-md">
@@ -556,10 +556,10 @@ SUPABASE_ANON_KEY=...`}</code>
                         : sdkTab === 'typescript'
                         ? `import Anthropic from '@anthropic-ai/sdk';\n\nconst anthropic = new Anthropic({\n  apiKey: 'YOUR_API_KEY',\n  baseURL: '${cleanDomain}',\n});\n\nconst response = await anthropic.messages.create({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 1024,\n  messages: [{ role: 'user', content: 'Write a TypeScript quicksort.' }],\n});\n\nconsole.log(response.content[0]);`
                         : sdkTab === 'curl'
-                        ? `curl ${v1Base}/messages \\\n  -H "x-api-key: YOUR_API_KEY" \\\n  -H "anthropic-version: 2023-06-01" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "model": "claude-opus-4-8",\n    "max_tokens": 1024,\n    "messages": [{"role": "user", "content": "Hello via Middle-Man!"}]\n  }'`
+                        ? `curl ${v1Base}/messages \\\n  -H "x-api-key: YOUR_API_KEY" \\\n  -H "anthropic-version: 2023-06-01" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "model": "claude-opus-4-8",\n    "max_tokens": 1024,\n    "messages": [{"role": "user", "content": "Hello via Opuszyra!"}]\n  }'`
                         : sdkTab === 'sse'
                         ? `import anthropic\n\nclient = anthropic.Anthropic(api_key="YOUR_API_KEY", base_url="${cleanDomain}")\n\nwith client.messages.stream(\n    max_tokens=1024,\n    messages=[{"role": "user", "content": "Write an essay about AI autonomous swarms."}],\n    model="claude-sonnet-4-6",\n) as stream:\n    for text in stream.text_stream:\n        print(text, end="", flush=True)`
-                        : `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_API_KEY",\n    base_url="${v1Base}",\n)\n\nresponse = client.chat.completions.create(\n    model="claude-sonnet-4-6",\n    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Middle-Man!"}],\n)\nprint(response.choices[0].message.content)`;
+                        : `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_API_KEY",\n    base_url="${v1Base}",\n)\n\nresponse = client.chat.completions.create(\n    model="claude-sonnet-4-6",\n    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Opuszyra!"}],\n)\nprint(response.choices[0].message.content)`;
                       copyToClipboard(snippet, `sdk-${sdkTab}`);
                     }}
                     className="flex items-center gap-1.5 text-stone-400 hover:text-white transition"
@@ -572,7 +572,7 @@ SUPABASE_ANON_KEY=...`}</code>
                   {sdkTab === 'python' && (
                     <code>{`import anthropic
 
-# Initialize the client pointing to your Middle-Man Gateway
+# Initialize the client pointing to your Opuszyra Gateway
 client = anthropic.Anthropic(
     api_key="YOUR_API_KEY",
     base_url="${cleanDomain}",
@@ -592,7 +592,7 @@ print(message.content[0].text)`}</code>
                   {sdkTab === 'typescript' && (
                     <code>{`import Anthropic from '@anthropic-ai/sdk';
 
-// Initialize the client pointing to your Middle-Man
+// Initialize the client pointing to your Opuszyra Gateway
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'YOUR_API_KEY',
   baseURL: '${cleanDomain}',
@@ -616,7 +616,7 @@ console.log(response.content[0]);`}</code>
     "model": "claude-opus-4-8",
     "max_tokens": 1024,
     "messages": [
-      { "role": "user", "content": "Hello from raw cURL via Middle-Man!" }
+      { "role": "user", "content": "Hello from raw cURL via Opuszyra!" }
     ]
   }'`}</code>
                   )}
@@ -642,7 +642,7 @@ with client.messages.stream(
                   {sdkTab === 'openai' && (
                     <code>{`from openai import OpenAI
 
-# OpenAI SDK directed to your Middle-Man Gateway
+# OpenAI SDK directed to your Opuszyra Gateway
 client = OpenAI(
     api_key="YOUR_API_KEY",
     base_url="${v1Base}",
@@ -650,7 +650,7 @@ client = OpenAI(
 
 response = client.chat.completions.create(
     model="claude-sonnet-4-6",
-    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Middle-Man!"}],
+    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Opuszyra!"}],
 )
 
 print(response.choices[0].message.content)`}</code>
@@ -668,7 +668,7 @@ print(response.choices[0].message.content)`}</code>
 
               <div className="mb-6 p-5 rounded-2xl border border-[#EA580C]/30 bg-orange-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-[11px] font-bold text-[#EA580C] uppercase tracking-wider block mb-1">Your Middle-Man Gateway Base URL</span>
+                  <span className="text-[11px] font-bold text-[#EA580C] uppercase tracking-wider block mb-1">Your Gateway Base URL</span>
                   <code className="text-base font-mono font-bold text-stone-900 dark:text-white bg-white/50 dark:bg-black/50 px-2.5 py-1 rounded border border-orange-500/20 select-all">
                     {cleanDomain}
                   </code>
@@ -931,7 +931,7 @@ print(response.choices[0].message.content)`}</code>
                     a: 'Your 5-hour rolling token window has reached capacity. Check remaining seconds on the Check Usage page or wait for the countdown timer.'
                   },
                   {
-                    q: 'How does Middle-Man Passthrough bypass work?',
+                    q: 'How does Direct Passthrough bypass work?',
                     a: 'Your server receives requests on /v1/messages, validates key/tokens, and streams directly to the upstream engine with zero buffering.'
                   },
                   {
@@ -949,7 +949,7 @@ print(response.choices[0].message.content)`}</code>
               {/* Bottom Support Callout */}
               <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 text-center">
                 <h3 className="text-base font-bold text-[#EA580C] mb-1">
-                  Ready to test your Middle-Man Gateway?
+                  Ready to test your Opuszyra Gateway?
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
                   Check live token usage, test streaming completions, or verify system health.

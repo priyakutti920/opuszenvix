@@ -160,7 +160,7 @@ export function getAnchoredWindowTimer(token: string, candidateResetStr?: string
 export async function checkKey(keyToken: string): Promise<CheckKeyData> {
   const token = keyToken.trim();
 
-  // 1. Try local Middle-Man /api/key-status
+  // 1. Try local Gateway /api/key-status
   try {
     const json = await safeJsonFetch(`${API_BASE}/key-status`, {
       method: 'POST',
