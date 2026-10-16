@@ -87,7 +87,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <span className="text-[#EA580C]">Opuszyra</span> API &amp; Gateway Docs
           </h1>
           <p className="text-stone-600 dark:text-stone-400 text-base max-w-3xl leading-relaxed">
-            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway. Run your own branded API gateway with automatic passthrough bypass to the upstream inference engine, real-time token status inspections, and zero-latency SSE token streaming.
+            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway with automatic passthrough bypass to the upstream inference engine, real-time token status inspections, and zero-latency SSE token streaming.
           </p>
         </div>
 
@@ -177,8 +177,8 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   },
                   {
                     emoji: '🌐',
-                    title: 'Your Branded API Domain',
-                    desc: 'Host your gateway on your custom domain (api.yourdomain.com) and serve developers under your brand.'
+                    title: 'High Availability Gateway',
+                    desc: 'Connect directly to https://api.opuszyra.live with ultra-reliable routing, zero buffering, and 99.9% uptime.'
                   },
                   {
                     emoji: '💰',

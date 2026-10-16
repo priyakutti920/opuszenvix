@@ -79,7 +79,6 @@ export interface SystemStats {
   gatewayLatencyMs: number;
   activeModelsCount: number;
   supportedArchitectures: string[];
-  middleManDomain?: string;
   upstreamUrl?: string;
 }
 
