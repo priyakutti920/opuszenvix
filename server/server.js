@@ -2,11 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import keysRouter, { handleKeyStatusInspection } from './routes/keys.js';
 import anthropicRouter from './routes/anthropicProxy.js';
 import statsRouter from './routes/stats.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDist = path.join(__dirname, '../client/dist');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -99,13 +105,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`🚀 Opuszyra Middle-Man AI Gateway running on port ${PORT}`);
-  console.log(`🌐 Middle-Man Public Domain: ${API_DOMAIN}`);
-  console.log(`📡 Upstream Passthrough URL: ${UPSTREAM_API_BASE}`);
-  console.log(`⚡ Anthropic Proxy: http://localhost:${PORT}/v1/messages`);
-  console.log(`🔑 Key Status Inspector: http://localhost:${PORT}/api/key-status`);
-  console.log(`📊 System Status: http://localhost:${PORT}/api/status`);
-  console.log(`=======================================================`);
+// Serve frontend static build files if present
+app.use(express.static(clientDist));
+
+// SPA Fallback for all other routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/v1') || req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(clientDist, 'index.html'), (err) => {
+    if (err) next();
+  });
 });
+
+// Start listener only when running standalone (not inside Vercel serverless functions)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`🚀 Opuszyra Middle-Man AI Gateway running on port ${PORT}`);
+    console.log(`🌐 Middle-Man Public Domain: ${API_DOMAIN}`);
+    console.log(`📡 Upstream Passthrough URL: ${UPSTREAM_API_BASE}`);
+    console.log(`⚡ Anthropic Proxy: http://localhost:${PORT}/v1/messages`);
+    console.log(`🔑 Key Status Inspector: http://localhost:${PORT}/api/key-status`);
+    console.log(`📊 System Status: http://localhost:${PORT}/api/status`);
+    console.log(`=======================================================`);
+  });
+}
+
+export default app;
