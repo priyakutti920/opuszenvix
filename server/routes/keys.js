@@ -22,7 +22,8 @@ const evaluateRollingWindow = (key) => {
   const msRemaining = Math.max(0, new Date(key.window_resets_at).getTime() - now.getTime());
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-  const secondsRemaining = Math.floor((msRemaining % (1000 * 60)) / 1000);
+  const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
+  const secondsRemaining = Math.floor(msRemaining / 1000);
 
   const limit = Number(key.window_token_limit || 25000000);
   const used = Number(key.window_tokens_used || 0);
@@ -33,7 +34,7 @@ const evaluateRollingWindow = (key) => {
     ...key,
     percentUsed,
     percentRemaining,
-    timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsRemaining).padStart(2, '0')}`,
+    timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`,
     secondsRemaining
   };
 };
@@ -65,13 +66,24 @@ export const handleKeyStatusInspection = async (req, res) => {
     // 1. Fetch real-time status from upstream API (https://api.opuszen.shop/api/key-status)
     let upstreamData = null;
     try {
-      const upRes = await fetch(`${upstreamBase}/api/key-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: trimmedKey })
+      // First try GET with query string (upstream primary format)
+      const getRes = await fetch(`${upstreamBase}/api/key-status?key=${encodeURIComponent(trimmedKey)}`, {
+        signal: AbortSignal.timeout(5000),
+        headers: { 'Accept': 'application/json' }
       });
-      if (upRes.ok) {
-        upstreamData = await upRes.json();
+      if (getRes.ok) {
+        upstreamData = await getRes.json();
+      } else {
+        // Fallback to POST with JSON body
+        const postRes = await fetch(`${upstreamBase}/api/key-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ key: trimmedKey }),
+          signal: AbortSignal.timeout(5000)
+        });
+        if (postRes.ok) {
+          upstreamData = await postRes.json();
+        }
       }
     } catch (upErr) {
       console.warn(`Upstream key-status query to ${upstreamBase} warning:`, upErr.message);
@@ -105,9 +117,10 @@ export const handleKeyStatusInspection = async (req, res) => {
     const msRemaining = Math.max(0, resetDate.getTime() - now.getTime());
     const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
     const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-    const secondsRemaining = Math.floor((msRemaining % (1000 * 60)) / 1000);
+    const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
+    const secondsRemaining = Math.floor(msRemaining / 1000);
 
-    const tokenLimit = upstreamData?.windowTokensLimit || localRecord?.window_token_limit || 25000000;
+    const tokenLimit = upstreamData?.windowTokensLimit || localRecord?.window_token_limit || 10000000;
     const tokensUsed = upstreamData?.windowTokensUsed ?? (localRecord?.window_tokens_used || 0);
     const remainingTokens = upstreamData?.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
     const percentUsed = upstreamData?.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
@@ -118,15 +131,10 @@ export const handleKeyStatusInspection = async (req, res) => {
       : trimmedKey;
 
     const allowedModels = upstreamData?.allowedModels || [
-      'claude-fable-5-1',
-      'claude-opus-5-5',
-      'claude-sonnet-5',
       'claude-opus-4-8',
       'claude-opus-4-7',
       'claude-sonnet-4-6',
-      'claude-3-7-sonnet-20250219',
-      'claude-3-5-sonnet-20241022',
-      'claude-3-5-haiku-20241022'
+      'claude-haiku-4-5-20251001'
     ];
 
     const result = {
@@ -134,10 +142,10 @@ export const handleKeyStatusInspection = async (req, res) => {
       status: 'ok',
       isRealtime: upstreamData?.isRealtime ?? true,
       keyStatus: upstreamData?.keyStatus || localRecord?.status || 'active',
-      name: localRecord?.name || upstreamData?.name || 'API Key',
+      name: upstreamData?.name || localRecord?.name || 'API Key',
       key: {
         id: localRecord?.id || 'upstream-key',
-        name: localRecord?.name || upstreamData?.name || 'API Key',
+        name: upstreamData?.name || localRecord?.name || 'API Key',
         key_token: trimmedKey,
         masked_token: masked,
         tier: localRecord?.tier || (tokenLimit >= 50000000 ? '20x' : '5x'),
@@ -149,13 +157,24 @@ export const handleKeyStatusInspection = async (req, res) => {
         window_tokens_remaining: remainingTokens,
         percentUsed,
         percentRemaining,
-        timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsRemaining).padStart(2, '0')}`,
+        timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`,
         secondsRemaining,
         window_started_at: localRecord?.window_started_at || new Date(resetDate.getTime() - 5 * 60 * 60 * 1000).toISOString(),
         window_resets_at: resetTimeStr,
         total_tokens_consumed: localRecord?.total_tokens_consumed || tokensUsed,
         total_requests: upstreamData?.totalRequests ?? (localRecord?.total_requests || 0),
-        models_accessible: allowedModels
+        successRequests: upstreamData?.successRequests ?? 0,
+        failedRequests: upstreamData?.failedRequests ?? 0,
+        last24hRequests: upstreamData?.last24h?.requests ?? 0,
+        allocatedCredits: upstreamData?.allocatedCredits ?? 0,
+        usedCredits: upstreamData?.usedCredits ?? 0,
+        remainingCredits: upstreamData?.remainingCredits ?? 0,
+        models_accessible: allowedModels,
+        allowedProviders: upstreamData?.allowedProviders || ['opuslive'],
+        connectionStatus: upstreamData?.connectionStatus || 'Online',
+        unlimited: upstreamData?.unlimited ?? false,
+        windowActive: upstreamData?.windowActive ?? true,
+        rawPayload: upstreamData
       },
       // Upstream-compatible root fields
       unlimited: upstreamData?.unlimited ?? false,
@@ -177,7 +196,8 @@ export const handleKeyStatusInspection = async (req, res) => {
       allocatedCredits: upstreamData?.allocatedCredits ?? 0,
       usedCredits: upstreamData?.usedCredits ?? 0,
       remainingCredits: upstreamData?.remainingCredits ?? 0,
-      recentLogs: upstreamData?.recentLogs || []
+      recentLogs: upstreamData?.recentLogs || [],
+      rawPayload: upstreamData
     };
 
     return res.json(result);

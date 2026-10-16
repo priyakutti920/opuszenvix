@@ -49,6 +49,13 @@ export interface CheckKeyData {
   allowedProviders?: string[];
   successRequests?: number;
   failedRequests?: number;
+  last24hRequests?: number;
+  allocatedCredits?: number;
+  usedCredits?: number;
+  remainingCredits?: number;
+  unlimited?: boolean;
+  windowActive?: boolean;
+  rawPayload?: any;
 }
 
 export interface UsageLog {

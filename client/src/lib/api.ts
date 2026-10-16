@@ -128,7 +128,13 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: token, key_token: token }),
     });
-    if (json.key || json.status === 'ok') return json.key || json;
+    if (json.key || json.status === 'ok') {
+      const data = json.key || json;
+      return {
+        ...data,
+        rawPayload: json.rawPayload || json
+      };
+    }
   } catch {
     // Proceed to secondary fallback
   }
@@ -140,28 +146,55 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key_token: token }),
     });
-    if (json.key) return json.key;
+    if (json.key) {
+      return {
+        ...json.key,
+        rawPayload: json.rawPayload || json
+      };
+    }
   } catch {
     // Proceed to direct upstream
   }
 
   // 3. Resilient Direct Upstream Bypass to https://api.opuszen.shop/api/key-status
   try {
-    const upRes = await fetch(`${UPSTREAM_API_BASE}/api/key-status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: token })
-    });
+    let upData: any = null;
+    
+    // First try GET query format
+    try {
+      const getRes = await fetch(`${UPSTREAM_API_BASE}/api/key-status?key=${encodeURIComponent(token)}`, {
+        signal: AbortSignal.timeout(6000),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (getRes.ok) {
+        upData = await getRes.json();
+      }
+    } catch {
+      // ignore and try POST
+    }
 
-    if (upRes.ok) {
-      const upData = await upRes.json();
+    // Fallback to POST
+    if (!upData) {
+      const postRes = await fetch(`${UPSTREAM_API_BASE}/api/key-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ key: token }),
+        signal: AbortSignal.timeout(6000)
+      });
+      if (postRes.ok) {
+        upData = await postRes.json();
+      }
+    }
+
+    if (upData) {
       const now = new Date();
       const resetTimeStr = upData.windowResetAt || new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
       const resetDate = new Date(resetTimeStr);
       const msRemaining = Math.max(0, resetDate.getTime() - now.getTime());
       const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
       const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-      const secondsRemaining = Math.floor((msRemaining % (1000 * 60)) / 1000);
+      const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
+      const secondsRemaining = Math.floor(msRemaining / 1000);
 
       const tokenLimit = upData.windowTokensLimit || 10000000;
       const tokensUsed = upData.windowTokensUsed || 0;
@@ -184,20 +217,30 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         window_tokens_remaining: remainingTokens,
         percentUsed,
         percentRemaining: Math.max(0, 100 - percentUsed),
-        timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsRemaining).padStart(2, '0')}`,
+        timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`,
         secondsRemaining,
         window_started_at: new Date(resetDate.getTime() - 5 * 60 * 60 * 1000).toISOString(),
         window_resets_at: resetTimeStr,
         total_tokens_consumed: upData.totalRequests ? tokensUsed : 0,
         total_requests: upData.totalRequests || 0,
+        successRequests: upData.successRequests || 0,
+        failedRequests: upData.failedRequests || 0,
+        last24hRequests: upData.last24h?.requests || 0,
+        allocatedCredits: upData.allocatedCredits ?? 0,
+        usedCredits: upData.usedCredits ?? 0,
+        remainingCredits: upData.remainingCredits ?? 0,
+        unlimited: upData.unlimited ?? false,
+        windowActive: upData.windowActive ?? true,
         models_accessible: upData.allowedModels || [
           'claude-opus-4-8',
           'claude-opus-4-7',
           'claude-sonnet-4-6',
           'claude-haiku-4-5-20251001'
         ],
+        allowedProviders: upData.allowedProviders || ['opuslive'],
         isRealtime: true,
-        connectionStatus: 'Online'
+        connectionStatus: upData.connectionStatus || 'Online',
+        rawPayload: upData
       };
     }
   } catch {
