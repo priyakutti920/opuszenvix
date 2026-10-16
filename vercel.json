@@ -6,18 +6,10 @@
   "rewrites": [
     {
       "source": "/v1/:path*",
-      "destination": "/api/index.js"
+      "destination": "/api"
     },
     {
-      "source": "/api/v1/:path*",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/((?!api|v1).*)",
+      "source": "/((?!api/|v1/|api$|v1$).*)",
       "destination": "/index.html"
     }
   ]

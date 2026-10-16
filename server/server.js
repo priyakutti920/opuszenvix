@@ -118,6 +118,14 @@ app.get('*', (req, res, next) => {
   });
 });
 
+// Catch-all JSON 404 for unhandled API and v1 routes (never return HTML)
+app.use(['/api', '/v1'], (req, res) => {
+  res.status(404).json({
+    error: `Endpoint not found: ${req.method} ${req.originalUrl || req.url}`,
+    status: 404
+  });
+});
+
 // Start listener only when running standalone (not inside Vercel serverless functions)
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
