@@ -189,8 +189,15 @@ html.light body {
 
 /* Page Root Backgrounds */
 html.light .bg-\[\#07080c\],
-html.light .bg-dark-950 {
-  background-color: #fafbfc !important;
+html.light .bg-dark-950,
+html.light .bg-dark-950\/95,
+html.light .bg-dark-950\/90,
+html.light .bg-dark-950\/80,
+html.light .bg-dark-950\/70,
+html.light .bg-dark-950\/60,
+html.light .bg-dark-950\/50,
+html.light .bg-dark-950\/40 {
+  background-color: #f8fafc !important;
 }
 
 html.light .bg-\[\#0a0c12\] {
@@ -205,12 +212,14 @@ html.light header.bg-dark-950\/80 {
 
 /* Card Backgrounds */
 html.light .bg-dark-900,
+html.light .bg-dark-900\/95,
+html.light .bg-dark-900\/90,
+html.light .bg-dark-900\/80,
+html.light .bg-dark-900\/70,
 html.light .bg-dark-900\/60,
 html.light .bg-dark-900\/40,
-html.light .bg-dark-900\/80,
-html.light .bg-dark-900\/90,
-html.light .bg-dark-900\/95,
 html.light .bg-dark-850,
+html.light .bg-dark-850\/90,
 html.light .bg-dark-850\/80,
 html.light .bg-dark-850\/60 {
   background-color: #ffffff !important;
