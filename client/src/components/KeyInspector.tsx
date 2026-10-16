@@ -37,7 +37,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   const [copiedJson, setCopiedJson] = useState(false);
   const [showRawJson, setShowRawJson] = useState(false);
 
-  const handleInspect = async (tokenToTest?: string) => {
+  const handleInspect = async (tokenToTest?: string, forceFresh?: boolean) => {
     const target = tokenToTest || inputKey;
     if (!target.trim()) {
       setError('Please enter a valid Opuszyra or Opuszen API key.');
@@ -48,6 +48,10 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     setError(null);
 
     try {
+      if (forceFresh && typeof window !== 'undefined') {
+        const safeToken = target.trim().slice(0, 48);
+        localStorage.removeItem(`opuszyra_window_anchor_${safeToken}`);
+      }
       const data = await checkKey(target.trim());
       setKeyData(data);
       setCountdown(data.timeRemainingFormatted || '00:00:00');
@@ -73,7 +77,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     let secLeft = keyData.secondsRemaining;
     if (keyData.window_resets_at) {
       const diff = Math.max(0, Math.floor((new Date(keyData.window_resets_at).getTime() - Date.now()) / 1000));
-      if (diff > 0) secLeft = diff;
+      secLeft = diff;
     }
 
     if (secLeft <= 0) {
@@ -121,8 +125,8 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     if (!keyData) return;
     try {
       setLoading(true);
-      await resetKeyWindow(keyData.id);
-      await handleInspect(keyData.key_token);
+      await resetKeyWindow(keyData.id, keyData.key_token);
+      await handleInspect(keyData.key_token, true);
     } catch (err: any) {
       setError(err.message || 'Failed to simulate window reset.');
     } finally {

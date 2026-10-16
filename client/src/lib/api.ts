@@ -118,6 +118,45 @@ export async function generateKey(name: string, tier: PlanTier): Promise<ApiKey>
   return json.key;
 }
 
+// Persist rolling window reset anchor per key in localStorage so page refreshes never reset the timer back to 5:00:00
+export function getAnchoredWindowTimer(token: string, candidateResetStr?: string) {
+  const now = Date.now();
+  const safeToken = token.trim().slice(0, 48);
+  const storageKey = `opuszyra_window_anchor_${safeToken}`;
+
+  let anchorStr = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+  let resetTime = anchorStr ? new Date(anchorStr).getTime() : 0;
+
+  // If no anchor exists or previous anchor has expired, initialize a fresh anchor
+  if (!resetTime || resetTime <= now) {
+    const candidateTime = candidateResetStr ? new Date(candidateResetStr).getTime() : 0;
+    if (candidateTime && candidateTime > now && candidateTime <= now + 5.5 * 3600 * 1000) {
+      resetTime = candidateTime;
+    } else {
+      resetTime = now + 5 * 3600 * 1000;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(storageKey, new Date(resetTime).toISOString());
+      } catch {
+        // localStorage restricted or quota exceeded
+      }
+    }
+  }
+
+  const msRemaining = Math.max(0, resetTime - now);
+  const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+  const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
+  const secondsRemaining = Math.floor(msRemaining / 1000);
+
+  return {
+    window_resets_at: new Date(resetTime).toISOString(),
+    secondsRemaining,
+    timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`
+  };
+}
+
 export async function checkKey(keyToken: string): Promise<CheckKeyData> {
   const token = keyToken.trim();
 
@@ -130,8 +169,12 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
     });
     if (json.key || json.status === 'ok') {
       const data = json.key || json;
+      const timer = getAnchoredWindowTimer(token, data.window_resets_at || data.windowResetAt);
       return {
         ...data,
+        window_resets_at: timer.window_resets_at,
+        secondsRemaining: timer.secondsRemaining,
+        timeRemainingFormatted: timer.timeRemainingFormatted,
         rawPayload: json.rawPayload || json
       };
     }
@@ -147,8 +190,12 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
       body: JSON.stringify({ key_token: token }),
     });
     if (json.key) {
+      const timer = getAnchoredWindowTimer(token, json.key.window_resets_at);
       return {
         ...json.key,
+        window_resets_at: timer.window_resets_at,
+        secondsRemaining: timer.secondsRemaining,
+        timeRemainingFormatted: timer.timeRemainingFormatted,
         rawPayload: json.rawPayload || json
       };
     }
@@ -187,14 +234,7 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
     }
 
     if (upData) {
-      const now = new Date();
-      const resetTimeStr = upData.windowResetAt || new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
-      const resetDate = new Date(resetTimeStr);
-      const msRemaining = Math.max(0, resetDate.getTime() - now.getTime());
-      const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-      const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-      const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
-      const secondsRemaining = Math.floor(msRemaining / 1000);
+      const timer = getAnchoredWindowTimer(token, upData.windowResetAt);
 
       const tokenLimit = upData.windowTokensLimit || 10000000;
       const tokensUsed = upData.windowTokensUsed || 0;
@@ -217,10 +257,10 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         window_tokens_remaining: remainingTokens,
         percentUsed,
         percentRemaining: Math.max(0, 100 - percentUsed),
-        timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`,
-        secondsRemaining,
-        window_started_at: new Date(resetDate.getTime() - 5 * 60 * 60 * 1000).toISOString(),
-        window_resets_at: resetTimeStr,
+        timeRemainingFormatted: timer.timeRemainingFormatted,
+        secondsRemaining: timer.secondsRemaining,
+        window_started_at: new Date(new Date(timer.window_resets_at).getTime() - 5 * 60 * 60 * 1000).toISOString(),
+        window_resets_at: timer.window_resets_at,
         total_tokens_consumed: upData.totalRequests ? tokensUsed : 0,
         total_requests: upData.totalRequests || 0,
         successRequests: upData.successRequests || 0,
@@ -254,7 +294,11 @@ export async function deleteKey(id: string): Promise<void> {
   await safeJsonFetch(`${API_BASE}/keys/${id}`, { method: 'DELETE' });
 }
 
-export async function resetKeyWindow(id: string): Promise<void> {
+export async function resetKeyWindow(id: string, keyToken?: string): Promise<void> {
+  if (keyToken && typeof window !== 'undefined') {
+    const safeToken = keyToken.trim().slice(0, 48);
+    localStorage.removeItem(`opuszyra_window_anchor_${safeToken}`);
+  }
   await safeJsonFetch(`${API_BASE}/keys/${id}/reset-window`, { method: 'POST' });
 }
 

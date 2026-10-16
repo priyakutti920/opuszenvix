@@ -7,6 +7,9 @@ const router = express.Router();
 
 const getUpstreamBase = () => (process.env.UPSTREAM_API_BASE || 'https://api.opuszen.shop').replace(/\/+$/, '');
 
+// In-memory persistent window anchors (persists established window expiration across re-checks & refreshes)
+const windowAnchors = new Map();
+
 // Helper: refresh 5-hour window if expired locally
 const evaluateRollingWindow = (key) => {
   const now = new Date();
@@ -68,7 +71,7 @@ export const handleKeyStatusInspection = async (req, res) => {
     try {
       // First try GET with query string (upstream primary format)
       const getRes = await fetch(`${upstreamBase}/api/key-status?key=${encodeURIComponent(trimmedKey)}`, {
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(8000),
         headers: { 'Accept': 'application/json' }
       });
       if (getRes.ok) {
@@ -79,7 +82,7 @@ export const handleKeyStatusInspection = async (req, res) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify({ key: trimmedKey }),
-          signal: AbortSignal.timeout(5000)
+          signal: AbortSignal.timeout(8000)
         });
         if (postRes.ok) {
           upstreamData = await postRes.json();
@@ -110,15 +113,35 @@ export const handleKeyStatusInspection = async (req, res) => {
       });
     }
 
-    // Compute unified status values
+    // Compute unified status values with persistent anchored rolling window
     const now = new Date();
-    const resetTimeStr = upstreamData?.windowResetAt || localRecord?.window_resets_at || new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
+    let resetTimeStr = null;
+    let windowStartedAt = null;
+
+    // Check if we already have an active anchored window for this key
+    const existingAnchor = windowAnchors.get(trimmedKey);
+    if (existingAnchor && new Date(existingAnchor.resetAt) > now) {
+      // Preserve existing anchored deadline so refreshing doesn't restart from 5h
+      resetTimeStr = existingAnchor.resetAt;
+      windowStartedAt = existingAnchor.startedAt;
+    } else if (localRecord?.window_resets_at && new Date(localRecord.window_resets_at) > now) {
+      resetTimeStr = localRecord.window_resets_at;
+      windowStartedAt = localRecord.window_started_at || new Date(new Date(resetTimeStr).getTime() - 5 * 3600 * 1000).toISOString();
+      windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
+    } else {
+      // Establish a consistent 5-hour cycle anchor
+      windowStartedAt = now.toISOString();
+      resetTimeStr = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
+      windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
+    }
+
     const resetDate = new Date(resetTimeStr);
     const msRemaining = Math.max(0, resetDate.getTime() - now.getTime());
     const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
     const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
     const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
     const secondsRemaining = Math.floor(msRemaining / 1000);
+    const timeRemainingFormatted = `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`;
 
     const tokenLimit = upstreamData?.windowTokensLimit || localRecord?.window_token_limit || 10000000;
     const tokensUsed = upstreamData?.windowTokensUsed ?? (localRecord?.window_tokens_used || 0);
@@ -304,6 +327,11 @@ router.post('/:id/reset-window', async (req, res) => {
       window_started_at: now.toISOString(),
       window_resets_at: resetsAt
     }).eq('id', id);
+
+    // Clear memory anchor
+    for (const [key] of windowAnchors.entries()) {
+      windowAnchors.delete(key);
+    }
 
     return res.json({ success: true, message: '5-hour window reset successfully' });
   } catch (err) {
