@@ -8,7 +8,7 @@ interface PricingProps {
 
 export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
-  const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20OpusZen%20API%20plan.";
+  const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
 
   return (
     <div id="pricing" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,7 +49,7 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
         </div>
       </div>
 
-      {/* 3 Plans Grid (From opuszen.shop/pricing) */}
+      {/* 3 Plans Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch max-w-6xl mx-auto">
         
         {/* CARD 1: 5x Plan */}

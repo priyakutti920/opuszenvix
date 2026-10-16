@@ -35,7 +35,7 @@ interface FaqItem {
 const FAQS: FaqItem[] = [
   {
     q: "How does the 5-hour rolling window work?",
-    a: "Unlike official Anthropic or Claude Pro which enforces strict 24-hour cliff cutoffs, OpusZen continuously replenishes your token allowance on a 5-hour rolling schedule. If you burn through a burst of tokens running autonomous agents, your quota begins recovering in 5 hours instead of waiting until midnight tomorrow."
+    a: "Unlike official Anthropic or Claude Pro which enforces strict 24-hour cliff cutoffs, Opuszyra continuously replenishes your token allowance on a 5-hour rolling schedule. If you burn through a burst of tokens running autonomous agents, your quota begins recovering in 5 hours instead of waiting until midnight tomorrow."
   },
   {
     q: "How do I pay with UPI, Indian Cards, or USDT?",
@@ -47,7 +47,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "Can I share my key across multiple tools or machines?",
-    a: "Absolutely. You can use your OpusZen key simultaneously in Cursor, Claude Code CLI, Cline, Roo Code, Python scripts, and CI/CD pipelines as long as your concurrent usage stays within your plan's RPM and TPM limits."
+    a: "Absolutely. You can use your Opuszyra key simultaneously in Cursor, Claude Code CLI, Cline, Roo Code, Python scripts, and CI/CD pipelines as long as your concurrent usage stays within your plan's RPM and TPM limits."
   },
   {
     q: "What models are supported?",
@@ -99,10 +99,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20OpusZen%20API%20plan.";
+  const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
 
   const handleCopyConfig = () => {
-    navigator.clipboard.writeText('export ANTHROPIC_BASE_URL=https://api.opuszen.shop/v1\nexport ANTHROPIC_API_KEY=opm-live-your_key_here');
+    navigator.clipboard.writeText('export ANTHROPIC_BASE_URL=https://api.opuszyra.live/v1\nexport ANTHROPIC_API_KEY=opm-live-your_key_here');
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
@@ -363,7 +363,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
               <span>Architectural Advantage</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Why Engineers Switch to OpusZen
+              Why Engineers Switch to Opuszyra
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-2">
               Continuous rolling throughput, zero cliff lockouts, and 100% free prompt caching reads.
@@ -379,7 +379,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                       Capability
                     </th>
                     <th className="py-4 px-6 font-black text-[#EA580C] uppercase tracking-wider text-[11px] bg-orange-500/5">
-                      OpusZen Gateway ⚡
+                      Opuszyra Gateway ⚡
                     </th>
                     <th className="py-4 px-6 font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider text-[11px]">
                       Claude Pro ($20/mo)
@@ -477,8 +477,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
             </div>
 
             <div className="font-mono text-xs text-amber-300 space-y-1 overflow-x-auto py-1">
-              <p><span className="text-stone-500"># Point Anthropic clients to OpusZen Gateway</span></p>
-              <p className="text-emerald-400">export ANTHROPIC_BASE_URL="https://api.opuszen.shop/v1"</p>
+              <p><span className="text-stone-500"># Point Anthropic clients to Opuszyra Gateway</span></p>
+              <p className="text-emerald-400">export ANTHROPIC_BASE_URL="https://api.opuszyra.live/v1"</p>
               <p className="text-emerald-400">export ANTHROPIC_API_KEY="opm-live-your_key_here"</p>
               <p><span className="text-stone-500"># Run Claude Code CLI immediately with 5x / 20x capacity</span></p>
               <p className="text-white">claude --model claude-3-7-sonnet-20250219</p>

@@ -31,7 +31,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
 
   const plan = PLAN_META[tier] || PLAN_META['5x'];
   const depositAddress = 'TJ8yQp3s9W8f2NmK1L9x7P4v6B3c8D1e0Z';
-  const upiId = 'opuszen@ybl';
+  const upiId = 'opuszyra@ybl';
   const whatsappUrl = `https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20the%20${encodeURIComponent(plan.name)}%20(₹${plan.priceInr}%20INR).`;
 
   const handleCopyAddr = () => {
@@ -273,7 +273,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
             {/* Key Presentation Box */}
             <div className="p-4 rounded-2xl bg-[#141312] border border-emerald-500/30 text-left space-y-2">
               <div className="flex items-center justify-between text-[11px] text-stone-400 font-mono">
-                <span>YOUR OPUSZEN API KEY</span>
+                <span>YOUR OPUSZYRA API KEY</span>
                 <span className="text-emerald-400 font-bold">Status: Active</span>
               </div>
               <div className="p-2.5 rounded-lg bg-[#0a0a09] border border-white/5 font-mono text-xs text-amber-300 break-all select-all">
@@ -289,7 +289,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
             </div>
 
             <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-stone-400 text-left font-mono">
-              💡 Setup in Claude Code: <code className="text-orange-400">export ANTHROPIC_BASE_URL=https://api.opuszen.shop/v1</code>
+              💡 Setup in Claude Code: <code className="text-orange-400">export ANTHROPIC_BASE_URL=https://api.opuszyra.live/v1</code>
             </div>
 
             <button

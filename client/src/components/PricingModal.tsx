@@ -191,7 +191,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               <Zap className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-white">OpusZen Plans &amp; Activation</h2>
+              <h2 className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
               <p className="text-xs text-stone-400">Instant API keys · UPI (INR), USDT &amp; WhatsApp Onboarding</p>
             </div>
           </div>

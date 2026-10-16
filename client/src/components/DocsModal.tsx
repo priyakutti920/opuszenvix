@@ -37,7 +37,7 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
           <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 text-xs font-mono text-slate-300">
             <p className="font-semibold text-orange-400 text-sm mb-1">Standard Gateway URL</p>
             <code className="text-white bg-dark-950 px-2 py-1 rounded border border-white/10">
-              https://api.opuszen.shop/v1
+              https://api.opuszyra.live/v1
             </code>
             <p className="mt-2 text-slate-400">
               All Anthropic official endpoints (<code className="text-slate-300">/v1/messages</code>, <code className="text-slate-300">/v1/complete</code>) are mapped 1:1 with unbuffered streaming and prompt caching support.
@@ -56,7 +56,7 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
               <div className="rounded-lg bg-dark-950 p-3 border border-white/5">
                 <span className="font-semibold text-slate-200 block">Does Claude Code work out of the box?</span>
                 <span className="mt-1 block">
-                  Yes! Simply run <code className="text-orange-400">export ANTHROPIC_BASE_URL="https://api.opuszen.shop"</code> and <code className="text-orange-400">export ANTHROPIC_API_KEY="opm-live-..."</code> before launching <code className="text-slate-200">claude</code>.
+                  Yes! Simply run <code className="text-orange-400">export ANTHROPIC_BASE_URL="https://api.opuszyra.live"</code> and <code className="text-orange-400">export ANTHROPIC_API_KEY="opm-live-..."</code> before launching <code className="text-slate-200">claude</code>.
                 </span>
               </div>
               <div className="rounded-lg bg-dark-950 p-3 border border-white/5">

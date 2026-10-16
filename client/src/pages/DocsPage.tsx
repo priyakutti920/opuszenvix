@@ -91,10 +91,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <span className="text-[#EA580C]">Opuszyra</span> API &amp; Middle-Man Docs
           </h1>
           <p className="text-stone-600 dark:text-stone-400 text-base max-w-3xl leading-relaxed">
-            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway. Run your own branded Middle-Man gateway with automatic passthrough bypass to{' '}
-            <code className="text-xs font-mono bg-stone-100 dark:bg-[#1A1918] text-[#EA580C] px-2 py-0.5 rounded font-semibold border border-stone-200 dark:border-[#2B2724]">
-              https://api.opuszen.shop
-            </code>, real-time token status inspections, and zero-latency SSE token streaming.
+            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway. Run your own branded Middle-Man gateway with automatic passthrough bypass to the upstream inference engine, real-time token status inspections, and zero-latency SSE token streaming.
           </p>
         </div>
 
@@ -227,10 +224,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 Overview
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                Opuszyra is an ultra-low latency, Anthropic-compatible API gateway and proxy bypass system. It acts as a middle-man proxy forwarding requests to the upstream inference engine at{' '}
-                <code className="text-xs font-mono bg-stone-100 dark:bg-[#1A1918] text-[#EA580C] px-1.5 py-0.5 rounded font-semibold border border-stone-200 dark:border-[#2B2724]">
-                  https://api.opuszen.shop
-                </code>. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your middle-man domain:{' '}
+                Opuszyra is an ultra-low latency, Anthropic-compatible API gateway and proxy bypass system. It acts as a middle-man proxy forwarding requests seamlessly to the upstream inference engine. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your middle-man domain:{' '}
                 <code className="text-xs font-mono bg-orange-500/10 text-[#EA580C] px-1.5 py-0.5 rounded font-bold border border-orange-500/20">
                   {v1Base}
                 </code>.
@@ -241,7 +235,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   {
                     emoji: '🔀',
                     title: 'Middle-Man Passthrough Bypass',
-                    desc: 'Seamlessly forward /v1/messages, /v1/models, and /v1/chat/completions to https://api.opuszen.shop with zero buffering.'
+                    desc: 'Seamlessly forward /v1/messages, /v1/models, and /v1/chat/completions with zero buffering and low latency.'
                   },
                   {
                     emoji: '⚡',
@@ -289,7 +283,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 Middle-Man Gateway Architecture
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                When you deploy Opuszyra, you become the authoritative API gateway for your users. Clients send requests to your domain (<code className="font-mono text-[#EA580C]">{cleanDomain}</code>), and your server handles authentication, quota validation, and forwards traffic seamlessly to the upstream provider (<code className="font-mono text-[#EA580C]">https://api.opuszen.shop</code>).
+                When you deploy Opuszyra, you become the authoritative API gateway for your users. Clients send requests to your domain (<code className="font-mono text-[#EA580C]">{cleanDomain}</code>), and your server handles authentication, quota validation, and forwards traffic seamlessly to the upstream inference provider.
               </p>
 
               {/* Architecture Diagram Box */}
@@ -329,7 +323,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                       <Cpu className="w-5 h-5" />
                     </div>
                     <div className="text-xs font-bold text-stone-900 dark:text-white">Upstream Engine</div>
-                    <div className="text-[11px] text-stone-500 font-mono mt-1">https://api.opuszen.shop</div>
+                    <div className="text-[11px] text-stone-500 font-mono mt-1">Upstream Gateway</div>
                     <div className="mt-2 text-[10px] text-emerald-500 font-mono bg-emerald-500/5 p-1 rounded">
                       Claude 3.7 / 3.5 / 4 / 5 Models
                     </div>
@@ -350,7 +344,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
                   <span>server/.env</span>
                   <button
-                    onClick={() => copyToClipboard(`PORT=5000\n\n# Upstream Passthrough API Base URL\nUPSTREAM_API_BASE=https://api.opuszen.shop\n\n# Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)\nUPSTREAM_API_KEY=\n\n# Middle-Man Public API Domain (The domain your users connect to)\nAPI_DOMAIN=${cleanDomain}\n\n# Supabase Configuration\nSUPABASE_URL=https://hakvgesghjxccbbufokf.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=\nSUPABASE_ANON_KEY=`, 'env-file-snippet')}
+                    onClick={() => copyToClipboard(`PORT=5000\n\n# Upstream Passthrough API Base URL\nUPSTREAM_API_BASE=https://api.upstream-service.com\n\n# Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)\nUPSTREAM_API_KEY=\n\n# Middle-Man Public API Domain (The domain your users connect to)\nAPI_DOMAIN=${cleanDomain}\n\n# Supabase Configuration\nSUPABASE_URL=https://hakvgesghjxccbbufokf.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=\nSUPABASE_ANON_KEY=`, 'env-file-snippet')}
                     className="flex items-center gap-1 text-stone-400 hover:text-white transition"
                   >
                     {copiedSnippetId === 'env-file-snippet' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -361,7 +355,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   <code>{`PORT=5000
 
 # Upstream Passthrough API Base URL
-UPSTREAM_API_BASE=https://api.opuszen.shop
+UPSTREAM_API_BASE=https://api.upstream-service.com
 
 # Master Upstream API Key (Optional: proxies requests for clients who don't have their own upstream key)
 UPSTREAM_API_KEY=
@@ -681,7 +675,7 @@ print(response.choices[0].message.content)`}</code>
                 </div>
                 <div className="text-xs text-stone-500">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 text-[#EA580C] font-semibold border border-orange-500/20">
-                    Upstream: https://api.opuszen.shop
+                    Upstream: Connected &amp; Active
                   </span>
                   <p className="mt-1 text-[11px]">Supports both /v1/ and /api/v1/ endpoints</p>
                 </div>
@@ -754,7 +748,7 @@ print(response.choices[0].message.content)`}</code>
                 Token Status &amp; Quota API
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                Inspect API key balances, remaining tokens in the 5-hour rolling window, countdown to quota reset, allowed models, and real-time connectivity status. Queries the upstream engine (<code className="font-mono text-[#EA580C]">https://api.opuszen.shop/api/key-status</code>) directly.
+                Inspect API key balances, remaining tokens in the 5-hour rolling window, countdown to quota reset, allowed models, and real-time connectivity status. Queries the upstream engine directly.
               </p>
 
               {/* Endpoint Specification */}
@@ -867,7 +861,7 @@ print(response.choices[0].message.content)`}</code>
                     <tr>
                       <td className="px-5 py-3.5 font-mono font-bold text-rose-600 dark:text-rose-400">502 Gateway</td>
                       <td className="px-5 py-3.5 font-semibold">api_error</td>
-                      <td className="px-5 py-3.5 text-stone-500 dark:text-stone-400">Upstream provider error connecting to https://api.opuszen.shop. Check server logs.</td>
+                      <td className="px-5 py-3.5 text-stone-500 dark:text-stone-400">Upstream provider error connecting to upstream service. Check server logs.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -938,7 +932,7 @@ print(response.choices[0].message.content)`}</code>
                   },
                   {
                     q: 'How does Middle-Man Passthrough bypass work?',
-                    a: 'Your server receives requests on /v1/messages, validates key/tokens, and streams directly to https://api.opuszen.shop with zero buffering.'
+                    a: 'Your server receives requests on /v1/messages, validates key/tokens, and streams directly to the upstream engine with zero buffering.'
                   },
                   {
                     q: 'Can I use a master upstream key for all my users?',

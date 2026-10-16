@@ -40,7 +40,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   const handleInspect = async (tokenToTest?: string, forceFresh?: boolean) => {
     const target = tokenToTest || inputKey;
     if (!target.trim()) {
-      setError('Please enter a valid Opuszyra or Opuszen API key.');
+      setError('Please enter a valid Opuszyra API key.');
       return;
     }
 
@@ -234,7 +234,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span>Realtime Upstream (api.opuszen.shop)</span>
+                      <span>Realtime Upstream Gateway</span>
                     </span>
                     {keyData.unlimited && (
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
