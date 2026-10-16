@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Clock, ShieldCheck, Zap, AlertCircle, CheckCircle2, RotateCw, Sparkles, ExternalLink } from 'lucide-react';
+import { Key, Clock, ShieldCheck, Zap, AlertCircle, RotateCw } from 'lucide-react';
 import { checkKey, resetKeyWindow } from '../lib/api';
 import { CheckKeyData } from '../types';
 
@@ -302,25 +302,6 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                     {(keyData.total_tokens_consumed / 1_000_000).toFixed(1)}M ({keyData.total_requests} reqs)
                   </span>
                 </div>
-              </div>
-            </div>
-
-            {/* Accessible Models List */}
-            <div className="p-4 rounded-xl bg-dark-950/40 border border-white/5">
-              <div className="text-xs uppercase tracking-wider font-mono text-slate-400 mb-3 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-                <span>Unlocked Models with this Key:</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {keyData.models_accessible.map((model) => (
-                  <span
-                    key={model}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono bg-white/[0.04] text-slate-300 border border-white/5"
-                  >
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    <span>{model}</span>
-                  </span>
-                ))}
               </div>
             </div>
           </div>
