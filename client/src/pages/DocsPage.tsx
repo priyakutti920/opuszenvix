@@ -56,11 +56,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
   const [sdkTab, setSdkTab] = useState<'python' | 'typescript' | 'curl' | 'sse' | 'openai'>('python');
 
-  // Interactive Middle Man Domain state
-  const [middleManDomain, setMiddleManDomain] = useState<string>('https://api.opuszyra.live');
-  const [customKeyPlaceholder, setCustomKeyPlaceholder] = useState<string>('YOUR_API_KEY');
-
-  const cleanDomain = middleManDomain.trim().replace(/\/+$/, '') || 'https://api.opuszyra.live';
+  const cleanDomain = 'https://api.opuszyra.live';
   const v1Base = `${cleanDomain}/v1`;
 
   const copyToClipboard = (text: string, id: string) => {
@@ -95,75 +91,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           </p>
         </div>
 
-        {/* Interactive Middle Man Domain Configurator Bar */}
-        <div className="mb-10 p-5 rounded-3xl border border-orange-500/30 bg-gradient-to-r from-orange-500/[0.07] via-amber-500/[0.04] to-transparent shadow-lg backdrop-blur-xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-1">
-                <Globe className="w-4 h-4" />
-                <span>Interactive Domain Configurator</span>
-              </div>
-              <p className="text-xs text-stone-600 dark:text-stone-400">
-                Type your custom domain below. All code examples, SDK snippets, cURL requests, and IDE configurations update instantly!
-              </p>
-            </div>
 
-            {/* Presets */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[11px] font-mono text-stone-500 hidden sm:inline">Presets:</span>
-              <button
-                onClick={() => setMiddleManDomain('https://api.opuszyra.live')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
-                  cleanDomain === 'https://api.opuszyra.live'
-                    ? 'bg-[#EA580C] text-white border-[#EA580C]'
-                    : 'bg-black/5 dark:bg-white/5 border-stone-200 dark:border-[#2B2724] text-stone-700 dark:text-stone-300 hover:border-[#EA580C]'
-                }`}
-              >
-                api.opuszyra.live
-              </button>
-              <button
-                onClick={() => setMiddleManDomain('http://localhost:5000')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
-                  cleanDomain === 'http://localhost:5000'
-                    ? 'bg-[#EA580C] text-white border-[#EA580C]'
-                    : 'bg-black/5 dark:bg-white/5 border-stone-200 dark:border-[#2B2724] text-stone-700 dark:text-stone-300 hover:border-[#EA580C]'
-                }`}
-              >
-                localhost:5000
-              </button>
-              <button
-                onClick={() => setMiddleManDomain('https://api.yourdomain.com')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
-                  cleanDomain === 'https://api.yourdomain.com'
-                    ? 'bg-[#EA580C] text-white border-[#EA580C]'
-                    : 'bg-black/5 dark:bg-white/5 border-stone-200 dark:border-[#2B2724] text-stone-700 dark:text-stone-300 hover:border-[#EA580C]'
-                }`}
-              >
-                api.yourdomain.com
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
-                <Globe className="w-4 h-4 text-[#EA580C]" />
-              </div>
-              <input
-                type="text"
-                value={middleManDomain}
-                onChange={(e) => setMiddleManDomain(e.target.value)}
-                placeholder="Enter your custom API domain (e.g. https://api.yourdomain.com)"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-[#141312] border border-orange-500/30 focus:border-[#EA580C] focus:ring-1 focus:ring-[#EA580C] font-mono text-xs sm:text-sm text-stone-900 dark:text-white outline-none transition-all shadow-inner"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 dark:bg-[#181716] border border-stone-200 dark:border-[#2B2724] text-xs font-mono shrink-0">
-              <span className="text-stone-500">Active v1 Base:</span>
-              <span className="font-bold text-[#EA580C] select-all">{v1Base}</span>
-            </div>
-          </div>
-        </div>
 
         {/* Layout: Sticky Navigation on Left + Docs Content on Right */}
         <div className="flex flex-col lg:flex-row gap-10">
