@@ -1,15 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { KeyInspector } from '../components/KeyInspector';
 import { 
   Key, 
   Clock, 
-  Zap, 
   ShieldCheck, 
-  Sparkles, 
-  ArrowRight, 
-  Terminal, 
-  HelpCircle,
-  RotateCcw
+  Sparkles 
 } from 'lucide-react';
 
 interface CheckUsagePageProps {
@@ -18,7 +13,6 @@ interface CheckUsagePageProps {
 }
 
 export const CheckUsagePage: React.FC<CheckUsagePageProps> = ({ 
-  onOpenPricing,
   initialKey 
 }) => {
   return (
@@ -45,7 +39,7 @@ export const CheckUsagePage: React.FC<CheckUsagePageProps> = ({
         </div>
 
         {/* Information Grid: How the 5-Hour Cycle Works */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
               <Clock className="w-5 h-5" />
@@ -76,25 +70,6 @@ export const CheckUsagePage: React.FC<CheckUsagePageProps> = ({
             </p>
           </div>
         </div>
-
-        {/* Need more capacity CTA */}
-        {onOpenPricing && (
-          <div className="rounded-2xl border border-white/10 bg-dark-900/40 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur-xl">
-            <div>
-              <h4 className="text-lg font-bold text-white">Need higher throughput or more agent capacity?</h4>
-              <p className="text-xs text-slate-400 mt-1">
-                Upgrade to the 20× Autonomous Agent tier for 100M tokens per window and 1,000,000 TPM.
-              </p>
-            </div>
-            <button
-              onClick={onOpenPricing}
-              className="px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold font-mono text-xs sm:text-sm tracking-wide shrink-0 flex items-center gap-2 shadow-lg shadow-brand-500/20 transition"
-            >
-              <span>Explore Plans</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
       </div>
     </div>
