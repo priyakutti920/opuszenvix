@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Liquid Glass Segmented Theme Switcher (iOS 26)</title>
+  <style>
+    /* CSS RESET & TOKENS */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Inter, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* THEME COLOR SCHEMES */
+    [data-theme="light"] {
+      --c: #0f172a;
+      --accent-ring: #0284c7;
+      --switcher-bg: rgba(255, 255, 255, 0.28);
+      --switcher-border: rgba(255, 255, 255, 0.55);
+      --thumb-bg: rgba(255, 255, 255, 0.72);
+      --thumb-border: rgba(255, 255, 255, 0.85);
+      --glass-specular-top: rgba(255, 255, 255, 0.85);
+      --glass-specular-bottom: rgba(255, 255, 255, 0.35);
+      --shadow-outer: 0 10px 32px rgba(15, 23, 42, 0.12);
+      --shadow-inset-top: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      --shadow-inset-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.35);
+      --badge-bg: rgba(255, 255, 255, 0.45);
+      --text-primary: #0f172a;
+      --text-secondary: rgba(15, 23, 42, 0.7);
+      --card-bg: rgba(255, 255, 255, 0.32);
+      --card-border: rgba(255, 255, 255, 0.55);
+    }
+
+    [data-theme="dark"] {
+      --c: #ffffff;
+      --accent-ring: #38bdf8;
+      --switcher-bg: rgba(255, 255, 255, 0.10);
+      --switcher-border: rgba(255, 255, 255, 0.22);
+      --thumb-bg: rgba(255, 255, 255, 0.24);
+      --thumb-border: rgba(255, 255, 255, 0.40);
+      --glass-specular-top: rgba(255, 255, 255, 0.65);
+      --glass-specular-bottom: rgba(255, 255, 255, 0.20);
+      --shadow-outer: 0 12px 36px rgba(0, 0, 0, 0.35);
+      --shadow-inset-top: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+      --shadow-inset-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.2);
+      --badge-bg: rgba(255, 255, 255, 0.12);
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.75);
+      --card-bg: rgba(15, 20, 32, 0.45);
+      --card-border: rgba(255, 255, 255, 0.15);
+    }
+
+    [data-theme="dim"] {
+      --c: #e2e8f0;
+      --accent-ring: #818cf8;
+      --switcher-bg: rgba(30, 41, 59, 0.35);
+      --switcher-border: rgba(255, 255, 255, 0.18);
+      --thumb-bg: rgba(255, 255, 255, 0.18);
+      --thumb-border: rgba(255, 255, 255, 0.32);
+      --glass-specular-top: rgba(255, 255, 255, 0.50);
+      --glass-specular-bottom: rgba(255, 255, 255, 0.15);
+      --shadow-outer: 0 12px 34px rgba(0, 0, 0, 0.28);
+      --shadow-inset-top: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+      --shadow-inset-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.15);
+      --badge-bg: rgba(255, 255, 255, 0.10);
+      --text-primary: #f1f5f9;
+      --text-secondary: rgba(226, 232, 240, 0.75);
+      --card-bg: rgba(30, 41, 59, 0.40);
+      --card-border: rgba(255, 255, 255, 0.14);
+    }
+
+    /* PAGE LAYOUT WITH VIBRANT FLUID MESH BACKGROUND */
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+      background-color: #0b0f19;
+      color: var(--text-primary);
+      transition: color 300ms ease;
+    }
+
+    /* DYNAMIC COLORFUL BACKGROUND CANVAS TO SHOWCASE GLASS REFRACTION */
+    .backdrop-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      transition: opacity 600ms ease;
+    }
+
+    .bg-gradient-mesh {
+      position: absolute;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(circle at 28% 28%, rgba(244, 63, 94, 0.75) 0%, transparent 40%),
+        radial-gradient(circle at 72% 32%, rgba(56, 189, 248, 0.85) 0%, transparent 45%),
+        radial-gradient(circle at 50% 68%, rgba(168, 85, 247, 0.8) 0%, transparent 45%),
+        radial-gradient(circle at 80% 75%, rgba(249, 115, 22, 0.7) 0%, transparent 40%),
+        radial-gradient(circle at 20% 75%, rgba(16, 185, 129, 0.6) 0%, transparent 35%);
+      filter: blur(65px);
+      animation: rotateMesh 22s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+    }
+
+    /* SECONDARY GRAPHIC ELEMENTS BEHIND SWITCHER TO EMPHASIZE LENS DISTORTION */
+    .refraction-test-strip {
+      position: absolute;
+      width: 320px;
+      height: 6px;
+      background: linear-gradient(90deg, #f43f5e, #eab308, #10b981, #06b6d4, #8b5cf6);
+      border-radius: 999px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.85;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .refraction-test-grid {
+      position: absolute;
+      width: 360px;
+      height: 180px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-image: 
+        radial-gradient(circle, rgba(255, 255, 255, 0.25) 1.5px, transparent 1.5px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 20px 20px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes rotateMesh {
+      0% {
+        transform: rotate(0deg) scale(1);
+      }
+      50% {
+        transform: rotate(8deg) scale(1.08);
+      }
+      100% {
+        transform: rotate(-6deg) scale(1.02);
+      }
+    }
+
+    /* MAIN STAGE */
+    .showcase-container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 40px 20px;
+      max-width: 640px;
+      width: 100%;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: var(--badge-bg);
+      border: 1px solid var(--switcher-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      color: var(--text-primary);
+    }
+
+    .header-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-align: center;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+
+    .header-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 440px;
+      line-height: 1.5;
+    }
+
+    /* ========================================================
+       APPLE "LIQUID GLASS" SEGMENTED THEME SWITCHER (iOS 26)
+       ======================================================== */
+    
+    .liquid-glass-wrapper {
+      position: relative;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* THE HORIZONTAL PILL CONTAINER */
+    .liquid-glass-switcher {
+      /* SHAPE & LAYOUT */
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      padding: 4px; /* 4px inner padding */
+      border-radius: 999px; /* Horizontal pill container */
+      box-sizing: border-box;
+      
+      /* GLASS EFFECT */
+      background: var(--switcher-bg);
+      border: 1px solid var(--switcher-border);
+
+      /* FALLBACK: Plain blur & saturate */
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+
+      /* LAYERED INSET SHADOWS & SOFT OUTER SHADOW */
+      box-shadow: 
+        var(--shadow-inset-top),
+        var(--shadow-inset-bottom),
+        var(--shadow-outer);
+
+      transition: background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+      user-select: none;
+      -webkit-user-select: none;
+      z-index: 5;
+    }
+
+    /* SVG BACKDROP FILTER REFRACTION (with fallback check) */
+    @supports (backdrop-filter: url(#switcher) blur(12px)) {
+      .liquid-glass-switcher {
+        backdrop-filter: url(#switcher) blur(12px) saturate(180%);
+        -webkit-backdrop-filter: url(#switcher) blur(12px) saturate(180%);
+      }
+    }
+
+    /* FAINT SPECULAR GRADIENT HIGHLIGHT ON THE TOP EDGE */
+    .liquid-glass-switcher::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      padding: 1px;
+      background: linear-gradient(
+        180deg, 
+        var(--glass-specular-top) 0%, 
+        rgba(255, 255, 255, 0.05) 45%, 
+        var(--glass-specular-bottom) 100%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* LENS APERTURE SPECULAR TOP CREST */
+    .liquid-glass-switcher::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 18px;
+      right: 18px;
+      height: 10px;
+      background: radial-gradient(
+        ellipse at 50% 0%, 
+        rgba(255, 255, 255, 0.5) 0%, 
+        rgba(255, 255, 255, 0) 75%
+      );
+      border-radius: 999px 999px 0 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    /* ========================================================
+       ACTIVE INDICATOR ("THUMB" PILL)
+       ======================================================== */
+    .liquid-thumb {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 1;
+
+      /* Brighter and more opaque than container with stronger inner highlight */
+      background: var(--thumb-bg);
+      border: 1px solid var(--thumb-border);
+      backdrop-filter: blur(14px) brightness(1.15) saturate(190%);
+      -webkit-backdrop-filter: blur(14px) brightness(1.15) saturate(190%);
+      box-shadow: 
+        inset 0 1px 1.5px rgba(255, 255, 255, 0.85),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.3),
+        0 4px 14px rgba(0, 0, 0, 0.16);
+
+      /* SPRINGY LIQUID EASING (cubic-bezier(0.5, 1.6, 0.4, 1)) */
+      transition: 
+        transform 400ms cubic-bezier(0.5, 1.6, 0.4, 1),
+        background-color 250ms ease,
+        border-color 250ms ease,
+        box-shadow 250ms ease;
+      will-change: transform;
+    }
+
+    /* THUMB POSITION DRIVEN BY ACTIVE INDEX */
+    .liquid-glass-switcher[data-active="0"] .liquid-thumb {
+      transform: translateX(0px);
+    }
+    .liquid-glass-switcher[data-active="1"] .liquid-thumb {
+      transform: translateX(48px);
+    }
+    .liquid-glass-switcher[data-active="2"] .liquid-thumb {
+      transform: translateX(96px);
+    }
+
+    /* LIQUID STRETCH / SQUISH ANIMATIONS (scaleX ~1.15) */
+    .liquid-glass-switcher.is-animating[data-direction="forward"] .liquid-thumb {
+      animation: liquidStretchForward 400ms cubic-bezier(0.5, 1.6, 0.4, 1) forwards;
+    }
+
+    .liquid-glass-switcher.is-animating[data-direction="backward"] .liquid-thumb {
+      animation: liquidStretchBackward 400ms cubic-bezier(0.5, 1.6, 0.4, 1) forwards;
+    }
+
+    @keyframes liquidStretchForward {
+      0% {
+        transform: translateX(calc(var(--from-index) * 48px)) scaleX(1) scaleY(1);
+        transform-origin: left center;
+      }
+      38% {
+        transform: translateX(calc((var(--from-index) * 0.4 + var(--to-index) * 0.6) * 48px)) scaleX(1.16) scaleY(0.92);
+        transform-origin: left center;
+      }
+      75% {
+        transform: translateX(calc(var(--to-index) * 48px)) scaleX(0.96) scaleY(1.03);
+        transform-origin: center center;
+      }
+      100% {
+        transform: translateX(calc(var(--to-index) * 48px)) scaleX(1) scaleY(1);
+        transform-origin: center center;
+      }
+    }
+
+    @keyframes liquidStretchBackward {
+      0% {
+        transform: translateX(calc(var(--from-index) * 48px)) scaleX(1) scaleY(1);
+        transform-origin: right center;
+      }
+      38% {
+        transform: translateX(calc((var(--from-index) * 0.4 + var(--to-index) * 0.6) * 48px)) scaleX(1.16) scaleY(0.92);
+        transform-origin: right center;
+      }
+      75% {
+        transform: translateX(calc(var(--to-index) * 48px)) scaleX(0.96) scaleY(1.03);
+        transform-origin: center center;
+      }
+      100% {
+        transform: translateX(calc(var(--to-index) * 48px)) scaleX(1) scaleY(1);
+        transform-origin: center center;
+      }
+    }
+
+    /* ========================================================
+       SQUARE OPTIONS & ACCESSIBLE INPUTS
+       ======================================================== */
+    
+    .switcher-option-label {
+      position: relative;
+      width: 48px;  /* 3 equal square options (~48x48px) */
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 999px;
+      z-index: 2;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    /* VISUALLY HIDDEN BUT FULLY ACCESSIBLE RADIO INPUTS */
+    .switcher-radio {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* VISIBLE FOCUS-VISIBLE RING (2px, accent color) FOR KEYBOARD USERS */
+    .switcher-radio:focus-visible + .switcher-option-label {
+      outline: 2px solid var(--accent-ring);
+      outline-offset: 2px;
+    }
+
+    /* ========================================================
+       ICONS: SUN (LIGHT), MOON (DARK), SUN-WITH-HORIZON (DIM)
+       Thin outline line-icons, filled/colored via CSS variable --c
+       ======================================================== */
+    
+    .switcher-icon {
+      width: 24px;  /* ~24px rendered */
+      height: 24px;
+      display: block;
+      color: var(--c);
+      opacity: 0.55; /* Inactive icons: ~55% opacity */
+      transition: 
+        opacity 200ms ease, 
+        transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        color 200ms ease,
+        filter 200ms ease;
+      will-change: transform, opacity;
+      pointer-events: none;
+    }
+
+    /* Thin outline stroke styles */
+    .switcher-icon path,
+    .switcher-icon line,
+    .switcher-icon circle {
+      stroke: var(--c);
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      transition: stroke 200ms ease;
+    }
+
+    /* ACTIVE ICON: --c = full-contrast color, 100% opacity */
+    .switcher-option[data-checked="true"] .switcher-icon {
+      opacity: 1;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+    }
+
+    /* HOVER: scale(1.08) on the icon */
+    .switcher-option-label:hover .switcher-icon {
+      transform: scale(1.08);
+      opacity: 0.85;
+    }
+    .switcher-option[data-checked="true"] .switcher-option-label:hover .switcher-icon {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+
+    /* ACTIVE PRESS: scale(0.94) */
+    .switcher-option-label:active .switcher-icon {
+      transform: scale(0.94);
+    }
+
+    /* ========================================================
+       PREFERS-REDUCED-MOTION
+       ======================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      .liquid-thumb {
+        transition: transform 120ms ease, opacity 120ms ease !important;
+        animation: none !important;
+      }
+      .liquid-glass-switcher.is-animating .liquid-thumb {
+        animation: none !important;
+      }
+      .switcher-icon {
+        transition: opacity 120ms ease !important;
+        transform: none !important;
+      }
+      .switcher-option-label:hover .switcher-icon,
+      .switcher-option-label:active .switcher-icon {
+        transform: none !important;
+      }
+      .bg-gradient-mesh {
+        animation: none !important;
+      }
+    }
+
+    /* THEME PREVIEW CARD */
+    .theme-card {
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      border-radius: 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: background-color 300ms ease, border-color 300ms ease;
+    }
+
+    .card-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .card-value {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--switcher-border);
+    }
+
+    /* BACKGROUND TOGGLE PALETTE FOR DEMO */
+    .bg-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .bg-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease;
+    }
+    .bg-btn:hover {
+      transform: scale(1.15);
+    }
+    .bg-btn.active {
+      border-color: #ffffff;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG FILTER DEFINITION: Edge Refraction Lens Distortion Map -->
+  <svg width="0" height="0" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;" aria-hidden="true">
+    <defs>
+      <!-- Displacement map for the segmented pill lens distortion -->
+      <filter id="switcher" primitiveUnits="objectBoundingBox" x="-15%" y="-15%" width="130%" height="130%">
+        <!-- Inline generated vector lens gradient normal map -->
+        <feImage 
+          id="lensMap"
+          result="lensMap" 
+          preserveAspectRatio="none" 
+          width="100%" 
+          height="100%"
+          href="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='152' height='56' viewBox='0 0 152 56'%3E%3Cdefs%3E%3ClinearGradient id='gx' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%23ff8080'/%3E%3Cstop offset='14%25' stop-color='%23808080'/%3E%3Cstop offset='86%25' stop-color='%23808080'/%3E%3Cstop offset='100%25' stop-color='%23008080'/%3E%3C/linearGradient%3E%3ClinearGradient id='gy' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%2380ff80'/%3E%3Cstop offset='20%25' stop-color='%23808080'/%3E%3Cstop offset='80%25' stop-color='%23808080'/%3E%3Cstop offset='100%25' stop-color='%23800080'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='152' height='56' rx='28' fill='%23808080'/%3E%3Crect width='152' height='56' rx='28' fill='url(%23gx)' style='mix-blend-mode: screen'/%3E%3Crect width='152' height='56' rx='28' fill='url(%23gy)' style='mix-blend-mode: overlay'/%3E%3C/svg%3E" 
+        />
+        <feDisplacementMap 
+          in="SourceGraphic" 
+          in2="lensMap" 
+          scale="0.04" 
+          xChannelSelector="R" 
+          yChannelSelector="G" 
+        />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- DYNAMIC COLORFUL MESH BACKDROP -->
+  <div class="backdrop-canvas" id="backdropCanvas">
+    <div class="bg-gradient-mesh" id="bgMesh"></div>
+  </div>
+
+  <main class="showcase-container">
+    
+    <div class="header-badge">
+      <span> iOS 26 Liquid Glass</span>
+    </div>
+
+    <div>
+      <h1 class="header-title">Apple Segmented Theme Switcher</h1>
+      <p class="header-desc">
+        Crafted with physical edge refraction, dynamic liquid stretch spring physics, and Apple translucent glass tokens.
+      </p>
+    </div>
+
+    <!-- SWITCHER STAGE WITH UNDER-LENS REFRACTION TEST GRAPHICS -->
+    <div class="liquid-glass-wrapper">
+      <!-- High-frequency chromatic stripe and grid behind the switcher to clearly display refraction -->
+      <div class="refraction-test-grid"></div>
+      <div class="refraction-test-strip"></div>
+
+      <!-- THE COMPACT 3-OPTION SEGMENTED THEME SWITCHER -->
+      <fieldset 
+        class="liquid-glass-switcher" 
+        id="themeSwitcher" 
+        data-active="1" 
+        data-previous="0" 
+        data-direction="forward"
+        aria-label="Theme Selection"
+      >
+        <legend class="switcher-radio">Choose color theme</legend>
+
+        <!-- ACTIVE INDICATOR: Sliding Liquid Glass Thumb -->
+        <div class="liquid-thumb" aria-hidden="true"></div>
+
+        <!-- OPTION 0: LIGHT (SUN) -->
+        <div class="switcher-option" data-index="0" data-checked="false">
+          <input 
+            type="radio" 
+            name="theme-choice" 
+            id="theme-light" 
+            value="light" 
+            class="switcher-radio"
+          />
+          <label for="theme-light" class="switcher-option-label" title="Light theme" aria-label="Light mode">
+            <!-- Sun Icon (viewBox: 0 0 36 36, ~24px rendered) -->
+            <svg class="switcher-icon" viewBox="0 0 36 36" aria-hidden="true">
+              <!-- Central sun orb -->
+              <circle cx="18" cy="18" r="6.2" />
+              <!-- Radiating rays -->
+              <line x1="18" y1="4.5" x2="18" y2="7.5" />
+              <line x1="18" y1="28.5" x2="18" y2="31.5" />
+              <line x1="4.5" y1="18" x2="7.5" y2="18" />
+              <line x1="28.5" y1="18" x2="31.5" y2="18" />
+              <line x1="8.4" y1="8.4" x2="10.6" y2="10.6" />
+              <line x1="25.4" y1="25.4" x2="27.6" y2="27.6" />
+              <line x1="8.4" y1="27.6" x2="10.6" y2="25.4" />
+              <line x1="25.4" y1="10.6" x2="27.6" y2="8.4" />
+            </svg>
+          </label>
+        </div>
+
+        <!-- OPTION 1: DARK (MOON) -->
+        <div class="switcher-option" data-index="1" data-checked="true">
+          <input 
+            type="radio" 
+            name="theme-choice" 
+            id="theme-dark" 
+            value="dark" 
+            class="switcher-radio"
+            checked
+          />
+          <label for="theme-dark" class="switcher-option-label" title="Dark theme" aria-label="Dark mode">
+            <!-- Moon Icon (viewBox: 0 0 36 36, ~24px rendered) -->
+            <svg class="switcher-icon" viewBox="0 0 36 36" aria-hidden="true">
+              <path d="M 23.2 8.4 C 21.9 7.8 20.4 7.5 18.8 7.5 C 12.5 7.5 7.5 12.5 7.5 18.8 C 7.5 25 12.5 30 18.8 30 C 24 30 28.3 26.6 29.7 21.8 C 26.8 22.8 23.6 22.1 21.3 19.8 C 19 17.5 18.3 14.3 19.3 11.4 C 20.2 9.9 21.5 8.9 23.2 8.4 Z" />
+            </svg>
+          </label>
+        </div>
+
+        <!-- OPTION 2: DIM (SUN-WITH-HORIZON) -->
+        <div class="switcher-option" data-index="2" data-checked="false">
+          <input 
+            type="radio" 
+            name="theme-choice" 
+            id="theme-dim" 
+            value="dim" 
+            class="switcher-radio"
+          />
+          <label for="theme-dim" class="switcher-option-label" title="Dim theme" aria-label="Dim mode">
+            <!-- Sun-with-horizon Icon (viewBox: 0 0 36 36, ~24px rendered) -->
+            <svg class="switcher-icon" viewBox="0 0 36 36" aria-hidden="true">
+              <!-- Water Horizon line -->
+              <line x1="5.5" y1="23.5" x2="30.5" y2="23.5" />
+              <!-- Setting Sun arc -->
+              <path d="M 10.5 23.5 A 7.5 7.5 0 0 1 25.5 23.5" />
+              <!-- Horizon twilight rays -->
+              <line x1="18" y1="7" x2="18" y2="10" />
+              <line x1="10.5" y1="10.2" x2="12.8" y2="12.6" />
+              <line x1="25.5" y1="10.2" x2="23.2" y2="12.6" />
+              <line x1="6.5" y1="17.5" x2="9.5" y2="18.5" />
+              <line x1="29.5" y1="17.5" x2="26.5" y2="18.5" />
+              <!-- Submerged reflections -->
+              <line x1="13.5" y1="27.5" x2="22.5" y2="27.5" />
+              <line x1="15.5" y1="31" x2="20.5" y2="31" />
+            </svg>
+          </label>
+        </div>
+
+      </fieldset>
+    </div>
+
+    <!-- ACTIVE STATE INSPECTOR CARD -->
+    <div class="theme-card">
+      <div class="card-row">
+        <span class="card-label">Active Preset</span>
+        <span class="card-value" id="statusThemeName">Dark Mode</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">Backdrop Filter</span>
+        <span class="card-value" id="statusFilterSupport">url(#switcher) + blur(12px)</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">Fluid Stretch Transition</span>
+        <span class="card-value">scaleX(1.16) spring</span>
+      </div>
+      <div class="card-row">
+        <span class="card-label">Test Background</span>
+        <div class="bg-controls" role="group" aria-label="Background styles">
+          <button class="bg-btn active" style="background: linear-gradient(135deg, #f43f5e, #38bdf8)" data-bg="aurora" title="Aurora Mesh"></button>
+          <button class="bg-btn" style="background: linear-gradient(135deg, #f59e0b, #ec4899)" data-bg="sunset" title="Sunset Glow"></button>
+          <button class="bg-btn" style="background: linear-gradient(135deg, #10b981, #6366f1)" data-bg="cyber" title="Cyber Emerald"></button>
+          <button class="bg-btn" style="background: linear-gradient(135deg, #0f172a, #1e293b)" data-bg="dark" title="Cosmic Slate"></button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    (function () {
+      const switcher = document.getElementById('themeSwitcher');
+      const options = Array.from(switcher.querySelectorAll('.switcher-option'));
+      const radios = Array.from(switcher.querySelectorAll('.switcher-radio'));
+      const html = document.documentElement;
+      const statusThemeName = document.getElementById('statusThemeName');
+      const statusFilterSupport = document.getElementById('statusFilterSupport');
+      const bgMesh = document.getElementById('bgMesh');
+      const bgButtons = document.querySelectorAll('.bg-btn');
+
+      // Check SVG backdrop-filter support
+      const supportsSvgFilter = CSS.supports && (
+        CSS.supports('backdrop-filter', 'url(#switcher) blur(12px)') ||
+        CSS.supports('-webkit-backdrop-filter', 'url(#switcher) blur(12px)')
+      );
+      if (!supportsSvgFilter && statusFilterSupport) {
+        statusFilterSupport.textContent = 'blur(12px) (SVG fallback)';
+      }
+
+      let currentIndex = 1; // default to Dark (1)
+      let animationTimer = null;
+
+      function setTheme(newIndex, themeValue) {
+        if (newIndex === currentIndex) return;
+
+        const previousIndex = currentIndex;
+        const direction = newIndex > previousIndex ? 'forward' : 'backward';
+
+        // Update container attributes for CSS styling & liquid stretch direction
+        switcher.style.setProperty('--from-index', previousIndex);
+        switcher.style.setProperty('--to-index', newIndex);
+        switcher.setAttribute('data-previous', previousIndex);
+        switcher.setAttribute('data-active', newIndex);
+        switcher.setAttribute('data-direction', direction);
+
+        // Trigger liquid stretch animation class
+        switcher.classList.remove('is-animating');
+        // Force reflow
+        void switcher.offsetWidth;
+        switcher.classList.add('is-animating');
+
+        clearTimeout(animationTimer);
+        animationTimer = setTimeout(() => {
+          switcher.classList.remove('is-animating');
+        }, 420);
+
+        // Update checked attribute and state
+        options.forEach((opt, idx) => {
+          const isChecked = idx === newIndex;
+          opt.setAttribute('data-checked', isChecked ? 'true' : 'false');
+          const radio = opt.querySelector('.switcher-radio');
+          if (radio) radio.checked = isChecked;
+        });
+
+        currentIndex = newIndex;
+
+        // Apply theme to document
+        html.setAttribute('data-theme', themeValue);
+
+        if (statusThemeName) {
+          const names = { light: 'Light Mode', dark: 'Dark Mode', dim: 'Dim Twilight' };
+          statusThemeName.textContent = names[themeValue] || themeValue;
+        }
+      }
+
+      // Event Listeners for radio inputs
+      radios.forEach((radio) => {
+        radio.addEventListener('change', (e) => {
+          if (!e.target.checked) return;
+          const parentOption = e.target.closest('.switcher-option');
+          const index = parseInt(parentOption.getAttribute('data-index'), 10);
+          setTheme(index, e.target.value);
+        });
+      });
+
+      // Background Presets for Testing Lens Distortion
+      const bgPresets = {
+        aurora: `
+          radial-gradient(circle at 28% 28%, rgba(244, 63, 94, 0.75) 0%, transparent 40%),
+          radial-gradient(circle at 72% 32%, rgba(56, 189, 248, 0.85) 0%, transparent 45%),
+          radial-gradient(circle at 50% 68%, rgba(168, 85, 247, 0.8) 0%, transparent 45%),
+          radial-gradient(circle at 80% 75%, rgba(249, 115, 22, 0.7) 0%, transparent 40%),
+          radial-gradient(circle at 20% 75%, rgba(16, 185, 129, 0.6) 0%, transparent 35%)
+        `,
+        sunset: `
+          radial-gradient(circle at 35% 30%, rgba(249, 115, 22, 0.85) 0%, transparent 45%),
+          radial-gradient(circle at 70% 35%, rgba(236, 72, 153, 0.8) 0%, transparent 50%),
+          radial-gradient(circle at 50% 75%, rgba(234, 179, 8, 0.75) 0%, transparent 45%),
+          radial-gradient(circle at 85% 80%, rgba(225, 29, 72, 0.65) 0%, transparent 40%)
+        `,
+        cyber: `
+          radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.8) 0%, transparent 45%),
+          radial-gradient(circle at 75% 30%, rgba(99, 102, 241, 0.85) 0%, transparent 45%),
+          radial-gradient(circle at 50% 70%, rgba(6, 182, 212, 0.75) 0%, transparent 45%),
+          radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.7) 0%, transparent 40%)
+        `,
+        dark: `
+          radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.45) 0%, transparent 45%),
+          radial-gradient(circle at 70% 40%, rgba(147, 51, 234, 0.4) 0%, transparent 45%),
+          radial-gradient(circle at 50% 70%, rgba(30, 41, 59, 0.8) 0%, transparent 55%)
+        `
+      };
+
+      bgButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          bgButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const type = btn.getAttribute('data-bg');
+          if (bgMesh && bgPresets[type]) {
+            bgMesh.style.background = bgPresets[type];
+          }
+        });
+      });
+
+    })();
+  </script>
+</body>
+</html>

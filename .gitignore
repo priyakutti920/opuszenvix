@@ -2,11 +2,18 @@
 node_modules/
 vendor/
 
+# Build artifacts
+dist/
+build/
+client/dist/
+
 # Environment variables
 .env
-.env.backup
-.env.production
-.env.local
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Logs and databases
 *.log

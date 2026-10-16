@@ -1,0 +1,17 @@
+{
+  "name": "opuszyra",
+  "version": "1.0.0",
+  "description": "Opuszyra - Anthropic-Compatible AI Proxy & API Gateway with React, Tailwind CSS, Node.js, and Supabase",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "client:dev": "npm --prefix client run dev",
+    "server:dev": "npm --prefix server run dev",
+    "client:build": "npm --prefix client run build",
+    "server:start": "npm --prefix server start",
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
