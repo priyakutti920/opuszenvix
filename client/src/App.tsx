@@ -55,15 +55,16 @@ function resolveRoute(location: Location): { view: ActiveView; key: string | nul
   let key: string | null = null;
 
   const fromQuery = (search: string) => {
-    const params = new URLSearchParams(search);
+    if (!search) return;
+    const params = new URLSearchParams(search.startsWith('?') ? search : `?${search}`);
     const value = params.get('key') || params.get('token') || params.get('key_token') || params.get('apiKey');
     if (value) key = key || value.trim();
   };
 
   fromQuery(location.search);
 
-  const parts = (location.pathname || '/').split('/').filter(Boolean).map(readSlug);
-  fromQuery(parts.pop() || '');
+  const cleanPath = (location.pathname || '/').split('?')[0];
+  const parts = cleanPath.split('/').filter(Boolean).map(readSlug);
 
   const fromHash = (hash: string): string[] => {
     const [base, ...rest] = hash.split('?');
@@ -81,11 +82,11 @@ function resolveRoute(location: Location): { view: ActiveView; key: string | nul
 
   const section = SECTIONS.includes(first) ? first : null;
   const isUsage = USAGE_ALIASES.includes(first)
-    || (pathParts.length >= 2 && (USAGE_ALIASES.includes(pathParts[1]) || pathParts[0] === 'key-status' || pathParts[0] === 'key'));
+    || (pathParts.length >= 2 && (USAGE_ALIASES.includes((pathParts[1] || '').toLowerCase()) || pathParts[0] === 'key-status' || pathParts[0] === 'key'));
 
   if (isUsage) return { view: 'usage', key, section: null };
   if (PAGES.includes(first)) return { view: first as ActiveView, key, section: null };
-  if (parts.length === 0) return { view: key ? 'usage' : 'home', key, section: null };
+  if (pathParts.length === 0) return { view: key ? 'usage' : 'home', key, section: null };
   if (section) return { view: 'home', key: null, section };
 
   // Unrecognised deep path: never hand a random slug off as a key token.

@@ -30,7 +30,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
   const [txHash, setTxHash] = useState('');
 
   const plan = PLAN_META[tier] || PLAN_META['5x'];
-  const upiId = 'opuszyra@ybl';
+  const upiId = 'mr.shiro.016@ybl';
   const whatsappUrl = getWhatsAppSupportUrl(`Hi Admin! I want to subscribe to the ${plan.name} (₹${plan.priceInr} INR).`);
 
   useEffect(() => {
