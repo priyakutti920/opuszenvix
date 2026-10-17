@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowUpRight, Terminal, Check, Copy } from 'lucide-react';
+import { ArrowRight, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedTitle } from './AnimatedTitle';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface HeroProps {
   onOpenRegister: () => void;
-  onOpenPricing: () => void;
-  onOpenPlayground: () => void;
+  onOpenPricing?: () => void;
+  onOpenPlayground?: () => void;
 }
 
 const MODELS = [
@@ -49,10 +50,12 @@ export const Hero: React.FC<HeroProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(fullCommand);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    const success = await copyToClipboard(fullCommand);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
@@ -85,7 +88,7 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* Word-by-Word Stagger Reveal Headline */}
             <AnimatedTitle
-              className="mt-7 text-[2.6rem] font-bold leading-[0.98] tracking-[-0.045em] text-white sm:text-6xl lg:text-[4.25rem]"
+              className="mt-7 text-3xl sm:text-5xl lg:text-[4.25rem] font-bold leading-[1.02] tracking-[-0.045em] text-white"
               lines={[
                 ['The', 'whole', 'Claude'],
                 ['lineup.', 'One', 'key.'],
@@ -100,7 +103,7 @@ export const Hero: React.FC<HeroProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
-              <p className="mt-7 max-w-xl text-[17px] leading-relaxed text-slate-400">
+              <p className="mt-7 max-w-xl text-[16px] sm:text-[17px] leading-relaxed text-slate-400">
                 Claude <strong className="font-semibold text-white">Fable 5.1</strong> and{' '}
                 <strong className="font-semibold text-white">Sonnet 5</strong> are live here alongside
                 every Opus, Sonnet and Haiku release — same endpoint, same key,{' '}
@@ -115,36 +118,20 @@ export const Hero: React.FC<HeroProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="mt-9 flex flex-wrap items-center gap-3">
+              <div className="mt-9 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
                 <button
                   onClick={onOpenRegister}
-                  className="inline-flex h-12 items-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 px-6 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 px-6 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <span>Get instant access</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
-
-                <button
-                  onClick={onOpenPricing}
-                  className="group inline-flex h-12 items-center gap-2 rounded-lg border border-white/10 bg-dark-900/60 px-5 text-[15px] font-medium text-slate-200 transition-colors hover:border-white/20 hover:bg-dark-850 hover:text-white"
-                >
-                  <span>See pricing</span>
-                  <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 text-slate-400 group-hover:text-white" />
-                </button>
-
-                <button
-                  onClick={onOpenPlayground}
-                  className="inline-flex h-12 items-center gap-2 rounded-lg border border-brand-500/20 bg-brand-500/10 px-5 text-[15px] font-medium text-brand-300 transition-colors hover:bg-brand-500/20"
-                >
-                  <Terminal className="h-4 w-4" />
-                  <span>Test Live Streaming</span>
-                </button>
               </div>
 
               {/* Pricing subtext */}
-              <p className="mt-5 text-[13px] text-slate-400 font-mono flex items-center gap-2">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Plans from ₹1,300 (INR) · key delivered instantly · no Anthropic approval needed
+              <p className="mt-5 text-[13px] text-slate-400 font-mono flex items-start gap-2">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+                <span>Plans from ₹1,300 (INR) · key delivered instantly · no Anthropic approval needed</span>
               </p>
             </motion.div>
           </div>
@@ -198,8 +185,9 @@ export const Hero: React.FC<HeroProps> = ({
                     </p>
                     <button
                       onClick={handleCopy}
-                      title="Copy command"
-                      className="ml-2 p-1 text-slate-400 hover:text-white rounded transition"
+                      title={copied ? 'Copied to clipboard' : 'Copy command to clipboard'}
+                      aria-label="Copy npx opuszyra command to clipboard"
+                      className="ml-2 p-1 text-slate-400 hover:text-white rounded transition active:scale-95"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>

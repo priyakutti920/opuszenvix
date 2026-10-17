@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, BookOpen, Copy, Check, Terminal, Code2 } from 'lucide-react';
 import { CodeSwitcher } from './CodeSwitcher';
 
@@ -8,26 +8,50 @@ interface DocsModalProps {
 }
 
 export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-dark-900 shadow-2xl max-h-[92vh] flex flex-col">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="docs-modal-title"
+        className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-dark-900 shadow-2xl max-h-[92vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-dark-950/80">
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="Opuszyra Logo"
+              width="40"
+              height="40"
               className="h-10 w-10 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
             />
             <div>
-              <h2 className="text-lg font-bold text-white">Opuszyra Documentation &amp; Setup</h2>
+              <h2 id="docs-modal-title" className="text-lg font-bold text-white">Opuszyra Documentation &amp; Setup</h2>
               <p className="text-xs text-slate-400">Claude Code, Cursor, Python, and TypeScript integrations</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close documentation dialog"
             className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white transition"
           >
             <X className="h-5 w-5" />

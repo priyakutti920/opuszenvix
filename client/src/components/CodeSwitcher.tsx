@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Copy, Terminal, Code, Cpu, Sparkles } from 'lucide-react';
+import { copyToClipboard } from '../lib/clipboard';
 
 const SNIPPETS = [
   {
@@ -118,16 +119,18 @@ export const CodeSwitcher: React.FC = () => {
 
   const activeSnippet = SNIPPETS.find((s) => s.id === activeTab) || SNIPPETS[0];
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(activeSnippet.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    const success = await copyToClipboard(activeSnippet.code);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
     <div className="w-full rounded-2xl border border-white/10 bg-dark-900/90 shadow-2xl overflow-hidden backdrop-blur-xl">
       {/* Header Tabs */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] bg-dark-950/60 px-4 py-2.5 overflow-x-auto">
+      <div className="flex items-center justify-between border-b border-white/[0.08] bg-dark-950/60 px-4 py-2.5 overflow-x-auto gap-2">
         <div className="flex items-center gap-1.5 scrollbar-none">
           {SNIPPETS.map((tab) => {
             const isActive = tab.id === activeTab;
@@ -149,7 +152,9 @@ export const CodeSwitcher: React.FC = () => {
 
         <button
           onClick={handleCopy}
-          className="ml-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white transition-colors border border-white/10 shrink-0"
+          aria-label={`Copy ${activeSnippet.name} code`}
+          title={`Copy ${activeSnippet.name} code`}
+          className="ml-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white transition-colors border border-white/10 shrink-0 active:scale-95"
         >
           {copied ? (
             <>
@@ -166,8 +171,8 @@ export const CodeSwitcher: React.FC = () => {
       </div>
 
       {/* Code Viewer Body */}
-      <div className="dark-code-box relative p-5 bg-dark-950/80 font-mono text-xs sm:text-sm overflow-x-auto leading-relaxed text-slate-300">
-        <div className="flex items-center justify-between text-slate-500 text-[11px] pb-3 mb-3 border-b border-white/[0.04]">
+      <div className="dark-code-box relative p-4 sm:p-5 bg-dark-950/80 font-mono text-xs sm:text-sm overflow-x-auto leading-relaxed text-slate-300">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-slate-500 text-[11px] pb-3 mb-3 border-b border-white/[0.04] gap-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-brand-500/40 inline-block"></span>
             {activeSnippet.filename}

@@ -456,16 +456,65 @@ html.light .dark-code-box button {
 }
 
 /* 7. CodeSwitcher & Interactive code viewer */
-html.light .bg-dark-950\/80 pre,
-html.light .bg-dark-950\/80 code,
-html.light .bg-dark-950\/80 .text-slate-200,
-html.light .bg-dark-950\/80 .text-slate-300 {
+html.light .dark-code-box pre,
+html.light .dark-code-box code,
+html.light .dark-code-box .text-slate-200,
+html.light .dark-code-box .text-slate-300 {
   color: #f1f5f9 !important;
 }
 
-html.light .bg-dark-950\/80 .text-slate-400,
-html.light .bg-dark-950\/80 .text-slate-500 {
+html.light .dark-code-box .text-slate-400,
+html.light .dark-code-box .text-slate-500 {
   color: #94a3b8 !important;
+}
+
+/* Mobile Navigation Drawer in Light Mode */
+html.light #mobile-nav-drawer {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+html.light #mobile-nav-drawer button {
+  color: #0f172a !important;
+}
+
+html.light #mobile-nav-drawer .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light #mobile-nav-drawer .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light #mobile-nav-drawer button:hover {
+  color: #ea580c !important;
+}
+
+html.light #mobile-nav-drawer .text-brand-400,
+html.light #mobile-nav-drawer .text-brand-500 {
+  color: #ea580c !important;
+}
+
+html.light #mobile-nav-drawer .text-emerald-400,
+html.light #mobile-nav-drawer .text-emerald-500 {
+  color: #059669 !important;
+}
+
+html.light #mobile-nav-drawer button.bg-amber-500 {
+  background-color: #f59e0b !important;
+  color: #0f172a !important;
+}
+
+html.light #mobile-nav-drawer button.bg-amber-500\/10 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+html.light #mobile-nav-drawer button.bg-amber-500\/10 span,
+html.light #mobile-nav-drawer button.bg-amber-500\/10 svg {
+  color: #b45309 !important;
 }
 
 /* Modals in Light Mode */
@@ -491,5 +540,61 @@ html.light .fixed select {
 html.light .fixed input::placeholder,
 html.light .fixed textarea::placeholder {
   color: #94a3b8 !important;
+}
+
+/* =========================================================================
+   ACCESSIBILITY: FOCUS INDICATORS & REDUCED MOTION SUPPORT
+   ========================================================================= */
+
+/* Visible Focus Indicator for Keyboard Navigation */
+:focus-visible {
+  outline: 2px solid #f97316 !important;
+  outline-offset: 2px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #f97316 !important;
+  outline-offset: 2px !important;
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .terminal-3d {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .animate-marquee {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .animate-cursor {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .word-reveal {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .animate-wave-stream {
+    animation: none !important;
+  }
 }
 

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { checkKey, resetKeyWindow } from '../lib/api';
 import { CheckKeyData } from '../types';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface KeyInspectorProps {
   initialKey?: string;
@@ -107,18 +108,22 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     return () => clearInterval(interval);
   }, [keyData]);
 
-  const handleCopyKey = () => {
+  const handleCopyKey = async () => {
     if (!keyData?.key_token) return;
-    navigator.clipboard.writeText(keyData.key_token);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    const success = await copyToClipboard(keyData.key_token);
+    if (success) {
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    }
   };
 
-  const handleCopyJson = () => {
+  const handleCopyJson = async () => {
     if (!keyData?.rawPayload) return;
-    navigator.clipboard.writeText(JSON.stringify(keyData.rawPayload, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2000);
+    const success = await copyToClipboard(JSON.stringify(keyData.rawPayload, null, 2));
+    if (success) {
+      setCopiedJson(true);
+      setTimeout(() => setCopiedJson(false), 2000);
+    }
   };
 
   const handleResetWindow = async () => {

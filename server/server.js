@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 import keysRouter, { handleKeyStatusInspection } from './routes/keys.js';
 import anthropicRouter from './routes/anthropicProxy.js';
 import statsRouter from './routes/stats.js';
+import { supabase } from './lib/supabase.js';
+import { createRateLimiter, adminKeyRequired } from './lib/security.js';
 
 dotenv.config();
 
@@ -21,20 +23,46 @@ const API_DOMAIN = process.env.API_DOMAIN || 'https://api.opuszyra.live';
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+// Body cap for completion traffic. The parser buffers the whole request, so
+// 50MB per connection is a cheap DoS on a serverless runtime. 5MB still
+// covers normal multi-modal payloads.
+const REQUEST_BODY_LIMIT = process.env.REQUEST_BODY_LIMIT || '5mb';
+// Key management and checkout payloads are small JSON objects.
+const CONTROL_BODY_LIMIT = '16kb';
+
+app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: CONTROL_BODY_LIMIT }));
+// Redact sensitive query parameters from server logs
+morgan.token('url', (req) => {
+  const raw = req.originalUrl || req.url;
+  return raw.replace(/([?&](?:key|key_token|token)=)[^&]+/gi, '$1[REDACTED]');
+});
 app.use(morgan('dev'));
 
-// Middle-man Anthropic & OpenAI Proxy Routes (/v1 and /api/v1)
-app.use('/v1', anthropicRouter);
-app.use('/api/v1', anthropicRouter);
+// Opt-in shared credential protecting key management and order verification.
+// Unset by default so the current unauthenticated dashboard keeps working.
+const requireAdminKey = adminKeyRequired(supabase);
 
-// Real-time Key Status Inspection endpoints
-app.all('/api/key-status', handleKeyStatusInspection);
-app.use('/api/keys', keysRouter);
+// Middle-man Anthropic & OpenAI Proxy Routes (/v1 and /api/v1)
+// These forward to a paid upstream, so they get the tightest per-IP cap.
+app.use('/v1', createRateLimiter({ max: 60, windowMs: 60 * 1000 }), anthropicRouter);
+app.use('/api/v1', createRateLimiter({ max: 60, windowMs: 60 * 1000 }), anthropicRouter);
+
+// Real-time Key Status Inspection endpoints. Inspection fans out to upstream
+// lookups, so it is capped separately from the completion proxy.
+app.all('/api/key-status', createRateLimiter({ max: 30, windowMs: 60 * 1000 }), handleKeyStatusInspection);
+app.use('/api/keys', requireAdminKey, createRateLimiter({ max: 30, windowMs: 60 * 1000 }), keysRouter);
 
 // Statistics and Billing
-app.use('/api/stats', statsRouter);
+// Lower cap than the proxy: these routes are not on the streaming path and
+// are polled by the SPA, so a large body has no upside here.
+app.use('/api/stats', createRateLimiter({ max: 120, windowMs: 60 * 1000 }), statsRouter);
 
 // Comprehensive Gateway Status (/api/status)
 app.get('/api/status', async (req, res) => {
@@ -123,6 +151,30 @@ app.use(['/api', '/v1'], (req, res) => {
   res.status(404).json({
     error: `Endpoint not found: ${req.method} ${req.originalUrl || req.url}`,
     status: 404
+  });
+});
+
+// Centralized error-handling middleware to prevent stack trace and internal path leakage
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({
+      type: 'error',
+      error: {
+        type: 'invalid_request_error',
+        message: 'Malformed JSON payload in request body'
+      },
+      status: 400
+    });
+  }
+
+  console.error('Unhandled internal server error:', err.message);
+  return res.status(err.status || 500).json({
+    type: 'error',
+    error: {
+      type: 'api_error',
+      message: 'An internal server error occurred'
+    },
+    status: err.status || 500
   });
 });
 

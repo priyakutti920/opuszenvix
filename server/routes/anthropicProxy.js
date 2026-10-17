@@ -1,11 +1,58 @@
 import express from 'express';
 import { Readable } from 'stream';
 import { supabase } from '../lib/supabase.js';
+import { upstreamTimeoutSignal, isTimeoutError } from '../lib/security.js';
 
 const router = express.Router();
 
 const getUpstreamBase = () => (process.env.UPSTREAM_API_BASE || 'https://api.opuszen.shop').replace(/\/+$/, '');
 const getMasterUpstreamKey = () => (process.env.UPSTREAM_API_KEY || '').trim();
+
+// Response budget for the completion call. A slow upstream otherwise pins the
+// request handler — and a serverless function slot — for the whole budget.
+const getUpstreamTimeoutMs = () => Number(process.env.UPSTREAM_TIMEOUT_MS) || 60_000;
+
+// A retry here would risk double-billing a paid completion or double-counting
+// streamed output, so all upstream calls are single-attempt.
+const upstreamRequest = (url, init) =>
+  fetch(url, { ...init, signal: upstreamTimeoutSignal(getUpstreamTimeoutMs()) });
+
+// Upstream error bodies are forwarded verbatim today, which can echo the
+// master key back to the caller: an upstream auth failure often repeats the
+// credential it rejected, and we sent UPSTREAM_API_KEY with the request.
+// Keep the status code and the machine-readable error type (so clients can
+// still branch on authentication_error vs rate_limit_error) but drop the body
+// text entirely.
+const forwardSafeUpstreamError = async (res, upstreamRes) => {
+  const contentType = upstreamRes.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      const parsed = await upstreamRes.json();
+      const inner = parsed && typeof parsed === 'object' ? parsed.error : null;
+      const type = inner && typeof inner.type === 'string' ? inner.type : 'api_error';
+      return res.status(upstreamRes.status).json({
+        type: 'error',
+        error: { type, message: 'Upstream request failed.' }
+      });
+    } catch {
+      // Unparseable body, fall through to the generic branch below.
+    }
+  }
+  await upstreamRes.text().catch(() => '');
+  return res.status(upstreamRes.status).json({
+    type: 'error',
+    error: { type: 'api_error', message: 'Upstream request failed.' }
+  });
+};
+
+// `messages` must be a non-empty array of role/content entries; a bare string
+// or array of garbage otherwise produces a guaranteed upstream error charge.
+const isValidMessages = (messages) => {
+  if (!Array.isArray(messages) || messages.length === 0) return false;
+  return messages.every(
+    (m) => m && typeof m === 'object' && typeof m.role === 'string' && ('content' in m)
+  );
+};
 
 // Helper to extract API key from headers or query
 export const extractApiKey = (req) => {
@@ -54,12 +101,15 @@ router.get('/models', async (req, res) => {
   const activeKey = masterKey || clientKey;
 
   try {
+    // Tighter budget here: the model list has a local fallback, so waiting
+    // 60s for a slow upstream would only make the SPA's spinner hang.
     const upstreamRes = await fetch(`${upstreamBase}/v1/models`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         ...(activeKey ? { 'x-api-key': activeKey, 'Authorization': `Bearer ${activeKey}` } : {})
-      }
+      },
+      signal: AbortSignal.timeout(10_000)
     });
 
     if (upstreamRes.ok) {
@@ -97,10 +147,8 @@ router.post('/messages', async (req, res) => {
   const masterKey = getMasterUpstreamKey();
   const clientKey = extractApiKey(req);
 
-  // Determine effective key: master upstream key takes precedence if configured, otherwise client's key
-  const effectiveUpstreamKey = masterKey || clientKey;
-
-  if (!effectiveUpstreamKey) {
+  // Require client key to ensure callers authenticate
+  if (!clientKey) {
     return res.status(401).json({
       type: 'error',
       error: {
@@ -109,6 +157,9 @@ router.post('/messages', async (req, res) => {
       }
     });
   }
+
+  // Determine effective key: master upstream key takes precedence if configured, otherwise client's key
+  const effectiveUpstreamKey = masterKey || clientKey;
 
   // Local Supabase validation if key is tracked in database
   let keyRecord = null;
@@ -159,6 +210,16 @@ router.post('/messages', async (req, res) => {
 
   const { model = 'claude-3-7-sonnet-20250219', stream = false } = req.body;
 
+  if (!isValidMessages(req.body.messages)) {
+    return res.status(400).json({
+      type: 'error',
+      error: {
+        type: 'invalid_request_error',
+        message: 'messages must be a non-empty array of { role, content } objects.'
+      }
+    });
+  }
+
   // Prepare upstream request headers
   const forwardHeaders = {
     'Content-Type': 'application/json',
@@ -173,22 +234,17 @@ router.post('/messages', async (req, res) => {
 
   try {
     // Forward directly to Upstream AI Gateway (https://api.opuszen.shop)
-    const upstreamRes = await fetch(`${upstreamBase}/v1/messages`, {
+    const upstreamRes = await upstreamRequest(`${upstreamBase}/v1/messages`, {
       method: 'POST',
       headers: forwardHeaders,
       body: JSON.stringify(req.body)
     });
 
-    // If upstream returns an error, forward with same status
+    // If upstream returns an error, forward with the same status code but a
+    // sanitised body, so an upstream response cannot carry the master key
+    // back to the client.
     if (!upstreamRes.ok) {
-      const contentType = upstreamRes.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const errorJson = await upstreamRes.json();
-        return res.status(upstreamRes.status).json(errorJson);
-      } else {
-        const errorText = await upstreamRes.text();
-        return res.status(upstreamRes.status).send(errorText);
-      }
+      return await forwardSafeUpstreamError(res, upstreamRes);
     }
 
     // STREAMING PASSTHROUGH (Server-Sent Events)
@@ -222,20 +278,33 @@ router.post('/messages', async (req, res) => {
           }
         });
 
+        let streamCompleted = false;
+
         nodeStream.on('end', () => {
+          streamCompleted = true;
           res.end();
-          if (keyRecord) {
-            updateTokensAndLog(keyRecord, model, accumulatedInputTokens || 50, accumulatedOutputTokens || 120, 0, Date.now() - startTime).catch(() => {});
+          if (keyRecord && (accumulatedInputTokens > 0 || accumulatedOutputTokens > 0)) {
+            updateTokensAndLog(keyRecord, model, accumulatedInputTokens, accumulatedOutputTokens, 0, Date.now() - startTime).catch(() => {});
           }
         });
 
         nodeStream.on('error', (err) => {
-          console.error('Streaming passthrough error:', err);
+          // Log without the raw cause: fetch surfaces rejected promises as the
+          // error object, and reading .message from those is what leaks paths.
+          console.error('Streaming passthrough error:', err?.name || 'StreamError', '-', err?.message || '');
+          if (!res.headersSent) {
+            return res.status(502).json({
+              type: 'error',
+              error: { type: 'api_error', message: 'Upstream stream failed.' }
+            });
+          }
           res.end();
         });
 
         req.on('close', () => {
-          nodeStream.destroy();
+          if (!streamCompleted) {
+            nodeStream.destroy();
+          }
         });
 
         return;
@@ -255,14 +324,19 @@ router.post('/messages', async (req, res) => {
     return res.status(upstreamRes.status).json(data);
 
   } catch (err) {
-    console.error('Upstream passthrough network failure:', err.message);
+    // Only report a timeout if the response had not started: once headers are
+    // sent the client has disconnected, and that is not an upstream failure.
+    const timedOut = isTimeoutError(err) && !res.headersSent;
+    console.error('Upstream passthrough network failure:', err?.name || 'Error', '-', err?.message || '');
 
-    // Fallback response if upstream network drops completely
-    return res.status(502).json({
+    if (res.headersSent) return res.end();
+    return res.status(504).json({
       type: 'error',
       error: {
         type: 'api_error',
-        message: `Middle-Man Gateway upstream connection error: ${err.message}. Please check connection to ${upstreamBase}.`
+        message: timedOut
+          ? 'Upstream request timed out. Please retry.'
+          : 'Upstream connection error. Please retry.'
       }
     });
   }
@@ -273,16 +347,17 @@ router.post('/chat/completions', async (req, res) => {
   const upstreamBase = getUpstreamBase();
   const masterKey = getMasterUpstreamKey();
   const clientKey = extractApiKey(req);
-  const effectiveKey = masterKey || clientKey;
 
-  if (!effectiveKey) {
+  if (!clientKey) {
     return res.status(401).json({ error: { message: 'Missing Authorization header or API key' } });
   }
+
+  const effectiveKey = masterKey || clientKey;
 
   const { stream = false } = req.body;
 
   try {
-    const upstreamRes = await fetch(`${upstreamBase}/v1/chat/completions`, {
+    const upstreamRes = await upstreamRequest(`${upstreamBase}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -292,11 +367,25 @@ router.post('/chat/completions', async (req, res) => {
       body: JSON.stringify(req.body)
     });
 
+    if (!upstreamRes.ok) {
+      return await forwardSafeUpstreamError(res, upstreamRes);
+    }
+
     if (stream && upstreamRes.body) {
       res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       const nodeStream = Readable.fromWeb(upstreamRes.body);
+      nodeStream.on('error', (err) => {
+        console.error('Streaming passthrough error:', err?.name || 'StreamError', '-', err?.message || '');
+        if (res.writableEnded) return;
+        if (!res.headersSent) {
+          return res.status(502).json({
+            error: { type: 'api_error', message: 'Upstream stream failed.' }
+          });
+        }
+        res.end();
+      });
       nodeStream.pipe(res);
       return;
     }
@@ -304,7 +393,18 @@ router.post('/chat/completions', async (req, res) => {
     const data = await upstreamRes.json();
     return res.status(upstreamRes.status).json(data);
   } catch (err) {
-    return res.status(502).json({ error: { message: `Passthrough failed: ${err.message}` } });
+    const timedOut = isTimeoutError(err) && !res.headersSent;
+    console.error('Upstream passthrough network failure:', err?.name || 'Error', '-', err?.message || '');
+
+    if (res.headersSent) return res.end();
+    return res.status(504).json({
+      error: {
+        type: 'api_error',
+        message: timedOut
+          ? 'Upstream request timed out. Please retry.'
+          : 'Upstream connection error. Please retry.'
+      }
+    });
   }
 });
 

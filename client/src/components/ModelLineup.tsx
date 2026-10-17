@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, ChevronDown, ChevronUp, Copy, Check, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AnimatedTitle } from './AnimatedTitle';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface ModelInfo {
   name: string;
@@ -91,10 +92,12 @@ export const ModelLineup: React.FC = () => {
   const [showAllSupporting, setShowAllSupporting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopy = (id: string) => {
-    navigator.clipboard.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const handleCopy = async (id: string) => {
+    const success = await copyToClipboard(id);
+    if (success) {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   return (
@@ -106,6 +109,7 @@ export const ModelLineup: React.FC = () => {
             01 — The lineup
           </p>
           <AnimatedTitle
+            as="h2"
             className="mt-4 text-4xl font-bold leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl"
             lines={[
               ['15', 'models.', 'One'],
@@ -167,7 +171,8 @@ export const ModelLineup: React.FC = () => {
                   <button
                     onClick={() => handleCopy(model.id)}
                     className="ml-2 text-slate-400 hover:text-white transition p-0.5"
-                    title="Copy model identifier"
+                    title={`Copy ${model.name} identifier`}
+                    aria-label={`Copy ${model.name} identifier`}
                   >
                     {copiedId === model.id ? (
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -230,6 +235,7 @@ export const ModelLineup: React.FC = () => {
                       <td className="px-5 py-3.5 text-right">
                         <button
                           onClick={() => handleCopy(m.id)}
+                          aria-label={`Copy ${m.name} identifier`}
                           className="inline-flex items-center gap-1 text-[11px] font-mono text-brand-400 hover:text-brand-300"
                         >
                           {copiedId === m.id ? 'Copied' : 'Copy'}

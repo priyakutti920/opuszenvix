@@ -20,6 +20,7 @@ export const GettingStarted: React.FC<GettingStartedProps> = ({
             04 — Getting started
           </p>
           <AnimatedTitle
+            as="h2"
             className="mt-4 text-4xl font-bold leading-[1.02] tracking-[-0.035em] text-white sm:text-5xl"
             lines={[
               ['Three', 'steps.'],

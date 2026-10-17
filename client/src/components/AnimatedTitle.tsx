@@ -5,12 +5,14 @@ interface AnimatedTitleProps {
   lines: string[][];
   className?: string;
   highlightWords?: string[];
+  as?: 'h1' | 'h2' | 'h3';
 }
 
 export const AnimatedTitle: React.FC<AnimatedTitleProps> = ({
   lines,
   className = '',
   highlightWords = [],
+  as = 'h1',
 }) => {
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -38,8 +40,10 @@ export const AnimatedTitle: React.FC<AnimatedTitleProps> = ({
     },
   };
 
+  const MotionTag = as === 'h2' ? motion.h2 : as === 'h3' ? motion.h3 : motion.h1;
+
   return (
-    <motion.h1
+    <MotionTag
       className={className}
       variants={containerVariants}
       initial="hidden"
@@ -75,6 +79,6 @@ export const AnimatedTitle: React.FC<AnimatedTitleProps> = ({
           </span>
         ))}
       </span>
-    </motion.h1>
+    </MotionTag>
   );
 };

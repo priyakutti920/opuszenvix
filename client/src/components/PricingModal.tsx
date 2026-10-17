@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Copy, ShieldCheck, Zap, AlertCircle, ArrowRight, ExternalLink, CreditCard, MessageCircle, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { createCryptoOrder, verifyCryptoOrder, generateKey } from '../lib/api';
 import { ApiKey, PlanTier } from '../types';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -161,40 +162,67 @@ export const PricingModal: React.FC<PricingModalProps> = ({
     }
   };
 
-  const handleCopyKey = () => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleCopyKey = async () => {
     if (issuedKey) {
-      navigator.clipboard.writeText(issuedKey.key_token);
-      setCopiedKey(true);
-      setTimeout(() => setCopiedKey(false), 2000);
+      const success = await copyToClipboard(issuedKey.key_token);
+      if (success) {
+        setCopiedKey(true);
+        setTimeout(() => setCopiedKey(false), 2000);
+      }
     }
   };
 
-  const handleCopyAddr = () => {
+  const handleCopyAddr = async () => {
     if (order?.depositAddress) {
-      navigator.clipboard.writeText(order.depositAddress);
-      setCopiedAddr(true);
-      setTimeout(() => setCopiedAddr(false), 2000);
+      const success = await copyToClipboard(order.depositAddress);
+      if (success) {
+        setCopiedAddr(true);
+        setTimeout(() => setCopiedAddr(false), 2000);
+      }
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="dark-box relative w-full max-w-4xl overflow-hidden rounded-3xl border border-[#262320] bg-[#0F0E0D] shadow-2xl max-h-[92vh] flex flex-col text-[#F5F2EB]">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pricing-modal-title"
+        className="dark-box relative w-full max-w-4xl overflow-hidden rounded-3xl border border-[#262320] bg-[#0F0E0D] shadow-2xl max-h-[92vh] flex flex-col text-[#F5F2EB]"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#262320] px-6 py-4 bg-[#141312]">
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="Opuszyra Logo"
+              width="44"
+              height="44"
               className="h-11 w-11 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
             />
             <div>
-              <h2 className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
+              <h2 id="pricing-modal-title" className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
               <p className="text-xs text-stone-400">Instant API keys · UPI (INR) &amp; WhatsApp Onboarding</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close pricing modal"
             className="rounded-xl p-2 text-stone-400 hover:bg-white/5 hover:text-white transition"
           >
             <X className="h-5 w-5" />

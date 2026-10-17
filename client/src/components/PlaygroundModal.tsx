@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Play, Terminal, Loader2, Sparkles, Check, AlertCircle } from 'lucide-react';
 import { streamClaudeMessage } from '../lib/api';
 
@@ -35,6 +35,17 @@ export const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   } | null>(null);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleStream = async () => {
@@ -63,8 +74,18 @@ export const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-dark-900 shadow-2xl max-h-[92vh] flex flex-col">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="playground-modal-title"
+        className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-dark-900 shadow-2xl max-h-[92vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-dark-950/80">
           <div className="flex items-center gap-3">
@@ -72,12 +93,13 @@ export const PlaygroundModal: React.FC<PlaygroundModalProps> = ({
               <Terminal className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-white">Live Claude Playground (SSE Stream)</h2>
+              <h2 id="playground-modal-title" className="text-lg font-bold text-white">Live Claude Playground (SSE Stream)</h2>
               <p className="text-xs text-slate-400">Direct streaming via Opuszyra Anthropic Proxy</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close playground dialog"
             className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white transition"
           >
             <X className="h-5 w-5" />

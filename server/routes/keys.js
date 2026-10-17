@@ -1,7 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 
 const router = express.Router();
 
@@ -103,6 +103,23 @@ export const handleKeyStatusInspection = async (req, res) => {
       if (data) localRecord = data;
     } catch {
       // Local DB offline/unreachable
+    }
+
+    // Key Validation Trust Boundary:
+    // The upstream status endpoint (api.opuszen.shop/api/key-status) returns a static simulated "active"
+    // response for any arbitrary string. If the key does not exist in the authoritative database (api_keys),
+    // we must not report unknown or fake keys as genuinely active.
+    // In local development / mock mode without configured DB, local mock keys are verified via localRecord.
+    if (!localRecord) {
+      // If live Supabase is configured or running in production, reject unknown keys
+      const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+      if (isSupabaseConfigured || isProduction) {
+        return res.status(404).json({
+          success: false,
+          error: 'Key not found or invalid format. Please check your token.',
+          code: 'KEY_NOT_FOUND'
+        });
+      }
     }
 
     // If neither upstream nor local key was found

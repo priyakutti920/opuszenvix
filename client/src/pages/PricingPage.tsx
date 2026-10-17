@@ -66,7 +66,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
   const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
 
   return (
-    <div className="min-h-screen py-10 md:py-16 animate-fadeIn transition-colors text-stone-900 dark:text-[#F5F2EB]">
+    <div className="min-h-screen py-10 md:py-16 pb-28 animate-fadeIn transition-colors text-stone-900 dark:text-[#F5F2EB]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Hero */}
@@ -129,7 +129,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "Includes",
                     "All 13 models — Fable 5, Sonnet 5, Opus, Sonnet, Haiku",
                     "5× the usage of official Claude Pro",
                     "30 days of access",
@@ -191,7 +190,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "Includes",
                     "All 13 models — Fable 5, Sonnet 5, Opus, Sonnet, Haiku",
                     "20× the usage of official Claude Pro",
                     "Rolling 5-hour window — resets itself",
@@ -251,7 +249,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "Includes",
                     "All 13 models — Fable 5, Sonnet 5, Opus, Sonnet, Haiku",
                     "5× the usage of official Claude Pro",
                     "7 days of access",
@@ -311,7 +308,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
 
           <div className="rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#121110] overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-xs border-collapse min-w-[560px]">
                 <thead>
                   <tr className="border-b border-[#E8E3D9] dark:border-[#262422] bg-[#F4F0E8] dark:bg-[#1A1918]">
                     <th className="py-4 px-6 font-bold text-stone-600 dark:text-stone-300 uppercase tracking-wider text-[11px]">

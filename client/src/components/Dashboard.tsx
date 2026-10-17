@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { fetchKeys, generateKey, deleteKey, resetKeyWindow, fetchLogs, fetchOverviewStats } from '../lib/api';
 import { ApiKey, SystemStats, UsageLog } from '../types';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface DashboardProps {
   onCheckKey?: (token: string) => void;
@@ -101,10 +102,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const handleCopyKey = (token: string, id: string) => {
-    navigator.clipboard.writeText(token);
-    setCopiedKeyId(id);
-    setTimeout(() => setCopiedKeyId(null), 2000);
+  const handleCopyKey = async (token: string, id: string) => {
+    const success = await copyToClipboard(token);
+    if (success) {
+      setCopiedKeyId(id);
+      setTimeout(() => setCopiedKeyId(null), 2000);
+    }
   };
 
   const toggleVisibility = (id: string) => {

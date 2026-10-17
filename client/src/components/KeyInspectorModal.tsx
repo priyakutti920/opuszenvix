@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Search, RotateCcw, AlertCircle, ShieldCheck, Clock, Zap, Check } from 'lucide-react';
 import { checkKey, resetKeyWindow } from '../lib/api';
 import { CheckKeyData } from '../types';
@@ -59,9 +59,29 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-dark-900 shadow-2xl max-h-[90vh] flex flex-col">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="key-inspector-modal-title"
+        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-dark-900 shadow-2xl max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4 bg-dark-950/80">
           <div className="flex items-center gap-3">
@@ -69,12 +89,13 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
               <Clock className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-white">Usage &amp; 5-Hour Window Status</h2>
+              <h2 id="key-inspector-modal-title" className="text-lg font-bold text-white">Usage &amp; 5-Hour Window Status</h2>
               <p className="text-xs text-slate-400">Inspect remaining tokens, reset countdown, and limits</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close key inspector dialog"
             className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white transition"
           >
             <X className="h-5 w-5" />
@@ -87,6 +108,7 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
             <input
               type="text"
               placeholder="Paste your key: opm-live-5x-..."
+              aria-label="Paste your API key"
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleInspect()}

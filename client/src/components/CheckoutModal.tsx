@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Copy, QrCode, ShieldCheck, Zap, ArrowRight, RotateCw, Sparkles, CheckCircle2, CreditCard, MessageCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { createCryptoOrder, verifyCryptoOrder } from '../lib/api';
 import { PlanTier } from '../types';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface CheckoutModalProps {
   tier: PlanTier;
@@ -31,10 +32,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
   const upiId = 'opuszyra@ybl';
   const whatsappUrl = `https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20the%20${encodeURIComponent(plan.name)}%20(₹${plan.priceInr}%20INR).`;
 
-  const handleCopyUpi = () => {
-    navigator.clipboard.writeText(upiId);
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2000);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleCopyUpi = async () => {
+    const success = await copyToClipboard(upiId);
+    if (success) {
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    }
   };
 
   const handleSimulatePayment = async () => {
@@ -71,15 +84,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
     }
   };
 
-  const handleCopyGeneratedKey = () => {
-    navigator.clipboard.writeText(generatedKey);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+  const handleCopyGeneratedKey = async () => {
+    const success = await copyToClipboard(generatedKey);
+    if (success) {
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="dark-box relative w-full max-w-lg rounded-3xl bg-[#0f0e0d] border border-[#262320] shadow-2xl p-6 sm:p-8 overflow-hidden text-[#f5f2eb]">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="checkout-modal-title"
+        className="dark-box relative w-full max-w-lg rounded-3xl bg-[#0f0e0d] border border-[#262320] shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto text-[#f5f2eb]"
+      >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -87,7 +112,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
         <button
           onClick={onClose}
           className="absolute top-5 right-5 p-2 rounded-xl text-stone-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-          aria-label="Close modal"
+          aria-label="Close checkout modal"
         >
           <X className="w-5 h-5" />
         </button>
@@ -98,10 +123,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
               <img
                 src="/logo.png"
                 alt="Opuszyra Logo"
+                width="56"
+                height="56"
                 className="w-14 h-14 object-contain drop-shadow-[0_2px_12px_rgba(234,88,12,0.35)]"
               />
               <div>
-                <h3 className="text-xl font-extrabold tracking-tight text-white">
+                <h3 id="checkout-modal-title" className="text-xl font-extrabold tracking-tight text-white">
                   Activate <span className="text-[#ea580c]">{plan.name}</span>
                 </h3>
                 <p className="text-xs text-stone-400">Instant key delivery after payment • {plan.duration}</p>

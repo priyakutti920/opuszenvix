@@ -1,0 +1,210 @@
+[Supabase] Running in high-fidelity mock/local storage mode (Provide SUPABASE_URL & SUPABASE_KEY to switch to live DB)
+[0mPOST /v1/messages [33m401[0m 5.728 ms - 142[0m
+[0mPOST /v1/chat/completions [33m401[0m 0.977 ms - 63[0m
+[0mPOST /v1/messages [32m200[0m 3.517 ms - 141[0m
+[0mPOST /v1/messages [33m401[0m 1.419 ms - 93[0m
+[0mPOST /v1/messages [31m500[0m 1.444 ms - 82[0m
+Upstream passthrough network failure: TimeoutError - The operation timed out.
+[0mPOST /v1/messages [31m504[0m 12.021 ms - 99[0m
+Upstream passthrough network failure: TypeError - fetch failed
+[0mPOST /v1/messages [31m504[0m 3.608 ms - 99[0m
+Unhandled internal server error: request entity too large
+[0mGET /api/health [32m200[0m 0.567 ms - 210[0m
+[0mGET /api/stats/overview [32m200[0m 1.243 ms - 231[0m
+[0mGET /api/stats/logs [32m200[0m 0.807 ms - 1086[0m
+[0mGET /some/unknown/client-route [32m200[0m 15.713 ms - 2047[0m
+[0mGET /api/nope [33m404[0m 1.839 ms - 58[0m
+Upstream status query to https://upstream.test.local failed: The operation timed out.
+[0mGET /api/status [32m200[0m 0.755 ms - 769[0m
+DBG rows=3 direct=true tokens=opm-live-5x-7501,opm-live-5x-9f8a,opm-live-20x-8d7
+Upstream key-status query to https://upstream.test.local warning: The operation timed out.
+[0mGET /api/key-status?key=[REDACTED] [33m404[0m 1.207 ms - 85[0m
+[0mGET /v1/models [32m200[0m 0.624 ms - 39[0m
+Upstream /v1/models fetch failed, returning standard models: The operation timed out.
+[0mGET /v1/models [32m200[0m 0.460 ms - 1479[0m
+[0mPOST /v1/messages [33m400[0m 0.578 ms - 134[0m
+[0mPOST /v1/messages [33m400[0m 0.401 ms - 134[0m
+[0mPOST /v1/messages [33m400[0m 0.333 ms - 134[0m
+[0mPOST /v1/messages [33m400[0m 0.278 ms - 134[0m
+[0mPOST /v1/messages [33m400[0m 0.255 ms - 134[0m
+[0mPOST /v1/messages [33m400[0m 0.290 ms - 134[0m
+[0mPOST /v1/messages [33m401[0m 0.284 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.181 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.189 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.228 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.216 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.235 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.237 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.301 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.335 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.347 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.241 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.603 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.490 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.297 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.210 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.156 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.149 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.905 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.200 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.172 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.148 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.166 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.149 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.186 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.174 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 1.534 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.327 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.191 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.160 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.147 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.141 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.116 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.133 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.213 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.133 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.157 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.194 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.141 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.176 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.188 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.173 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.199 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.223 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.170 ms - 142[0m
+[0mPOST /v1/messages [33m401[0m 0.163 ms - 142[0m
+[0mPOST /v1/messages [33m429[0m 0.130 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.133 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.111 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.118 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.111 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.112 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.085 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.087 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.114 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.126 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.130 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.134 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.166 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.170 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.166 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.131 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.161 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.361 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.201 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.429 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.131 ms - 110[0m
+[0mPOST /v1/messages [33m429[0m 0.114 ms - 110[0m
+[0mGET /api/keys [32m200[0m 0.922 ms - 1807[0m
+[0mGET /api/keys [33m401[0m 0.229 ms - 105[0m
+[0mGET /api/keys [33m401[0m 0.326 ms - 105[0m
+[0mGET /api/keys [32m200[0m 0.272 ms - 1807[0m
+[0mGET /api/keys [32m200[0m 0.241 ms - 1807[0m
+[0mGET /api/keys [32m200[0m 0.298 ms - 1807[0m
+[0mGET /api/keys/check?key=[REDACTED] [33m404[0m 1.484 ms - 72[0m
+Upstream key-status query to https://upstream.test.local warning: The operation timed out.
+[0mGET /api/key-status?key=[REDACTED] [33m404[0m 0.521 ms - 85[0m
+[0mGET /api/health [32m200[0m 0.446 ms - 210[0m
+[0mPOST /api/stats/orders/create [32m200[0m 0.670 ms - 265[0m
+[0mPOST /api/stats/orders/create [32m200[0m 0.674 ms - 266[0m
+[0mPOST /api/stats/orders/create [32m200[0m 0.385 ms - 271[0m
+[0mPOST /api/stats/orders/create [32m200[0m 0.597 ms - 269[0m
+[0mPOST /api/stats/orders/create [32m200[0m 0.330 ms - 265[0m
+[0mPOST /api/stats/orders/create [32m200[0m 0.274 ms - 265[0m
+[0mPOST /api/stats/orders/verify [33m400[0m 0.497 ms - 55[0m
+[0mPOST /api/stats/orders/verify [33m400[0m 0.150 ms - 73[0m
+
+==============================================================================
+OpusZyra Phase 2 — 80 passed, 3 failed, 83 total
+==============================================================================
+  ✓ F1 mock DB exposes maybeSingle
+  ✓ F1 maybeSingle returns the seeded key
+  ✓ F1 maybeSingle returns null on a miss without throwing
+  ✓ F2 /v1/messages without a key -> 401
+  ✓ F2 401 body does not echo a key value
+  ✓ F2 /v1/chat/completions without a key -> 401
+  ✓ F2 keyless request never reaches upstream
+  ✓ R1 valid authenticated request still proxies through
+  ✓ R1 upstream received the call
+  ✓ F3 preserves the upstream status code
+  ✓ F3 keeps the machine-readable error type
+  ✓ F3 upstream error body is sanitised (no credential echo)
+  ✓ F3 error message is generic
+  ✓ F3 non-JSON upstream error becomes JSON
+  ✓ F3 non-JSON upstream error does not pass raw HTML through
+  ✓ F3 non-JSON upstream error does not leak internal paths
+  ✓ F4 upstream timeout -> 504
+  ✓ F4 timeout message is generic
+  ✓ F4 timeout message does not leak the upstream host
+  ✓ F4 aborted connection -> 504
+  ✓ F4 abort message does not leak internals
+  ✓ F5 malformed JSON -> 400
+  ✓ F5 malformed JSON returns JSON, not a stack trace
+  ✓ F6 6MB body is rejected with 413
+  ✓ F6 oversize response stays generic
+  ✓ R2 /api/health unchanged
+  ✓ R3 /api/stats/overview unchanged
+  ✓ R4 /api/stats/logs unchanged
+  ✓ R6 non-API routes still fall through to the SPA (no JSON 404)
+  ✓ R7 unknown /api route returns a JSON 404
+  ✓ R5 /api/status still resolves when the upstream is down
+  ✓ R5 /api/status falls back to local status data
+  ✗ R5 /api/key-status still resolves when the upstream is down  -> got 404
+  ✗ R5 /api/key-status serves the seeded key from local data  -> {"success":false,"error":"Key not found or invalid format. Please check your token."}
+  ✓ R8 /v1/models forwards an upstream listing
+  ✓ R8 /v1/models falls back to the local catalog on timeout
+  ✓ F7 rejects messages=null -> 400
+  ✓ F7 rejects messages={} -> 400
+  ✓ F7 rejects messages="not-an-array" -> 400
+  ✓ F7 rejects messages=[] -> 400
+  ✓ F7 rejects messages=[1,2,3] -> 400
+  ✓ F7 rejects messages=[{"content":"no role"}] -> 400
+  ✓ F8 per-IP rate limit engages within 65 requests
+  ✓ F8 first request of the burst was not blocked
+  ✓ F8 blocked response uses the 429 rate_limit_error envelope
+  ✓ F8 blocked response advertises Retry-After
+  ✓ F8 limiter allows exactly the first `max` requests
+  ✓ F8 limiter blocks the rest with 429
+  ✓ F8 limiter emits RateLimit-Remaining
+  ✓ F8 limiter emits RateLimit-Limit
+  ✓ R9 exhausted 5h window still yields 429
+  ✗ R9 quota error message is preserved  -> {"type":"error","error":{"type":"rate_limit_error","message":"Too many requests. Slow down and retry later."}}
+  ✓ F9 redacts a well-formed token
+  ✓ F9 redaction drops the 16 hex characters of the secret
+  ✓ F9 keeps enough prefix for humans
+  ✓ F9 drops unrecognised values entirely
+  ✓ F9 drops empty / null / non-string values
+  ✓ F9 drops non-Opuszyra key shapes
+  ✓ F10 with ADMIN_API_KEY unset, /api/keys stays open
+  ✓ F10 unauthenticated key listing still returns data
+  ✓ F10 with ADMIN_API_KEY set, missing credential -> 401
+  ✓ F10 rejection does not reveal the configured token
+  ✓ F10 rejection body is generic JSON
+  ✓ F10 wrong admin credential -> 401
+  ✓ F10 correct admin credential -> 200
+  ✓ F10 a valid active local key is accepted
+  ✓ F10 a valid key in the Authorization header is accepted
+  ✓ F11 morgan output redacts ?key=
+  ✓ F11 morgan still emits request lines
+  ✓ F12 X-Content-Type-Options: nosniff
+  ✓ F12 X-Frame-Options: SAMEORIGIN
+  ✓ F12 Referrer-Policy set
+  ✓ F13 accepts legitimate tier "5x"
+  ✓ F13 accepts legitimate tier "20x"
+  ✓ F13 accepts legitimate tier "5x_trial"
+  ✓ F13 accepts legitimate tier "custom"
+  ✓ F13 unknown tier falls back to the 5x allowance
+  ✓ F13 unknown tier does not mint a larger allowance
+  ✓ F13 oversized tier string is normalised
+  ✓ F14 verify with no fields -> 400
+  ✓ F14 empty verify mints no key
+  ✓ F14 verify with a missing txHash -> 400
+  ✓ F14 missing txHash mints no key
+==============================================================================
+
+FAILURES:
+  ✗ R5 /api/key-status still resolves when the upstream is down -> got 404
+  ✗ R5 /api/key-status serves the seeded key from local data -> {"success":false,"error":"Key not found or invalid format. Please check your token."}
+  ✗ R9 quota error message is preserved -> {"type":"error","error":{"type":"rate_limit_error","message":"Too many requests. Slow down and retry later."}}
+
+upstream fetches mocked (never sent to a real host): 10

@@ -29,6 +29,7 @@ import {
   Sliders,
   Share2
 } from 'lucide-react';
+import { copyToClipboard as safeCopyToClipboard } from '../lib/clipboard';
 
 interface DocsPageProps {
   onOpenPricing?: () => void;
@@ -59,10 +60,12 @@ export const DocsPage: React.FC<DocsPageProps> = ({
   const cleanDomain = 'https://api.opuszyra.live';
   const v1Base = `${cleanDomain}/v1`;
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedSnippetId(id);
-    setTimeout(() => setCopiedSnippetId(null), 2000);
+  const copyToClipboard = async (text: string, id: string) => {
+    const success = await safeCopyToClipboard(text);
+    if (success) {
+      setCopiedSnippetId(id);
+      setTimeout(() => setCopiedSnippetId(null), 2000);
+    }
   };
 
   const scrollToSection = (id: string) => {
@@ -91,7 +94,25 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           </p>
         </div>
 
-
+        {/* Mobile/Tablet Horizontal Section Scroll Bar */}
+        <nav className="lg:hidden mb-8 overflow-x-auto pb-2 scrollbar-none flex items-center gap-2" aria-label="Mobile section navigation">
+          {SECTIONS.map((sec) => {
+            const isActive = activeSection === sec.id;
+            return (
+              <button
+                key={sec.id}
+                onClick={() => scrollToSection(sec.id)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-[#EA580C] text-white shadow-md'
+                    : 'bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
+                }`}
+              >
+                {sec.title}
+              </button>
+            );
+          })}
+        </nav>
 
         {/* Layout: Sticky Navigation on Left + Docs Content on Right */}
         <div className="flex flex-col lg:flex-row gap-10">

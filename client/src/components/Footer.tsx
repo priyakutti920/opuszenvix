@@ -6,6 +6,7 @@ interface FooterProps {
   onOpenDocs: () => void;
   onOpenStatus?: () => void;
   onOpenCheckKey: () => void;
+  onNavigateSection?: (sectionId: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -13,17 +14,20 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenDocs,
   onOpenStatus,
   onOpenCheckKey,
+  onNavigateSection,
 }) => {
   return (
     <footer className="border-t border-white/[0.08] bg-dark-950 py-12 text-slate-400">
       <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand Info */}
-          <div className="col-span-2 space-y-4">
+          <div className="sm:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
               <img
                 src="/logo.png"
                 alt="Opuszyra Logo"
+                width="44"
+                height="44"
                 className="h-10 w-10 sm:h-11 sm:w-11 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
               />
               <span className="text-[18px] font-bold tracking-tight text-white font-mono">
@@ -53,7 +57,16 @@ export const Footer: React.FC<FooterProps> = ({
             </h4>
             <ul className="mt-3 space-y-2 text-xs">
               <li>
-                <a href="#models" className="hover:text-white transition">
+                <a
+                  href="#models"
+                  onClick={(e) => {
+                    if (onNavigateSection) {
+                      e.preventDefault();
+                      onNavigateSection('models');
+                    }
+                  }}
+                  className="hover:text-white transition"
+                >
                   Claude Models
                 </a>
               </li>
@@ -63,7 +76,16 @@ export const Footer: React.FC<FooterProps> = ({
                 </button>
               </li>
               <li>
-                <a href="#features" className="hover:text-white transition">
+                <a
+                  href="#features"
+                  onClick={(e) => {
+                    if (onNavigateSection) {
+                      e.preventDefault();
+                      onNavigateSection('features');
+                    }
+                  }}
+                  className="hover:text-white transition"
+                >
                   Features
                 </a>
               </li>

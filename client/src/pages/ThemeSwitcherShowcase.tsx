@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LiquidGlassThemeSwitcher, LiquidTheme } from '../components/LiquidGlassThemeSwitcher';
 import { Sparkles, Layers, Sliders, Check, Copy } from 'lucide-react';
+import { copyToClipboard } from '../lib/clipboard';
 
 interface ThemeSwitcherShowcaseProps {
   currentTheme?: LiquidTheme;
@@ -46,14 +47,16 @@ export const ThemeSwitcherShowcase: React.FC<ThemeSwitcherShowcaseProps> = ({
     `,
   };
 
-  const copyCode = () => {
+  const copyCode = async () => {
     const code = `<LiquidGlassThemeSwitcher
   value="${selectedTheme}"
   onChange={(t) => console.log(t)}
 />`;
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const success = await copyToClipboard(code);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (

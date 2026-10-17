@@ -118,6 +118,9 @@ class MockSupabaseDatabase {
           single: async () => {
             return { data: results[0] || null, error: results[0] ? null : { message: 'Row not found' } };
           },
+          maybeSingle: async () => {
+            return { data: results[0] || null, error: null };
+          },
           then: (resolve) => resolve({ data: results, error: null })
         };
         return chain;
@@ -156,6 +159,8 @@ class MockSupabaseDatabase {
               self.apiKeys = self.apiKeys.filter(item => item[col] !== val);
             } else if (table === 'usage_logs') {
               self.usageLogs = self.usageLogs.filter(item => item[col] !== val);
+            } else if (table === 'crypto_orders') {
+              self.orders = self.orders.filter(item => item[col] !== val);
             }
             return { error: null, count: initialLen - dataStore.length };
           }

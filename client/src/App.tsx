@@ -45,6 +45,14 @@ export function App() {
       if (['pricing', 'docs', 'status', 'usage', 'dashboard', 'playground', 'switcher', 'home'].includes(hash)) {
         setActiveView(hash as ActiveView);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (['models', 'features', 'code-setup', 'get-started'].includes(hash)) {
+        setActiveView('home');
+        setTimeout(() => {
+          const el = document.getElementById(hash);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 80);
       }
     };
 
@@ -61,6 +69,17 @@ export function App() {
       window.location.hash = view;
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateSection = (sectionId: string) => {
+    setActiveView('home');
+    window.location.hash = sectionId;
+    setTimeout(() => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 80);
   };
 
   const handleKeyAcquired = (key: ApiKey) => {
@@ -141,6 +160,7 @@ export function App() {
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-500/5 to-transparent pointer-events-none"></div>
               <div className="mx-auto w-full max-w-2xl px-5 sm:px-8 lg:px-10 text-center relative">
                 <AnimatedTitle
+                  as="h2"
                   className="text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-white sm:text-5xl"
                   lines={[
                     ['Stop', 'waiting', 'for'],
@@ -241,6 +261,7 @@ export function App() {
         onOpenDocs={() => handleNavigate('docs')}
         onOpenStatus={() => handleNavigate('status')}
         onOpenCheckKey={() => handleNavigate('usage')}
+        onNavigateSection={handleNavigateSection}
       />
 
       {/* Interactive Modals */}
