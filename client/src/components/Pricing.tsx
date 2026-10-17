@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Check, Zap, Sparkles, ShieldCheck, ArrowRight, Clock, Cpu, CreditCard, MessageCircle } from 'lucide-react';
 import { PlanTier } from '../types';
+import { getWhatsAppSupportUrl } from '../lib/support';
 
 interface PricingProps {
   onSelectPlan: (tier: PlanTier) => void;
 }
 
 export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
-  const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
+  const whatsappUrl = getWhatsAppSupportUrl("Hi Admin! I want to subscribe to an Opuszyra API plan.");
 
   return (
     <div id="pricing" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -214,17 +215,23 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
         <p className="text-xs text-[#78716C] dark:text-[#A8A29E] font-medium flex items-center justify-center gap-1.5 flex-wrap">
           <CreditCard className="w-4 h-4 text-[#EA580C] shrink-0" />
           <span>Paid in INR (UPI / GPay / PhonePe / Cards).</span>
-          <span>Pay online directly or</span>
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#EA580C] hover:underline font-bold inline-flex items-center gap-1"
-          >
-            <MessageCircle className="w-3.5 h-3.5 fill-current" />
-            <span>Contact Admin on WhatsApp</span>
-          </a>
-          <span>for instant key delivery.</span>
+          {whatsappUrl ? (
+            <>
+              <span>Pay online directly or</span>
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#EA580C] hover:underline font-bold inline-flex items-center gap-1"
+              >
+                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                <span>Contact Admin on WhatsApp</span>
+              </a>
+              <span>for instant key delivery.</span>
+            </>
+          ) : (
+            <span>Pay online directly for immediate key activation.</span>
+          )}
         </p>
       </div>
 

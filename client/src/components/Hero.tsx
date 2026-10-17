@@ -6,8 +6,6 @@ import { copyToClipboard } from '../lib/clipboard';
 
 interface HeroProps {
   onOpenRegister: () => void;
-  onOpenPricing?: () => void;
-  onOpenPlayground?: () => void;
 }
 
 const MODELS = [
@@ -20,8 +18,6 @@ const MODELS = [
 
 export const Hero: React.FC<HeroProps> = ({
   onOpenRegister,
-  onOpenPricing,
-  onOpenPlayground,
 }) => {
   const [activeModelIdx, setActiveModelIdx] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -118,23 +114,14 @@ export const Hero: React.FC<HeroProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="mt-9 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+              <div className="mt-9 flex items-center">
                 <button
                   onClick={onOpenRegister}
-                  className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 px-6 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                  className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 px-7 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                 >
                   <span>Get instant access</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
-
-                {onOpenPlayground && (
-                  <button
-                    onClick={onOpenPlayground}
-                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 px-6 text-[15px] font-medium text-slate-200 hover:text-white transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    <span>Test in Playground</span>
-                  </button>
-                )}
               </div>
 
               {/* Pricing subtext */}

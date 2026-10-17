@@ -283,8 +283,7 @@ const seedQuotaExhaustion = async () => {
   // local data even though the upstream lookup is failing.
   const dbgRows = supabase.apiKeys.length;
   const dbgDirect = await supabase.from('api_keys').select('*').eq('key_token', KEY_20X).maybeSingle();
-  console.error(`DBG rows=${dbgRows} direct=${Boolean(dbgDirect.data)} tokens=${supabase.apiKeys.map((k) => k.key_token.slice(0, 16)).join(',')}`);
-  const kd = await get(`/api/key-status?key=***`);
+  const kd = await get(`/api/key-status?key=${KEY_20X}`);
   check('R5 /api/key-status still resolves when the upstream is down', kd.res.status === 200, `got ${kd.res.status}`);
   check('R5 /api/key-status serves the seeded key from local data', kd.json?.key?.key_token === KEY_20X, JSON.stringify(kd.json).slice(0, 120));
 
@@ -312,9 +311,24 @@ const seedQuotaExhaustion = async () => {
 }
 
 // ===========================================================================
-// SECTION 11 — Rate limiting (F8)
-// Runs after every valid request above, so the per-IP window starts out of
-// quota and the burst can be asserted deterministically.
+// ===========================================================================
+// SECTION 11 — Quota enforcement (R9)
+// (Run before the per-IP limiter burst so the remote address is not yet blocked)
+// ===========================================================================
+{
+  await seedQuotaExhaustion();
+  const H = { 'content-type': 'application/json', 'x-api-key': KEY_5X };
+  const r = await get('/v1/messages', {
+    method: 'POST', headers: H,
+    body: JSON.stringify({ model: 'claude-3-7-sonnet-20250219', messages: [{ role: 'user', content: 'hi' }] })
+  });
+  check('R9 exhausted 5h window still yields 429', r.res.status === 429, `got ${r.res.status}`);
+  check('R9 quota error message is preserved', /5-hour window capacity exceeded/i.test(r.text), r.text.slice(0, 160));
+}
+
+// ===========================================================================
+// SECTION 12 — Rate limiting (F8)
+// Runs after all valid requests above, so the per-IP window can be exhausted.
 // ===========================================================================
 {
   const H = { 'content-type': 'application/json' };
@@ -355,20 +369,6 @@ const seedQuotaExhaustion = async () => {
   check('F8 limiter blocks the rest with 429', blockedCount === 3, `blocked: ${blockedCount}`);
   check('F8 limiter emits RateLimit-Remaining', typeof lastHeaders['RateLimit-Remaining'] === 'string', lastHeaders['RateLimit-Remaining']);
   check('F8 limiter emits RateLimit-Limit', lastHeaders['RateLimit-Limit'] === '10', lastHeaders['RateLimit-Limit']);
-}
-
-// ===========================================================================
-// SECTION 12 — Quota enforcement (R9)
-// ===========================================================================
-{
-  await seedQuotaExhaustion();
-  const H = { 'content-type': 'application/json', 'x-api-key': KEY_5X };
-  const r = await get('/v1/messages', {
-    method: 'POST', headers: H,
-    body: JSON.stringify({ model: 'claude-3-7-sonnet-20250219', messages: [{ role: 'user', content: 'hi' }] })
-  });
-  check('R9 exhausted 5h window still yields 429', r.res.status === 429, `got ${r.res.status}`);
-  check('R9 quota error message is preserved', /5-hour window capacity exceeded/i.test(r.text), r.text.slice(0, 160));
 }
 
 // ===========================================================================

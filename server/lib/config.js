@@ -48,3 +48,16 @@ export function getMasterUpstreamKey() {
   }
   return key.trim();
 }
+
+/**
+ * Reads the support phone number configured in process.env.SUPPORT_PHONE_NUMBER.
+ * Never hardcodes production numbers or secrets.
+ */
+export function getSupportPhoneNumber() {
+  const number = process.env.SUPPORT_PHONE_NUMBER;
+  if (!number || typeof number !== 'string') {
+    return '';
+  }
+  return number.trim();
+}
+

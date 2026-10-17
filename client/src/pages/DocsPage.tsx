@@ -30,6 +30,7 @@ import { copyToClipboard as safeCopyToClipboard } from '../lib/clipboard';
 interface DocsPageProps {
   onOpenPricing?: () => void;
   onOpenCheckUsage?: () => void;
+  onOpenStatus?: () => void;
 }
 
 const SECTIONS = [

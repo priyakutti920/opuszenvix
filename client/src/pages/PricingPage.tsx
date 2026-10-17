@@ -17,6 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { PlanTier } from '../types';
+import { getWhatsAppSupportUrl } from '../lib/support';
 
 interface PricingPageProps {
   onSelectPlan: (tier: PlanTier) => void;
@@ -63,7 +64,7 @@ const COMPARISON_ROWS = [
 ];
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCheckKey }) => {
-  const whatsappUrl = "https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20an%20Opuszyra%20API%20plan.";
+  const whatsappUrl = getWhatsAppSupportUrl("Hi Admin! I want to subscribe to an Opuszyra API plan.");
 
   return (
     <div className="min-h-screen py-10 md:py-16 pb-28 animate-fadeIn transition-colors text-stone-900 dark:text-[#F5F2EB]">
@@ -274,17 +275,23 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
           <p className="text-xs text-[#78716C] dark:text-[#A8A29E] font-medium flex items-center justify-center gap-1.5 flex-wrap">
             <CreditCard className="w-4 h-4 text-[#EA580C] shrink-0" />
             <span>Paid in INR (UPI / GPay / PhonePe / Cards).</span>
-            <span>Pay online directly or</span>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#EA580C] hover:underline font-bold inline-flex items-center gap-1"
-            >
-              <MessageCircle className="w-3.5 h-3.5 fill-current" />
-              <span>Contact Admin on WhatsApp</span>
-            </a>
-            <span>for instant key delivery.</span>
+            {whatsappUrl ? (
+              <>
+                <span>Pay online directly or</span>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#EA580C] hover:underline font-bold inline-flex items-center gap-1"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                  <span>Contact Admin on WhatsApp</span>
+                </a>
+                <span>for instant key delivery.</span>
+              </>
+            ) : (
+              <span>Pay online directly for immediate key activation.</span>
+            )}
           </p>
         </div>
 
@@ -360,19 +367,21 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
       </div>
 
       {/* Floating WhatsApp Widget Button */}
-      <div className="fixed bottom-6 right-6 z-50 font-sans select-none">
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer relative group"
-          aria-label="Open WhatsApp chat with Admin"
-          title="Contact Admin on WhatsApp"
-        >
-          <span className="absolute inset-0 rounded-full bg-emerald-400/35 animate-ping opacity-75 group-hover:animate-none" />
-          <MessageCircle className="w-7 h-7 fill-current relative z-10" />
-        </a>
-      </div>
+      {whatsappUrl && (
+        <div className="fixed bottom-6 right-6 z-50 font-sans select-none">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer relative group"
+            aria-label="Open WhatsApp chat with Admin"
+            title="Contact Admin on WhatsApp"
+          >
+            <span className="absolute inset-0 rounded-full bg-emerald-400/35 animate-ping opacity-75 group-hover:animate-none" />
+            <MessageCircle className="w-7 h-7 fill-current relative z-10" />
+          </a>
+        </div>
+      )}
     </div>
   );
 };

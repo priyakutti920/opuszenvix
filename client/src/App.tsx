@@ -12,9 +12,6 @@ import { PricingModal } from './components/PricingModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { KeyInspectorModal } from './components/KeyInspectorModal';
 import { DocsModal } from './components/DocsModal';
-import { PlaygroundModal } from './components/PlaygroundModal';
-import { Dashboard } from './components/Dashboard';
-import { Playground } from './components/Playground';
 import { PricingPage } from './pages/PricingPage';
 import { DocsPage } from './pages/DocsPage';
 import { StatusPage } from './pages/StatusPage';
@@ -25,10 +22,10 @@ import { ApiKey, PlanTier } from './types';
 import { AnimatedTitle } from './components/AnimatedTitle';
 import { useTheme } from './lib/theme';
 
-export type ActiveView = 'home' | 'pricing' | 'docs' | 'status' | 'usage' | 'dashboard' | 'playground' | 'switcher';
+export type ActiveView = 'home' | 'pricing' | 'docs' | 'status' | 'usage' | 'switcher';
 
 /** Every view that renders a dedicated page instead of the home sections. */
-const PAGES: readonly string[] = ['pricing', 'docs', 'status', 'usage', 'dashboard', 'playground', 'switcher'];
+const PAGES: readonly string[] = ['pricing', 'docs', 'status', 'usage', 'switcher'];
 
 /** Hash aliases that all point at the key-usage inspector. */
 const USAGE_ALIASES = ['usage', 'key-status', 'check-key', 'keystatus', 'keys'];
@@ -122,7 +119,6 @@ export function App() {
   const [selectedTier, setSelectedTier] = useState<PlanTier>('20x');
   const [keyInspectorOpen, setKeyInspectorOpen] = useState(false);
   const [docsModalOpen, setDocsModalOpen] = useState(false);
-  const [playgroundModalOpen, setPlaygroundModalOpen] = useState(false);
   const [inspectedKey, setInspectedKey] = useState<string>(() => resolveRoute(window.location).key || '');
   // Pending home-section anchor, applied once the home sections have mounted.
   const [pendingSection, setPendingSection] = useState<string | null>(null);
@@ -143,10 +139,13 @@ export function App() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         // Rewrite legacy hash-only URLs (`/#pricing`) to their clean path once,
-        // so a refreshed page keeps its shareable slug.
+        // so a refreshed page keeps its shareable slug. Also redirect removed pages like
+        // /dashboard and /playground to the home root.
         const legacy = hashOnlyPath(window.location.hash);
         if (window.location.pathname !== legacy && window.location.hash) {
           window.history.replaceState(null, '', legacy);
+        } else if (view === 'home' && window.location.pathname !== '/' && !window.location.hash) {
+          window.history.replaceState(null, '', '/');
         }
         initialised = true;
       }
@@ -217,8 +216,6 @@ export function App() {
             {/* Hero Section */}
             <Hero
               onOpenRegister={() => handleNavigate('pricing')}
-              onOpenPricing={() => handleNavigate('pricing')}
-              onOpenPlayground={() => handleNavigate('playground')}
             />
 
             {/* Marquee Bar */}
@@ -273,14 +270,14 @@ export function App() {
                   highlightWords={['API', 'access']}
                 />
                 <p className="mx-auto mt-6 max-w-md text-[16px] leading-relaxed text-slate-400">
-                  Over two thousand developers already build on Opuszyra. Sign up, pay with UPI, and
-                  have a key in your terminal before your coffee lands.
+                  Deploy high-throughput Claude applications on Opuszyra. Select a plan, activate via UPI, and
+                  have an API key configured in your terminal in minutes.
                 </p>
 
-                <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                   <button
                     onClick={() => handleNavigate('pricing')}
-                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 px-7 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5"
+                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 px-7 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
                   >
                     <span>Get instant access</span>
                     <ArrowRight className="h-4 w-4" />
@@ -288,7 +285,7 @@ export function App() {
 
                   <button
                     onClick={() => handleNavigate('usage')}
-                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/10 bg-dark-900/60 px-6 text-[15px] font-medium text-slate-200 transition-colors hover:border-white/20 hover:bg-dark-850 hover:text-white"
+                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/10 bg-dark-900/80 px-6 text-[15px] font-medium text-slate-200 transition-colors hover:border-white/20 hover:bg-dark-850 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                   >
                     <span>Check your usage</span>
                     <ArrowUpRight className="h-4 w-4" />
@@ -331,26 +328,6 @@ export function App() {
           />
         )}
 
-        {/* Dashboard View */}
-        {activeView === 'dashboard' && (
-          <div className="py-4">
-            <Dashboard
-              onCheckKey={(key: string) => {
-                setInspectedKey(key);
-                handleNavigate('usage');
-              }}
-              onOpenPlayground={() => handleNavigate('playground')}
-            />
-          </div>
-        )}
-
-        {/* Playground View */}
-        {activeView === 'playground' && (
-          <div className="py-8">
-            <Playground />
-          </div>
-        )}
-
         {/* Liquid Glass Theme Switcher Showcase View */}
         {activeView === 'switcher' && (
           <ThemeSwitcherShowcase
@@ -366,8 +343,6 @@ export function App() {
         onOpenDocs={() => handleNavigate('docs')}
         onOpenStatus={() => handleNavigate('status')}
         onOpenCheckKey={() => handleNavigate('usage')}
-        onOpenPlayground={() => handleNavigate('playground')}
-        onOpenDashboard={() => handleNavigate('dashboard')}
         onNavigateSection={handleNavigateSection}
       />
 
@@ -392,12 +367,6 @@ export function App() {
       />
 
       <DocsModal isOpen={docsModalOpen} onClose={() => setDocsModalOpen(false)} />
-
-      <PlaygroundModal
-        isOpen={playgroundModalOpen}
-        onClose={() => setPlaygroundModalOpen(false)}
-        defaultKey={inspectedKey || undefined}
-      />
     </div>
   );
 }

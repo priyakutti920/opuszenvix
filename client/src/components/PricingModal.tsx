@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { createCryptoOrder, verifyCryptoOrder, generateKey } from '../lib/api';
 import { ApiKey, PlanTier } from '../types';
 import { copyToClipboard } from '../lib/clipboard';
+import { getWhatsAppSupportUrl } from '../lib/support';
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -84,7 +85,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   if (!isOpen) return null;
 
   const currentPlan = MODAL_PLANS.find(p => p.tier === selectedTier) || MODAL_PLANS[0];
-  const whatsappUrl = `https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20the%20${encodeURIComponent(currentPlan.title)}%20(${currentPlan.priceInr}%20INR).`;
+  const whatsappUrl = getWhatsAppSupportUrl(`Hi Admin! I want to subscribe to the ${currentPlan.title} (${currentPlan.priceInr} INR).`);
 
   const handleSelectTier = async (tier: PlanTier) => {
     setSelectedTier(tier);
@@ -332,28 +333,30 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               </div>
 
               {/* Instant WhatsApp Help & Checkout */}
-              <div className="rounded-2xl bg-[#141312] border border-[#262320] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
-                    <MessageCircle className="w-5 h-5 fill-current" />
+              {whatsappUrl && (
+                <div className="rounded-2xl bg-[#141312] border border-[#262320] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-5 h-5 fill-current" />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-white">Instant UPI &amp; WhatsApp Key Delivery</h5>
+                      <p className="text-[11px] text-stone-400">
+                        Connect directly with Admin for GPay / PhonePe / Paytm / Cards payment and instantaneous activation.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="text-xs font-bold text-white">Instant UPI &amp; WhatsApp Key Delivery</h5>
-                    <p className="text-[11px] text-stone-400">
-                      Connect directly with Admin for GPay / PhonePe / Paytm / Cards payment and instantaneous activation.
-                    </p>
-                  </div>
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-900/30"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>Contact on WhatsApp</span>
+                  </a>
                 </div>
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-900/30"
-                >
-                  <MessageCircle className="w-4 h-4 fill-current" />
-                  <span>Contact on WhatsApp</span>
-                </a>
-              </div>
+              )}
 
               {/* Developer Test Mode Key Generation */}
               <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Key, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Key } from 'lucide-react';
 import { Theme } from '../lib/theme';
 import { ThemeToggle } from './ThemeToggle';
 import { ActiveView } from '../App';
@@ -18,25 +18,22 @@ interface NavbarProps {
 interface NavItem {
   view: ActiveView;
   label: string;
+  mobileLabel?: string;
   /** Renders the emerald availability dot before the label. */
   statusDot?: boolean;
 }
 
-/** Desktop keeps the original four items; the dashboard sits in the action
- *  cluster so the centre row still fits at the `md` breakpoint. */
+/** Desktop navigation items. */
 const DESKTOP_ITEMS: NavItem[] = [
   { view: 'pricing', label: 'Pricing' },
   { view: 'docs', label: 'Docs' },
-  { view: 'playground', label: 'Playground' },
   { view: 'status', label: 'Status', statusDot: true },
 ];
 
-/** Mobile drops Playground — it is one tap from the Home hero and stays
- *  linked from the footer. */
+/** Mobile navigation items. */
 const MOBILE_ITEMS: NavItem[] = [
   { view: 'pricing', label: 'Pricing & Plans' },
   { view: 'docs', label: 'Documentation' },
-  { view: 'dashboard', label: 'Console Dashboard' },
   { view: 'status', label: 'System Status', statusDot: true },
 ];
 
@@ -162,21 +159,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Key className="w-3.5 h-3.5" />
             <span>Check Usage</span>
-          </button>
-
-          {/* Console Dashboard (kept to an icon so the nav still fits at md) */}
-          <button
-            onClick={() => go('dashboard')}
-            className={`hidden md:inline-flex items-center justify-center rounded-lg p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              activeView === 'dashboard'
-                ? 'bg-white/[0.1] text-white'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-            title="Console Dashboard"
-            aria-label="Console Dashboard"
-            aria-current={activeView === 'dashboard' ? 'page' : undefined}
-          >
-            <LayoutDashboard className="w-4 h-4" />
           </button>
 
           {" "}

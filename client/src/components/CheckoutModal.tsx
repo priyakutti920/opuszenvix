@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { createCryptoOrder, verifyCryptoOrder } from '../lib/api';
 import { PlanTier } from '../types';
 import { copyToClipboard } from '../lib/clipboard';
+import { getWhatsAppSupportUrl } from '../lib/support';
 
 interface CheckoutModalProps {
   tier: PlanTier;
@@ -30,7 +31,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
 
   const plan = PLAN_META[tier] || PLAN_META['5x'];
   const upiId = 'opuszyra@ybl';
-  const whatsappUrl = `https://wa.me/918098830937?text=Hi%20Admin!%20I%20want%20to%20subscribe%20to%20the%20${encodeURIComponent(plan.name)}%20(₹${plan.priceInr}%20INR).`;
+  const whatsappUrl = getWhatsAppSupportUrl(`Hi Admin! I want to subscribe to the ${plan.name} (₹${plan.priceInr} INR).`);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,23 +171,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#1a1918] border border-[#2b2724] text-xs text-stone-300 space-y-2">
-                <div className="flex items-center gap-2 text-stone-200 font-semibold">
-                  <span>⚡ Quick WhatsApp Activation:</span>
+              {whatsappUrl && (
+                <div className="p-3.5 rounded-xl bg-[#1a1918] border border-[#2b2724] text-xs text-stone-300 space-y-2">
+                  <div className="flex items-center gap-2 text-stone-200 font-semibold">
+                    <span>⚡ Quick WhatsApp Activation:</span>
+                  </div>
+                  <p className="text-[11px] text-stone-400 leading-relaxed">
+                    Pay ₹{plan.priceInr.toLocaleString('en-IN')} via any UPI app or card, and connect directly with Admin for priority instantaneous key provisioning.
+                  </p>
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all w-full justify-center shadow-md shadow-emerald-900/30"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Contact Admin on WhatsApp</span>
+                  </a>
                 </div>
-                <p className="text-[11px] text-stone-400 leading-relaxed">
-                  Pay ₹{plan.priceInr.toLocaleString('en-IN')} via any UPI app or card, and connect directly with Admin for priority instantaneous key provisioning.
-                </p>
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all w-full justify-center shadow-md shadow-emerald-900/30"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Contact Admin on WhatsApp</span>
-                </a>
-              </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-mono text-stone-400">

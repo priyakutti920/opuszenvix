@@ -1,13 +1,12 @@
 import React from 'react';
 import { Zap, Heart, Shield, ArrowUpRight } from 'lucide-react';
+import { getSupportTelUrl, getDisplaySupportPhoneNumber, getWhatsAppSupportUrl } from '../lib/support';
 
 interface FooterProps {
   onOpenPricing: () => void;
   onOpenDocs: () => void;
   onOpenStatus?: () => void;
   onOpenCheckKey: () => void;
-  onOpenPlayground?: () => void;
-  onOpenDashboard?: () => void;
   onNavigateSection?: (sectionId: string) => void;
 }
 
@@ -16,10 +15,12 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenDocs,
   onOpenStatus,
   onOpenCheckKey,
-  onOpenPlayground,
-  onOpenDashboard,
   onNavigateSection,
 }) => {
+  const whatsappUrl = getWhatsAppSupportUrl("Hi! I have an inquiry about Opuszyra.");
+  const supportTel = getSupportTelUrl();
+  const displayPhone = getDisplaySupportPhoneNumber();
+
   return (
     <footer className="border-t border-white/[0.08] bg-dark-950 py-12 text-slate-400">
       <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10">
@@ -79,20 +80,6 @@ export const Footer: React.FC<FooterProps> = ({
                   Pricing &amp; Plans
                 </button>
               </li>
-              {onOpenPlayground && (
-                <li>
-                  <button onClick={onOpenPlayground} className="hover:text-white transition">
-                    Live Playground
-                  </button>
-                </li>
-              )}
-              {onOpenDashboard && (
-                <li>
-                  <button onClick={onOpenDashboard} className="hover:text-white transition">
-                    API Dashboard
-                  </button>
-                </li>
-              )}
               <li>
                 <a
                   href="#features"
@@ -174,6 +161,28 @@ export const Footer: React.FC<FooterProps> = ({
                   <ArrowUpRight className="w-3 h-3" />
                 </a>
               </li>
+              {whatsappUrl && (
+                <li>
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition"
+                  >
+                    WhatsApp Support
+                  </a>
+                </li>
+              )}
+              {supportTel && displayPhone && (
+                <li>
+                  <a
+                    href={supportTel}
+                    className="hover:text-white transition"
+                  >
+                    Phone: {displayPhone}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

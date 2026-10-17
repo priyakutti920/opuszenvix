@@ -72,11 +72,27 @@ const fetchLiveModelIds = async (upstreamBase) => {
     const ids = Array.isArray(parsed?.data)
       ? parsed.data.map((m) => m?.id).filter((id) => typeof id === 'string' && id.trim())
       : [];
-    return ids.length > 0 ? [...new Set(ids)] : [];
+    return collapseModelIds(ids);
   } catch (err) {
     console.warn(`Upstream /v1/models fetch warning:`, err.message);
     return [];
   }
+};
+
+// The upstream catalog lists a separate entry per context-length variant
+// (claude-opus-5-5 and claude-opus-5-5[1m]). Those are the same model, so the
+// chip row would otherwise print near-duplicates — 24 entries instead of 15.
+// Keep the first-seen id for each base model, preserving catalog order.
+const collapseModelIds = (ids) => {
+  const seen = new Set();
+  const collapsed = [];
+  for (const id of ids) {
+    const base = id.replace(/\[[^\]]*\]\s*$/, '').trim();
+    if (!base || seen.has(base)) continue;
+    seen.add(base);
+    collapsed.push(base);
+  }
+  return collapsed;
 };
 
 // Core Key Status Inspector (queries upstream /api/key-status + local DB)
