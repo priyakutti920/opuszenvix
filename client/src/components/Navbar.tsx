@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Menu, X, Key, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, X, Key, LayoutDashboard } from 'lucide-react';
 import { Theme } from '../lib/theme';
 import { ThemeToggle } from './ThemeToggle';
+import { ActiveView } from '../App';
 
 interface NavbarProps {
   onOpenPricing?: () => void;
@@ -9,10 +10,35 @@ interface NavbarProps {
   onOpenStatus?: () => void;
   onOpenCheckKey?: () => void;
   activeView: string;
-  setActiveView: (view: 'home' | 'pricing' | 'docs' | 'status' | 'usage' | 'dashboard' | 'playground' | 'switcher') => void;
+  setActiveView: (view: ActiveView) => void;
   theme: Theme;
   onToggleTheme: (e: React.MouseEvent) => void;
 }
+
+interface NavItem {
+  view: ActiveView;
+  label: string;
+  /** Renders the emerald availability dot before the label. */
+  statusDot?: boolean;
+}
+
+/** Desktop keeps the original four items; the dashboard sits in the action
+ *  cluster so the centre row still fits at the `md` breakpoint. */
+const DESKTOP_ITEMS: NavItem[] = [
+  { view: 'pricing', label: 'Pricing' },
+  { view: 'docs', label: 'Docs' },
+  { view: 'playground', label: 'Playground' },
+  { view: 'status', label: 'Status', statusDot: true },
+];
+
+/** Mobile drops Playground — it is one tap from the Home hero and stays
+ *  linked from the footer. */
+const MOBILE_ITEMS: NavItem[] = [
+  { view: 'pricing', label: 'Pricing & Plans' },
+  { view: 'docs', label: 'Documentation' },
+  { view: 'dashboard', label: 'Console Dashboard' },
+  { view: 'status', label: 'System Status', statusDot: true },
+];
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenPricing,
@@ -26,47 +52,61 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleNavPricing = () => {
-    setActiveView('pricing');
-    if (onOpenPricing) onOpenPricing();
+  // Selecting an item always closes the drawer.
+  const go = (view: ActiveView) => {
+    setActiveView(view);
     setMobileMenuOpen(false);
+  };
+
+  const handleNavPricing = () => {
+    go('pricing');
+    if (onOpenPricing) onOpenPricing();
   };
 
   const handleNavDocs = () => {
-    setActiveView('docs');
+    go('docs');
     if (onOpenDocs) onOpenDocs();
-    setMobileMenuOpen(false);
   };
 
   const handleNavStatus = () => {
-    setActiveView('status');
+    go('status');
     if (onOpenStatus) onOpenStatus();
-    setMobileMenuOpen(false);
-  };
-
-  const handleNavPlayground = () => {
-    setActiveView('playground');
-    setMobileMenuOpen(false);
-  };
-
-  const handleNavDashboard = () => {
-    setActiveView('dashboard');
-    setMobileMenuOpen(false);
   };
 
   const handleNavCheckUsage = () => {
-    setActiveView('usage');
+    go('usage');
     if (onOpenCheckKey) onOpenCheckKey();
-    setMobileMenuOpen(false);
   };
+
+  const itemFor = (view: ActiveView) =>
+    view === 'pricing' ? handleNavPricing
+    : view === 'docs' ? handleNavDocs
+    : view === 'status' ? handleNavStatus
+    : () => go(view);
+
+  // Close the drawer on Escape and lock background scroll while it is open.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen]);
 
   return (
     <header className="sticky top-0 z-50 h-16 w-full border-b border-white/[0.08] bg-dark-950/80 backdrop-blur-xl transition-colors duration-300">
       <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4 sm:px-8 lg:px-10">
-        
+
+        {" "}
         {/* Brand Logo */}
         <button
-          onClick={() => setActiveView('home')}
+          onClick={() => go('home')}
           className="inline-flex items-center gap-2.5 sm:gap-3 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1"
           aria-label="Opuszyra home"
         >
@@ -84,57 +124,32 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Center Desktop Navigation: Pricing, Docs, Playground, Status */}
         <nav className="hidden items-center gap-1 md:flex">
-          <button
-            onClick={handleNavPricing}
-            className={`relative px-3.5 py-1.5 text-[13px] font-medium transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              activeView === 'pricing'
-                ? 'text-white bg-white/[0.1] font-semibold'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            Pricing
-          </button>
-
-          <button
-            onClick={handleNavDocs}
-            className={`relative px-3.5 py-1.5 text-[13px] font-medium transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              activeView === 'docs'
-                ? 'text-white bg-white/[0.1] font-semibold'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            Docs
-          </button>
-
-          <button
-            onClick={handleNavPlayground}
-            className={`relative px-3.5 py-1.5 text-[13px] font-medium transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              activeView === 'playground'
-                ? 'text-white bg-white/[0.1] font-semibold'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            Playground
-          </button>
-
-          <button
-            onClick={handleNavStatus}
-            className={`relative px-3.5 py-1.5 text-[13px] font-medium transition-colors rounded-lg inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              activeView === 'status'
-                ? 'text-white bg-white/[0.1] font-semibold'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>Status</span>
-          </button>
+          {DESKTOP_ITEMS.map((item) => {
+            const isActive = activeView === item.view;
+            return (
+              <button
+                key={item.view}
+                onClick={itemFor(item.view)}
+                className={`relative px-3.5 py-1.5 text-[13px] font-medium transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                  isActive
+                    ? 'text-white bg-white/[0.1] font-semibold'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                {item.view === 'status' && (
+                  <span className="absolute left-1 top-1/2 -translate-y-1/2 flex h-1.5 w-1.5">
+                    <span className="relative inline-flex rounded-full h-full w-full bg-emerald-500"></span>
+                  </span>
+                )}
+                <span className={item.view === 'status' ? 'pl-2' : ''}>{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* Right Action: Check Usage placed near Dark Mode Toggle */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {" "}
           {/* Check Usage Button: visible on tablet/desktop */}
           <button
             onClick={handleNavCheckUsage}
@@ -149,9 +164,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Check Usage</span>
           </button>
 
+          {/* Console Dashboard (kept to an icon so the nav still fits at md) */}
+          <button
+            onClick={() => go('dashboard')}
+            className={`hidden md:inline-flex items-center justify-center rounded-lg p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              activeView === 'dashboard'
+                ? 'bg-white/[0.1] text-white'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+            title="Console Dashboard"
+            aria-label="Console Dashboard"
+            aria-current={activeView === 'dashboard' ? 'page' : undefined}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+          </button>
+
+          {" "}
           {/* White / Dark Theme Toggle Button */}
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 
+          {" "}
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -165,67 +197,37 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
+      {" "}
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div id="mobile-nav-drawer" className="border-b border-white/[0.08] bg-dark-950/95 backdrop-blur-2xl px-5 py-4 space-y-2 md:hidden animate-fadeIn">
-          <button
-            onClick={handleNavPricing}
-            className={`block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-              activeView === 'pricing'
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Pricing &amp; Plans
-          </button>
-
-          <button
-            onClick={handleNavDocs}
-            className={`block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-              activeView === 'docs'
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Documentation
-          </button>
-
-          <button
-            onClick={handleNavPlayground}
-            className={`block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-              activeView === 'playground'
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Live Playground
-          </button>
-
-          <button
-            onClick={handleNavDashboard}
-            className={`block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-              activeView === 'dashboard'
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Dashboard
-          </button>
-
-          <button
-            onClick={handleNavStatus}
-            className={`w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between ${
-              activeView === 'status'
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <span>Gateway Status</span>
-            <span className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              99.99% Operational
-            </span>
-          </button>
+        <nav id="mobile-nav-drawer" aria-label="Mobile navigation" className="border-b border-white/[0.08] bg-dark-950/95 backdrop-blur-2xl px-5 py-4 space-y-2 md:hidden animate-fadeIn">
+          {MOBILE_ITEMS.map((item) => {
+            const isActive = activeView === item.view;
+            return (
+              <button
+                key={item.view}
+                onClick={itemFor(item.view)}
+                className={`block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                  isActive
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {item.view === 'status' ? (
+                  <span className="flex items-center justify-between">
+                    <span>{item.label}</span>
+                    <span className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Operational
+                    </span>
+                  </span>
+                ) : (
+                  item.mobileLabel || item.label
+                )}
+              </button>
+            );
+          })}
 
           <div className="pt-2 border-t border-white/5">
             <button
@@ -235,12 +237,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                   : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}
+              aria-current={activeView === 'usage' ? 'page' : undefined}
             >
               <Key className="w-4 h-4 text-amber-400" />
               <span className="font-semibold">Check Key Usage</span>
             </button>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );

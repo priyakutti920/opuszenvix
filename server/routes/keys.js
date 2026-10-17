@@ -2,10 +2,10 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
+import { getUpstreamBase, getMasterUpstreamKey } from '../lib/config.js';
+import { quotaFor } from '../lib/quotas.js';
 
 const router = express.Router();
-
-const getUpstreamBase = () => (process.env.UPSTREAM_API_BASE || 'https://api.opuszen.shop').replace(/\/+$/, '');
 
 // In-memory persistent window anchors (persists established window expiration across re-checks & refreshes)
 const windowAnchors = new Map();
@@ -42,10 +42,47 @@ const evaluateRollingWindow = (key) => {
   };
 };
 
-// Core Key Status Inspector (queries upstream https://api.opuszen.shop/api/key-status + local DB)
+// Default model set, used only when neither the upstream key-status record nor
+// the live /v1/models catalog yields a usable list.
+const FALLBACK_MODELS = [
+  'claude-fable-5-1',
+  'claude-opus-5-5',
+  'claude-sonnet-5',
+  'claude-opus-4-8',
+  'claude-sonnet-4-6'
+];
+
+// Pull the model ids the gateway actually serves, so the "Supported Models on
+// this Key" chips reflect reality instead of a stale hardcoded array.
+// Runs concurrently with the key-status call and never blocks the response:
+// any config or network failure just returns [] and the caller falls back.
+const fetchLiveModelIds = async (upstreamBase) => {
+  if (!upstreamBase) return [];
+  try {
+    const masterKey = getMasterUpstreamKey();
+    const res = await fetch(`${upstreamBase}/v1/models`, {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        'Accept': 'application/json',
+        ...(masterKey ? { 'x-api-key': masterKey, 'Authorization': `Bearer ${masterKey}` } : {})
+      }
+    });
+    if (!res.ok) return [];
+    const parsed = await res.json();
+    const ids = Array.isArray(parsed?.data)
+      ? parsed.data.map((m) => m?.id).filter((id) => typeof id === 'string' && id.trim())
+      : [];
+    return ids.length > 0 ? [...new Set(ids)] : [];
+  } catch (err) {
+    console.warn(`Upstream /v1/models fetch warning:`, err.message);
+    return [];
+  }
+};
+
+// Core Key Status Inspector (queries upstream /api/key-status + local DB)
 export const handleKeyStatusInspection = async (req, res) => {
   try {
-    let keyToken = req.body?.key || req.body?.key_token || req.body?.token || req.query?.key || req.query?.token;
+    let keyToken = req.params?.token || req.params?.key || req.body?.key || req.body?.key_token || req.body?.token || req.query?.key || req.query?.token;
     
     if (!keyToken) {
       const auth = req.headers['authorization'];
@@ -64,32 +101,52 @@ export const handleKeyStatusInspection = async (req, res) => {
     }
 
     const trimmedKey = keyToken.trim();
-    const upstreamBase = getUpstreamBase();
-
-    // 1. Fetch real-time status from upstream API (https://api.opuszen.shop/api/key-status)
-    let upstreamData = null;
+    let upstreamBase = null;
     try {
-      // First try GET with query string (upstream primary format)
-      const getRes = await fetch(`${upstreamBase}/api/key-status?key=${encodeURIComponent(trimmedKey)}`, {
-        signal: AbortSignal.timeout(8000),
-        headers: { 'Accept': 'application/json' }
-      });
-      if (getRes.ok) {
-        upstreamData = await getRes.json();
-      } else {
-        // Fallback to POST with JSON body
-        const postRes = await fetch(`${upstreamBase}/api/key-status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ key: trimmedKey }),
-          signal: AbortSignal.timeout(8000)
+      upstreamBase = getUpstreamBase();
+    } catch {
+      // UPSTREAM_API_BASE not configured
+    }
+
+    // Kick off the live model catalog lookup up front so it overlaps the
+    // key-status call below rather than adding its own round-trip to latency.
+    const liveModelsPromise = fetchLiveModelIds(upstreamBase);
+
+    // 1. Fetch real-time status from upstream API (/api/key-status)
+    let upstreamData = null;
+    if (upstreamBase) {
+      try {
+        // First try GET with query string (upstream primary format)
+        const getRes = await fetch(`${upstreamBase}/api/key-status?key=${encodeURIComponent(trimmedKey)}`, {
+          signal: AbortSignal.timeout(8000),
+          headers: { 'Accept': 'application/json' }
         });
-        if (postRes.ok) {
-          upstreamData = await postRes.json();
+        if (getRes.ok) {
+          const parsed = await getRes.json();
+          // Check if upstream returned a valid key record (and not an error payload)
+          if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found') {
+            upstreamData = parsed;
+          }
         }
+        
+        // If GET didn't find it or failed, try POST
+        if (!upstreamData) {
+          const postRes = await fetch(`${upstreamBase}/api/key-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ key: trimmedKey }),
+            signal: AbortSignal.timeout(8000)
+          });
+          if (postRes.ok) {
+            const parsed = await postRes.json();
+            if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found') {
+              upstreamData = parsed;
+            }
+          }
+        }
+      } catch (upErr) {
+        console.warn(`Upstream key-status query to ${upstreamBase} warning:`, upErr.message);
       }
-    } catch (upErr) {
-      console.warn(`Upstream key-status query to ${upstreamBase} warning:`, upErr.message);
     }
 
     // 2. Fetch local key record from Supabase if present
@@ -106,50 +163,59 @@ export const handleKeyStatusInspection = async (req, res) => {
     }
 
     // Key Validation Trust Boundary:
-    // The upstream status endpoint (api.opuszen.shop/api/key-status) returns a static simulated "active"
-    // response for any arbitrary string. If the key does not exist in the authoritative database (api_keys),
-    // we must not report unknown or fake keys as genuinely active.
-    // In local development / mock mode without configured DB, local mock keys are verified via localRecord.
+    const isUpstreamKeyValid = Boolean(
+      upstreamData && (
+        upstreamData.status === 'found' || 
+        upstreamData.isActive === true || 
+        (upstreamData.status !== 'error' && !upstreamData.error)
+      )
+    );
+
     if (!localRecord) {
-      // If live Supabase is configured or running in production, reject unknown keys
       const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
       if (isSupabaseConfigured || isProduction) {
-        return res.status(404).json({
-          success: false,
-          error: 'Key not found or invalid format. Please check your token.',
-          code: 'KEY_NOT_FOUND'
-        });
+        // In production/configured DB mode, only accept genuinely verified upstream or DB keys
+        if (!isUpstreamKeyValid) {
+          return res.status(404).json({
+            success: false,
+            error: 'Key not found or invalid format. Please check your token.',
+            code: 'KEY_NOT_FOUND'
+          });
+        }
       }
     }
 
     // If neither upstream nor local key was found
-    if (!upstreamData && !localRecord) {
+    if (!isUpstreamKeyValid && !localRecord) {
       return res.status(404).json({
         success: false,
         error: 'Key not found or invalid format. Please check your token.'
       });
     }
 
-    // Compute unified status values with persistent anchored rolling window
+    // Unified status values & Window calculations
     const now = new Date();
     let resetTimeStr = null;
     let windowStartedAt = null;
 
-    // Check if we already have an active anchored window for this key
-    const existingAnchor = windowAnchors.get(trimmedKey);
-    if (existingAnchor && new Date(existingAnchor.resetAt) > now) {
-      // Preserve existing anchored deadline so refreshing doesn't restart from 5h
-      resetTimeStr = existingAnchor.resetAt;
-      windowStartedAt = existingAnchor.startedAt;
-    } else if (localRecord?.window_resets_at && new Date(localRecord.window_resets_at) > now) {
-      resetTimeStr = localRecord.window_resets_at;
-      windowStartedAt = localRecord.window_started_at || new Date(new Date(resetTimeStr).getTime() - 5 * 3600 * 1000).toISOString();
+    if (upstreamData?.windowResetAt) {
+      resetTimeStr = upstreamData.windowResetAt;
+      windowStartedAt = upstreamData.windowStartedAt || new Date(new Date(resetTimeStr).getTime() - 5 * 3600 * 1000).toISOString();
       windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
     } else {
-      // Establish a consistent 5-hour cycle anchor
-      windowStartedAt = now.toISOString();
-      resetTimeStr = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
-      windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
+      const existingAnchor = windowAnchors.get(trimmedKey);
+      if (existingAnchor && new Date(existingAnchor.resetAt) > now) {
+        resetTimeStr = existingAnchor.resetAt;
+        windowStartedAt = existingAnchor.startedAt;
+      } else if (localRecord?.window_resets_at && new Date(localRecord.window_resets_at) > now) {
+        resetTimeStr = localRecord.window_resets_at;
+        windowStartedAt = localRecord.window_started_at || new Date(new Date(resetTimeStr).getTime() - 5 * 3600 * 1000).toISOString();
+        windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
+      } else {
+        windowStartedAt = now.toISOString();
+        resetTimeStr = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
+        windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
+      }
     }
 
     const resetDate = new Date(resetTimeStr);
@@ -160,52 +226,85 @@ export const handleKeyStatusInspection = async (req, res) => {
     const secondsRemaining = Math.floor(msRemaining / 1000);
     const timeRemainingFormatted = `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`;
 
-    const tokenLimit = upstreamData?.windowTokensLimit || localRecord?.window_token_limit || 10000000;
-    const tokensUsed = upstreamData?.windowTokensUsed ?? (localRecord?.window_tokens_used || 0);
-    const remainingTokens = upstreamData?.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
-    const percentUsed = upstreamData?.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
-    const percentRemaining = Math.max(0, 100 - percentUsed);
+    // Plan & Tier detection
+    const is20x = Boolean(
+      (upstreamData?.planName && upstreamData.planName.toLowerCase().includes('20x')) ||
+      (upstreamData?.name && upstreamData.name.toLowerCase().includes('20x')) ||
+      localRecord?.tier === '20x'
+    );
+    const tier = localRecord?.tier || (is20x ? '20x' : '5x');
+    // Never let a malformed limit come back as zero — that renders an infinite
+    // bar-width calculation in the dashboard.
+    const tokenLimit = Number(upstreamData?.windowTokensLimit) ||
+      Number(localRecord?.window_token_limit) ||
+      quotaFor(tier).limit;
+
+    let percentUsed = 0;
+    let tokensUsed = 0;
+    let remainingTokens = tokenLimit;
+
+    if (upstreamData?.usagePercent !== undefined && upstreamData.usagePercent !== null) {
+      percentUsed = Number(upstreamData.usagePercent);
+      tokensUsed = upstreamData.windowTokensUsed ?? Math.round((percentUsed / 100) * tokenLimit);
+      remainingTokens = upstreamData.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
+    } else {
+      tokensUsed = upstreamData?.windowTokensUsed ?? (localRecord?.window_tokens_used || 0);
+      remainingTokens = upstreamData?.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
+      percentUsed = upstreamData?.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
+    }
+    const percentRemaining = Math.max(0, Number((100 - percentUsed).toFixed(1)));
 
     const masked = trimmedKey.length > 12 
       ? `${trimmedKey.slice(0, 14)}...${trimmedKey.slice(-4)}`
       : trimmedKey;
 
-    const allowedModels = upstreamData?.allowedModels || [
-      'claude-opus-4-8',
-      'claude-opus-4-7',
-      'claude-sonnet-4-6',
-      'claude-haiku-4-5-20251001'
-    ];
+    const upstreamModels = Array.isArray(upstreamData?.allowedModels) ? upstreamData.allowedModels : [];
+    const liveModels = await liveModelsPromise;
+    const allowedModels = upstreamModels.length > 0 ? upstreamModels : (liveModels.length > 0 ? liveModels : FALLBACK_MODELS);
+
+    const recentLogs = Array.isArray(upstreamData?.recentLogs) 
+      ? upstreamData.recentLogs.map((log, idx) => ({
+          id: `upstream-log-${idx}`,
+          timestamp: log.time ? new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) + ' (' + new Date(log.time).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ')' : 'Just now',
+          model: log.model || 'claude-sonnet-4-6',
+          tokens: log.tokens ?? '-',
+          status: log.status ? `${log.status} OK` : '200 OK'
+        }))
+      : [];
+
+    const keyName = upstreamData?.name || localRecord?.name || (tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key');
 
     const result = {
       success: true,
       status: 'ok',
       isRealtime: upstreamData?.isRealtime ?? true,
-      keyStatus: upstreamData?.keyStatus || localRecord?.status || 'active',
-      name: upstreamData?.name || localRecord?.name || 'API Key',
+      keyStatus: (upstreamData?.isActive || upstreamData?.status === 'found') ? 'active' : (upstreamData?.keyStatus || localRecord?.status || 'active'),
+      name: keyName,
       key: {
         id: localRecord?.id || 'upstream-key',
-        name: upstreamData?.name || localRecord?.name || 'API Key',
+        name: keyName,
         key_token: trimmedKey,
         masked_token: masked,
-        tier: localRecord?.tier || (tokenLimit >= 50000000 ? '20x' : '5x'),
-        status: upstreamData?.keyStatus || localRecord?.status || 'active',
+        tier,
+        status: (upstreamData?.isActive || upstreamData?.status === 'found') ? 'active' : (upstreamData?.keyStatus || localRecord?.status || 'active'),
         rate_limit_rpm: upstreamData?.rateLimit || localRecord?.rate_limit_rpm || 60,
-        rate_limit_tpm: localRecord?.rate_limit_tpm || 400000,
+        rate_limit_tpm: localRecord?.rate_limit_tpm || (tier === '20x' ? 1000000 : 400000),
         window_token_limit: tokenLimit,
         window_tokens_used: tokensUsed,
         window_tokens_remaining: remainingTokens,
         percentUsed,
         percentRemaining,
-        timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`,
+        timeRemainingFormatted,
         secondsRemaining,
-        window_started_at: localRecord?.window_started_at || new Date(resetDate.getTime() - 5 * 60 * 60 * 1000).toISOString(),
+        window_started_at: windowStartedAt,
         window_resets_at: resetTimeStr,
+        created_at: upstreamData?.createdAt || localRecord?.created_at || windowStartedAt,
+        expires_at: upstreamData?.expiresAt || localRecord?.expires_at || new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString(),
         total_tokens_consumed: localRecord?.total_tokens_consumed || tokensUsed,
         total_requests: upstreamData?.totalRequests ?? (localRecord?.total_requests || 0),
         successRequests: upstreamData?.successRequests ?? 0,
         failedRequests: upstreamData?.failedRequests ?? 0,
-        last24hRequests: upstreamData?.last24h?.requests ?? 0,
+        last24hRequests: upstreamData?.last24h?.requests ?? (upstreamData?.last24hRequests || 0),
         allocatedCredits: upstreamData?.allocatedCredits ?? 0,
         usedCredits: upstreamData?.usedCredits ?? 0,
         remainingCredits: upstreamData?.remainingCredits ?? 0,
@@ -214,7 +313,8 @@ export const handleKeyStatusInspection = async (req, res) => {
         connectionStatus: upstreamData?.connectionStatus || 'Online',
         unlimited: upstreamData?.unlimited ?? false,
         windowActive: upstreamData?.windowActive ?? true,
-        rawPayload: upstreamData
+        recentLogs: recentLogs.length > 0 ? recentLogs : undefined,
+        rawPayload: upstreamData || localRecord
       },
       // Upstream-compatible root fields
       unlimited: upstreamData?.unlimited ?? false,
@@ -222,7 +322,7 @@ export const handleKeyStatusInspection = async (req, res) => {
       totalRequests: upstreamData?.totalRequests ?? (localRecord?.total_requests || 0),
       successRequests: upstreamData?.successRequests ?? 0,
       failedRequests: upstreamData?.failedRequests ?? 0,
-      last24h: upstreamData?.last24h || { requests: upstreamData?.totalRequests || 0 },
+      last24h: upstreamData?.last24h || { requests: upstreamData?.last24hRequests || 0 },
       rateLimit: upstreamData?.rateLimit || 60,
       connectionStatus: upstreamData?.connectionStatus || 'Online',
       isActive: true,
@@ -236,8 +336,8 @@ export const handleKeyStatusInspection = async (req, res) => {
       allocatedCredits: upstreamData?.allocatedCredits ?? 0,
       usedCredits: upstreamData?.usedCredits ?? 0,
       remainingCredits: upstreamData?.remainingCredits ?? 0,
-      recentLogs: upstreamData?.recentLogs || [],
-      rawPayload: upstreamData
+      recentLogs,
+      rawPayload: upstreamData || localRecord
     };
 
     return res.json(result);
@@ -247,10 +347,10 @@ export const handleKeyStatusInspection = async (req, res) => {
   }
 };
 
-// Mount Key Inspection routes
-router.post('/check', handleKeyStatusInspection);
-router.post('/status', handleKeyStatusInspection);
-router.get('/status', handleKeyStatusInspection);
+// Mount Key Inspection routes (supporting query, body, and slug parameter)
+router.all(['/check', '/check/:token', '/check/:token/*'], handleKeyStatusInspection);
+router.all(['/status', '/status/:token', '/status/:token/*'], handleKeyStatusInspection);
+router.all(['/:token/status'], handleKeyStatusInspection);
 
 // 1. Get all API keys (from local Supabase DB)
 router.get('/', async (req, res) => {
@@ -278,10 +378,7 @@ router.post('/', async (req, res) => {
     const prefix = `opm-live-${tier}`;
     const token = `${prefix}-${randomHex}`;
 
-    const limitTokens = tier === '20x' ? 100000000 : 25000000;
-    const rpm = tier === '20x' ? 120 : 60;
-    const tpm = tier === '20x' ? 1000000 : 400000;
-    const durationDays = tier === '5x_trial' ? 7 : 30;
+    const { limit: limitTokens, rpm, tpm, durationDays } = quotaFor(tier);
 
     const now = new Date();
     const resetsAt = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();

@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../lib/supabase.js';
 import crypto from 'crypto';
+import { normalizeTier, quotaFor } from '../lib/quotas.js';
 
 const router = express.Router();
 
@@ -47,24 +48,10 @@ router.get('/logs', async (req, res) => {
   }
 });
 
-// Canonical tier → quota map, shared by every quota-assigning endpoint.
-// Unrecognised tiers fall back to the smallest paid tier so a typo like
-// `tier: "20x"` (vs `"2Ox"`) never silently mints a larger allowance.
-const TIER_QUOTAS = {
-  '5x': { limit: 25000000, rpm: 60, tpm: 400000, durationDays: 30 },
-  '20x': { limit: 100000000, rpm: 120, tpm: 1000000, durationDays: 30 },
-  '5x_trial': { limit: 25000000, rpm: 60, tpm: 400000, durationDays: 7 },
-  'custom': { limit: 25000000, rpm: 60, tpm: 400000, durationDays: 30 },
-};
-
-const normalizeTier = (tier) =>
-  (typeof tier === 'string' && TIER_QUOTAS[tier]) ? tier : '5x';
-
 // Create Crypto order
 router.post('/orders/create', async (req, res) => {
   try {
     const tier = normalizeTier(req.body?.tier);
-    const { limit, durationDays } = TIER_QUOTAS[tier];
     let amount = 30.00;
     let inrAmount = 4999;
     if (tier === '20x') {
@@ -153,10 +140,7 @@ router.post('/orders/verify', async (req, res) => {
     const token = `${prefix}-${randomHex}`;
     const keyId = crypto.randomUUID ? crypto.randomUUID() : `key_${Date.now()}`;
 
-    const limitTokens = tier === '20x' ? 100000000 : 25000000;
-    const rpm = tier === '20x' ? 120 : 60;
-    const tpm = tier === '20x' ? 1000000 : 400000;
-    const durationDays = tier === '5x_trial' ? 7 : 30;
+    const { limit: limitTokens, rpm, tpm, durationDays } = quotaFor(tier);
 
     const now = new Date();
     const resetsAt = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();

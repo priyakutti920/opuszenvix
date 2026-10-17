@@ -2,11 +2,9 @@ import express from 'express';
 import { Readable } from 'stream';
 import { supabase } from '../lib/supabase.js';
 import { upstreamTimeoutSignal, isTimeoutError } from '../lib/security.js';
+import { getUpstreamBase, getMasterUpstreamKey } from '../lib/config.js';
 
 const router = express.Router();
-
-const getUpstreamBase = () => (process.env.UPSTREAM_API_BASE || 'https://api.opuszen.shop').replace(/\/+$/, '');
-const getMasterUpstreamKey = () => (process.env.UPSTREAM_API_KEY || '').trim();
 
 // Response budget for the completion call. A slow upstream otherwise pins the
 // request handler — and a serverless function slot — for the whole budget.
@@ -79,14 +77,19 @@ export const extractApiKey = (req) => {
 
 // 1. Discovery / Health status endpoint (GET /v1/messages or GET /messages)
 router.get('/messages', (req, res) => {
-  const upstreamBase = getUpstreamBase();
+  let upstreamBase = null;
+  try {
+    upstreamBase = getUpstreamBase();
+  } catch {
+    // Unconfigured upstream base
+  }
   const apiDomain = process.env.API_DOMAIN || 'https://api.opuszyra.live';
 
   return res.json({
     status: 'ok',
     service: 'Opuszyra Middle-Man AI Gateway',
     version: '1.0.0',
-    upstream: upstreamBase,
+    upstream: upstreamBase || 'not configured',
     gateway_domain: apiDomain,
     timestamp: new Date().toISOString(),
     endpoints: {
@@ -101,15 +104,21 @@ router.get('/messages', (req, res) => {
 
 // 2. Models listing endpoint (GET /v1/models)
 router.get('/models', async (req, res) => {
-  const upstreamBase = getUpstreamBase();
+  let upstreamBase = null;
+  try {
+    upstreamBase = getUpstreamBase();
+  } catch {
+    // Fall back directly to local catalog below
+  }
   const masterKey = getMasterUpstreamKey();
   const clientKey = extractApiKey(req);
   const activeKey = masterKey || clientKey;
 
-  try {
-    // Tighter budget here: the model list has a local fallback, so waiting
-    // 60s for a slow upstream would only make the SPA's spinner hang.
-    const upstreamRes = await fetch(`${upstreamBase}/v1/models`, {
+  if (upstreamBase) {
+    try {
+      // Tighter budget here: the model list has a local fallback, so waiting
+      // 60s for a slow upstream would only make the SPA's spinner hang.
+      const upstreamRes = await fetch(`${upstreamBase}/v1/models`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -125,6 +134,7 @@ router.get('/models', async (req, res) => {
   } catch (err) {
     console.warn(`Upstream /v1/models fetch failed, returning standard models:`, err.message);
   }
+}
 
   // Fallback models catalog if upstream is offline
   return res.json({
@@ -149,7 +159,18 @@ router.get('/models', async (req, res) => {
 // 3. Passthrough Anthropic Messages API (POST /v1/messages)
 router.post('/messages', async (req, res) => {
   const startTime = Date.now();
-  const upstreamBase = getUpstreamBase();
+  let upstreamBase;
+  try {
+    upstreamBase = getUpstreamBase();
+  } catch (configErr) {
+    return res.status(500).json({
+      type: 'error',
+      error: {
+        type: 'api_error',
+        message: `Gateway configuration error: ${configErr.message}`
+      }
+    });
+  }
   const masterKey = getMasterUpstreamKey();
   const clientKey = extractApiKey(req);
 
@@ -239,7 +260,7 @@ router.post('/messages', async (req, res) => {
   }
 
   try {
-    // Forward directly to Upstream AI Gateway (https://api.opuszen.shop)
+    // Forward directly to configured Upstream AI Gateway
     const upstreamRes = await upstreamRequest(`${upstreamBase}/v1/messages`, {
       method: 'POST',
       headers: forwardHeaders,
@@ -354,7 +375,17 @@ router.post('/messages', async (req, res) => {
 
 // 4. OpenAI format passthrough (/v1/chat/completions)
 router.post('/chat/completions', async (req, res) => {
-  const upstreamBase = getUpstreamBase();
+  let upstreamBase;
+  try {
+    upstreamBase = getUpstreamBase();
+  } catch (configErr) {
+    return res.status(500).json({
+      error: {
+        type: 'api_error',
+        message: `Gateway configuration error: ${configErr.message}`
+      }
+    });
+  }
   const masterKey = getMasterUpstreamKey();
   const clientKey = extractApiKey(req);
 

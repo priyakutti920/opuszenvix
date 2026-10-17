@@ -43,6 +43,8 @@ export interface CheckKeyData {
   window_resets_at: string;
   total_tokens_consumed: number;
   total_requests: number;
+  created_at?: string;
+  expires_at?: string;
   models_accessible: string[];
   isRealtime?: boolean;
   connectionStatus?: string;
@@ -56,6 +58,13 @@ export interface CheckKeyData {
   unlimited?: boolean;
   windowActive?: boolean;
   rawPayload?: any;
+  recentLogs?: Array<{
+    id: string;
+    timestamp: string;
+    model: string;
+    tokens?: number | string;
+    status: number | string;
+  }>;
 }
 
 export interface UsageLog {

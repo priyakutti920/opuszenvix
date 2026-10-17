@@ -1,7 +1,6 @@
 import { ApiKey, CheckKeyData, SystemStats, UsageLog, PlanTier, ModelInfo } from '../types';
 
 const API_BASE = '/api';
-const UPSTREAM_API_BASE = 'https://api.opuszen.shop';
 
 // Safe JSON fetcher that guards against HTML responses and returns informative errors
 async function safeJsonFetch<T = any>(url: string, options?: RequestInit): Promise<T> {
@@ -54,12 +53,6 @@ export async function fetchGatewayStatus(): Promise<any> {
   try {
     return await safeJsonFetch(`${API_BASE}/status`);
   } catch {
-    try {
-      const upRes = await fetch(`${UPSTREAM_API_BASE}/api/status`);
-      if (upRes.ok) return await upRes.json();
-    } catch {
-      // ignore
-    }
     return {
       status: 'ok',
       overall: 'operational',
@@ -78,15 +71,6 @@ export async function fetchModels(): Promise<ModelInfo[]> {
     const json = await safeJsonFetch('/v1/models');
     return json.data || [];
   } catch {
-    try {
-      const upRes = await fetch(`${UPSTREAM_API_BASE}/v1/models`);
-      if (upRes.ok) {
-        const json = await upRes.json();
-        return json.data || [];
-      }
-    } catch {
-      // ignore
-    }
     return [
       { id: 'claude-fable-5-1', display_name: 'Claude Fable 5.1' },
       { id: 'claude-opus-5-5', display_name: 'Claude Opus 5.5' },
@@ -124,22 +108,33 @@ export function getAnchoredWindowTimer(token: string, candidateResetStr?: string
   const safeToken = token.trim().slice(0, 48);
   const storageKey = `opuszyra_window_anchor_${safeToken}`;
 
-  let anchorStr = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
-  let resetTime = anchorStr ? new Date(anchorStr).getTime() : 0;
+  let resetTime = 0;
+  const candidateTime = candidateResetStr ? new Date(candidateResetStr).getTime() : 0;
 
-  // If no anchor exists or previous anchor has expired, initialize a fresh anchor
-  if (!resetTime || resetTime <= now) {
-    const candidateTime = candidateResetStr ? new Date(candidateResetStr).getTime() : 0;
-    if (candidateTime && candidateTime > now && candidateTime <= now + 5.5 * 3600 * 1000) {
-      resetTime = candidateTime;
-    } else {
-      resetTime = now + 5 * 3600 * 1000;
-    }
+  // If server provided a valid reset time, prioritize it
+  if (candidateTime && !isNaN(candidateTime)) {
+    resetTime = candidateTime;
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(storageKey, new Date(resetTime).toISOString());
       } catch {
-        // localStorage restricted or quota exceeded
+        // localStorage restricted
+      }
+    }
+  } else {
+    // Check localStorage fallback
+    const anchorStr = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+    const storedTime = anchorStr ? new Date(anchorStr).getTime() : 0;
+    if (storedTime && storedTime > now) {
+      resetTime = storedTime;
+    } else {
+      resetTime = now + 5 * 3600 * 1000;
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(storageKey, new Date(resetTime).toISOString());
+        } catch {
+          // localStorage restricted
+        }
       }
     }
   }
@@ -159,8 +154,9 @@ export function getAnchoredWindowTimer(token: string, candidateResetStr?: string
 
 export async function checkKey(keyToken: string): Promise<CheckKeyData> {
   const token = keyToken.trim();
+  let serverError: string | null = null;
 
-  // 1. Try local Gateway /api/key-status
+  // 1. Try local Gateway /api/key-status via POST
   try {
     const json = await safeJsonFetch(`${API_BASE}/key-status`, {
       method: 'POST',
@@ -178,11 +174,33 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         rawPayload: json.rawPayload || json
       };
     }
-  } catch {
-    // Proceed to secondary fallback
+  } catch (err: any) {
+    if (err?.message && !err.message.includes('API returned HTML')) {
+      serverError = err.message;
+    }
   }
 
-  // 2. Try secondary /api/keys/check
+  // 2. Try URL slug endpoint: /api/key-status/:token
+  try {
+    const json = await safeJsonFetch(`${API_BASE}/key-status/${encodeURIComponent(token)}`);
+    if (json.key || json.status === 'ok') {
+      const data = json.key || json;
+      const timer = getAnchoredWindowTimer(token, data.window_resets_at || data.windowResetAt);
+      return {
+        ...data,
+        window_resets_at: timer.window_resets_at,
+        secondsRemaining: timer.secondsRemaining,
+        timeRemainingFormatted: timer.timeRemainingFormatted,
+        rawPayload: json.rawPayload || json
+      };
+    }
+  } catch (err: any) {
+    if (err?.message && !err.message.includes('API returned HTML')) {
+      serverError = err.message;
+    }
+  }
+
+  // 3. Try secondary /api/keys/check
   try {
     const json = await safeJsonFetch(`${API_BASE}/keys/check`, {
       method: 'POST',
@@ -199,17 +217,18 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         rawPayload: json.rawPayload || json
       };
     }
-  } catch {
-    // Proceed to direct upstream
+  } catch (err: any) {
+    if (err?.message && !err.message.includes('API returned HTML')) {
+      serverError = err.message;
+    }
   }
 
-  // 3. Resilient Direct Upstream Bypass to https://api.opuszen.shop/api/key-status
+  // 4. Fallback to GET query format on gateway /api/key-status
   try {
     let upData: any = null;
     
-    // First try GET query format
     try {
-      const getRes = await fetch(`${UPSTREAM_API_BASE}/api/key-status?key=${encodeURIComponent(token)}`, {
+      const getRes = await fetch(`${API_BASE}/key-status?key=${encodeURIComponent(token)}`, {
         signal: AbortSignal.timeout(6000),
         headers: { 'Accept': 'application/json' }
       });
@@ -217,20 +236,7 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         upData = await getRes.json();
       }
     } catch {
-      // ignore and try POST
-    }
-
-    // Fallback to POST
-    if (!upData) {
-      const postRes = await fetch(`${UPSTREAM_API_BASE}/api/key-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ key: token }),
-        signal: AbortSignal.timeout(6000)
-      });
-      if (postRes.ok) {
-        upData = await postRes.json();
-      }
+      // ignore
     }
 
     if (upData) {
@@ -272,10 +278,10 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         unlimited: upData.unlimited ?? false,
         windowActive: upData.windowActive ?? true,
         models_accessible: upData.allowedModels || [
-          'claude-opus-4-8',
-          'claude-opus-4-7',
-          'claude-sonnet-4-6',
-          'claude-haiku-4-5-20251001'
+          'claude-opus-5-5',
+          'claude-sonnet-5',
+          'claude-fable-5-1',
+          'claude-sonnet-4-6'
         ],
         allowedProviders: upData.allowedProviders || ['opuslive'],
         isRealtime: true,
@@ -285,6 +291,10 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
     }
   } catch {
     // Upstream network error
+  }
+
+  if (serverError) {
+    throw new Error(serverError);
   }
 
   throw new Error('Key inspection service temporarily unreachable. Please check network connection.');

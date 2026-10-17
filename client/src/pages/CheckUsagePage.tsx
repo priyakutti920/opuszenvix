@@ -20,16 +20,16 @@ export const CheckUsagePage: React.FC<CheckUsagePageProps> = ({
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Hero */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono mb-4">
-            <Key className="w-3.5 h-3.5" />
-            <span>Anonymous • Real-Time • 5-Hour Rolling Tracker</span>
+        <div className="text-center max-w-3xl mx-auto mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 text-[11px] font-mono uppercase tracking-wider font-bold mb-4 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#EA580C] animate-pulse"></span>
+            <span>DIAGNOSTIC TELEMETRY • REAL-TIME API SYNC</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            Check API Usage &amp; Limits
+          <h1 className="text-4xl sm:text-6xl font-black text-stone-900 dark:text-white tracking-tight">
+            Key Status &amp; <span className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">Usage</span>
           </h1>
-          <p className="text-base text-slate-400 mt-3 leading-relaxed">
-            Inspect your active Opuszyra key status, remaining token balance in the current 5-hour rolling window, TPM/RPM limits, and exact countdown to the next quota refresh.
+          <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400 mt-3 leading-relaxed max-w-2xl mx-auto">
+            Real-time token quota telemetry, sliding 5-hour rolling windows, and multi-modal gateway metrics queried live via API.
           </p>
         </div>
 

@@ -16,10 +16,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientDist = path.join(__dirname, '../client/dist');
 
+import { getUpstreamBase } from './lib/config.js';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
-const UPSTREAM_API_BASE = (process.env.UPSTREAM_API_BASE || 'https://api.opuszen.shop').replace(/\/+$/, '');
 const API_DOMAIN = process.env.API_DOMAIN || 'https://api.opuszyra.live';
+
+const getActiveUpstream = () => {
+  try {
+    return getUpstreamBase();
+  } catch {
+    return null;
+  }
+};
 
 // Middleware
 app.use(cors());
@@ -56,7 +65,7 @@ app.use('/api/v1', createRateLimiter({ max: 60, windowMs: 60 * 1000 }), anthropi
 
 // Real-time Key Status Inspection endpoints. Inspection fans out to upstream
 // lookups, so it is capped separately from the completion proxy.
-app.all('/api/key-status', createRateLimiter({ max: 30, windowMs: 60 * 1000 }), handleKeyStatusInspection);
+app.all(['/api/key-status', '/api/key-status/:token', '/api/key-status/:token/*'], createRateLimiter({ max: 30, windowMs: 60 * 1000 }), handleKeyStatusInspection);
 app.use('/api/keys', requireAdminKey, createRateLimiter({ max: 30, windowMs: 60 * 1000 }), keysRouter);
 
 // Statistics and Billing
@@ -69,16 +78,19 @@ app.get('/api/status', async (req, res) => {
   const start = Date.now();
   let upstreamStatus = null;
   let upstreamLatency = null;
+  const upstreamBase = getActiveUpstream();
 
-  try {
-    const t0 = Date.now();
-    const upRes = await fetch(`${UPSTREAM_API_BASE}/api/status`, { method: 'GET' });
-    upstreamLatency = Date.now() - t0;
-    if (upRes.ok) {
-      upstreamStatus = await upRes.json();
+  if (upstreamBase) {
+    try {
+      const t0 = Date.now();
+      const upRes = await fetch(`${upstreamBase}/api/status`, { method: 'GET' });
+      upstreamLatency = Date.now() - t0;
+      if (upRes.ok) {
+        upstreamStatus = await upRes.json();
+      }
+    } catch (err) {
+      console.warn(`Upstream status query to ${upstreamBase} failed:`, err.message);
     }
-  } catch (err) {
-    console.warn(`Upstream status query to ${UPSTREAM_API_BASE} failed:`, err.message);
   }
 
   const localLatency = Date.now() - start;
@@ -91,7 +103,7 @@ app.get('/api/status', async (req, res) => {
     overall: upstreamStatus?.overall || 'operational',
     middleMan: {
       domain: API_DOMAIN,
-      upstream: UPSTREAM_API_BASE,
+      upstream: upstreamBase || 'not configured',
       status: 'operational',
       latencyMs: localLatency,
       uptime: '99.99%'
@@ -123,11 +135,12 @@ app.get('/api/status', async (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
+  const upstreamBase = getActiveUpstream();
   res.json({
     status: 'online',
     service: 'Opuszyra AI Gateway',
     role: 'Middle Man Passthrough Proxy',
-    upstream: UPSTREAM_API_BASE,
+    upstream: upstreamBase || 'not configured',
     gateway: `${API_DOMAIN}/v1`,
     timestamp: new Date().toISOString()
   });
@@ -136,12 +149,15 @@ app.get('/api/health', (req, res) => {
 // Serve frontend static build files if present
 app.use(express.static(clientDist));
 
-// SPA Fallback for all other routes
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/v1') || req.path.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(clientDist, 'index.html'), (err) => {
+// SPA Fallback for every non-API route. Written without a path pattern so it
+// behaves identically on Express 4 and 5 (Express 5's path-to-regexp throws on
+// a bare `'*'`). Must stay after the router mounts so real endpoints win.
+const indexHtml = path.join(clientDist, 'index.html');
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || !req.accepts('html')) return next();
+  const p = req.path;
+  if (p.startsWith('/v1') || p.startsWith('/api')) return next();
+  res.sendFile(indexHtml, (err) => {
     if (err) next();
   });
 });
@@ -190,7 +206,7 @@ if (isDirectRun && !process.env.VERCEL) {
     console.log(`=======================================================`);
     console.log(`🚀 Opuszyra Middle-Man AI Gateway running on port ${PORT}`);
     console.log(`🌐 Middle-Man Public Domain: ${API_DOMAIN}`);
-    console.log(`📡 Upstream Passthrough URL: ${UPSTREAM_API_BASE}`);
+    console.log(`📡 Upstream Passthrough URL: ${getActiveUpstream() || 'NOT CONFIGURED'}`);
     console.log(`⚡ Anthropic Proxy: http://localhost:${PORT}/v1/messages`);
     console.log(`🔑 Key Status Inspector: http://localhost:${PORT}/api/key-status`);
     console.log(`📊 System Status: http://localhost:${PORT}/api/status`);

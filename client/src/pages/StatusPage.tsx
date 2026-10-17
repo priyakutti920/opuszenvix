@@ -1,93 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Activity, 
-  CheckCircle2, 
-  Server, 
-  Cpu, 
-  Zap, 
-  Clock, 
-  Globe, 
-  ShieldCheck, 
   RotateCw, 
-  Radio, 
-  Sparkles,
-  ArrowRight
+  Zap, 
+  ShieldCheck 
 } from 'lucide-react';
-
-interface ComponentStatus {
-  name: string;
-  category: string;
-  status: 'operational' | 'degraded' | 'outage';
-  latency: string;
-  description: string;
-}
-
-const COMPONENTS: ComponentStatus[] = [
-  {
-    name: 'Claude 3.7 Sonnet Inference',
-    category: 'Core AI Models',
-    status: 'operational',
-    latency: '19ms TTFT',
-    description: 'Hybrid reasoning and standard completion gateway pipeline'
-  },
-  {
-    name: 'Claude 3.5 Sonnet (v2)',
-    category: 'Core AI Models',
-    status: 'operational',
-    latency: '17ms TTFT',
-    description: 'Full unbuffered streaming with extended context'
-  },
-  {
-    name: 'Claude 3.5 Haiku',
-    category: 'Core AI Models',
-    status: 'operational',
-    latency: '12ms TTFT',
-    description: 'High-speed small model gateway'
-  },
-  {
-    name: 'Claude 3 Opus',
-    category: 'Core AI Models',
-    status: 'operational',
-    latency: '24ms TTFT',
-    description: 'Deep synthesis and complex coding tasks'
-  },
-  {
-    name: 'Unbuffered SSE Token Streamer',
-    category: 'Infrastructure',
-    status: 'operational',
-    latency: '<2ms overhead',
-    description: 'Zero-buffer Server-Sent Events delivery pipeline'
-  },
-  {
-    name: 'Prompt Caching In-Memory Ring',
-    category: 'Infrastructure',
-    status: 'operational',
-    latency: '99.9% hit rate',
-    description: 'Ephemeral prompt cache store for zero-cost prefix reads'
-  },
-  {
-    name: '5-Hour Rolling Window Engine',
-    category: 'Billing & Quota',
-    status: 'operational',
-    latency: 'Real-time',
-    description: 'Continuous quota replenish tracking and auto-resets'
-  },
-  {
-    name: 'UPI & Instant Payment Gateway Node',
-    category: 'Billing & Quota',
-    status: 'operational',
-    latency: 'Real-time',
-    description: 'Automated payment verification and instant key delivery'
-  }
-];
-
-const REGIONS = [
-  { region: 'US-East (N. Virginia)', status: 'Online', latency: '14ms', nodes: 4 },
-  { region: 'US-West (Oregon)', status: 'Online', latency: '21ms', nodes: 3 },
-  { region: 'EU-Central (Frankfurt)', status: 'Online', latency: '28ms', nodes: 3 },
-  { region: 'AP-East (Tokyo)', status: 'Online', latency: '35ms', nodes: 3 },
-  { region: 'AP-South (Singapore)', status: 'Online', latency: '31ms', nodes: 2 }
-];
 
 export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpenCheckUsage }) => {
   const [livePing, setLivePing] = useState<number | null>(null);
@@ -151,7 +67,7 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
               Opuszyra System Status
             </h1>
             <p className="text-sm text-slate-400 mt-2">
-              Real-time uptime, regional edge latencies, and streaming gateway health.
+              Real-time uptime, system availability, and streaming gateway health.
             </p>
           </div>
 
@@ -234,69 +150,7 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
           </div>
         </div>
 
-        {/* Regional Edge Nodes */}
-        <div className="mb-10">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <Globe className="w-5 h-5 text-brand-400" />
-            <span>Regional Edge Gateways</span>
-          </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {REGIONS.map((reg) => (
-              <div
-                key={reg.region}
-                className="p-4 rounded-xl bg-dark-900/60 border border-white/10 flex items-center justify-between font-mono text-xs"
-              >
-                <div>
-                  <div className="font-semibold text-white">{reg.region}</div>
-                  <div className="text-slate-400 text-[11px] mt-0.5">{reg.nodes} Dedicated Proxy Nodes</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-emerald-400 font-bold flex items-center gap-1.5 justify-end">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                    <span>{reg.status}</span>
-                  </div>
-                  <div className="text-slate-400 text-[11px] mt-0.5">{reg.latency}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Detailed Component Health */}
-        <div className="mb-10">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <Server className="w-5 h-5 text-brand-400" />
-            <span>Services &amp; Pipelines</span>
-          </h3>
-
-          <div className="rounded-2xl border border-white/10 bg-dark-900/40 divide-y divide-white/5 overflow-hidden">
-            {COMPONENTS.map((comp) => (
-              <div
-                key={comp.name}
-                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition"
-              >
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-bold text-white text-sm sm:text-base">{comp.name}</span>
-                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-white/5 text-slate-400">
-                      {comp.category}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 ml-6">{comp.description}</p>
-                </div>
-
-                <div className="flex items-center gap-4 ml-6 sm:ml-0 font-mono text-xs">
-                  <span className="text-slate-400">{comp.latency}</span>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
-                    Operational
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Incident History Log */}
         <div className="p-6 sm:p-8 rounded-2xl bg-dark-900/60 border border-white/10 text-center font-mono">

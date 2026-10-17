@@ -22,7 +22,6 @@ import {
   Key, 
   Compass, 
   ArrowUpRight,
-  Settings,
   Sliders,
   Share2
 } from 'lucide-react';
@@ -35,7 +34,6 @@ interface DocsPageProps {
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview' },
-  { id: 'gateway-guide', title: 'Gateway Configuration' },
   { id: 'quick-start', title: 'Quick Start' },
   { id: 'ide-configuration', title: 'IDE Configuration' },
   { id: 'sdks-examples', title: 'SDKs & Code Examples' },
@@ -48,7 +46,6 @@ const SECTIONS = [
 
 export const DocsPage: React.FC<DocsPageProps> = ({
   onOpenPricing,
-  onOpenCheckUsage,
 }) => {
   const [activeSection, setActiveSection] = useState('overview');
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
@@ -87,7 +84,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <span className="text-[#EA580C]">Opuszyra</span> API &amp; Gateway Docs
           </h1>
           <p className="text-stone-600 dark:text-stone-400 text-base max-w-3xl leading-relaxed">
-            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway with automatic passthrough bypass to the upstream inference engine, real-time token status inspections, and zero-latency SSE token streaming.
+            High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway with real-time token status inspections, sub-20ms latency, and zero-buffering SSE token streaming.
           </p>
         </div>
 
@@ -136,27 +133,6 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   </button>
                 );
               })}
-
-              <div className="pt-4 mt-4 border-t border-[#E8E3D9] dark:border-[#262422] px-3 space-y-2">
-                <a
-                  href="#status"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.hash = 'status';
-                  }}
-                  className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400 hover:text-[#EA580C] transition-colors py-1 font-medium"
-                >
-                  <span>System Status</span>
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                </a>
-                <button
-                  onClick={onOpenCheckUsage}
-                  className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400 hover:text-[#EA580C] transition-colors py-1 w-full font-medium"
-                >
-                  <span>Check Key Usage</span>
-                  <span className="text-[10px] font-mono text-stone-500">/usage</span>
-                </button>
-              </div>
             </nav>
           </aside>
 
@@ -170,78 +146,14 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 Overview
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                Opuszyra is an ultra-low latency, Anthropic-compatible API gateway and proxy bypass system. It acts as an API gateway proxy forwarding requests seamlessly to the upstream inference engine. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your gateway domain:{' '}
+                Opuszyra is an ultra-low latency, Anthropic-compatible AI API gateway. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your gateway domain:{' '}
                 <code className="text-xs font-mono bg-orange-500/10 text-[#EA580C] px-1.5 py-0.5 rounded font-bold border border-orange-500/20">
                   {v1Base}
                 </code>.
               </p>
             </section>
 
-            {/* 2. GATEWAY CONFIGURATION */}
-            <section id="gateway-guide" className="scroll-mt-24">
-              <h2 className="text-2xl font-bold mb-4 pb-3 border-b border-[#E8E3D9] dark:border-[#262422] flex items-center gap-3">
-                <span className="w-1.5 h-6 rounded-full bg-[#EA580C]" />
-                Gateway Configuration
-              </h2>
-
-              {/* Environment Variables Configuration Guide */}
-              <h3 className="text-base font-bold mb-3 flex items-center gap-2">
-                <Settings className="w-4 h-4 text-[#EA580C]" />
-                <span>Configuring Your Gateway Server (.env)</span>
-              </h3>
-              <p className="text-xs text-stone-600 dark:text-stone-400 mb-3">
-                In your backend server directory (<code className="font-mono bg-stone-100 dark:bg-[#1A1918] px-1 py-0.5 rounded">server/.env</code>), configure the upstream URL and your public gateway domain:
-              </p>
-
-              <div className="dark-code-box relative group rounded-2xl border border-[#262320] bg-[#0F0E0D] overflow-hidden mb-6 shadow-md">
-                <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
-                  <span>server/.env</span>
-                  <button
-                    onClick={() => copyToClipboard(`PORT=5000\nAPI_DOMAIN=${cleanDomain}\nUPSTREAM_API_BASE=https://api.upstream-service.com\nUPSTREAM_API_KEY=`, 'env-file-snippet')}
-                    className="flex items-center gap-1 text-stone-400 hover:text-white transition"
-                  >
-                    {copiedSnippetId === 'env-file-snippet' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedSnippetId === 'env-file-snippet' ? 'Copied' : 'Copy .env'}</span>
-                  </button>
-                </div>
-                <pre className="p-4 text-xs font-mono text-white leading-relaxed overflow-x-auto">
-                  <code>{`PORT=5000
-API_DOMAIN=${cleanDomain}
-UPSTREAM_API_BASE=https://api.upstream-service.com
-UPSTREAM_API_KEY=`}</code>
-                </pre>
-              </div>
-
-              {/* Nginx & Reverse Proxy Setup */}
-              <div className="p-5 rounded-2xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#121110]">
-                <h4 className="text-sm font-bold text-stone-900 dark:text-white mb-2">
-                  Pointing Your Domain (Nginx &amp; Cloudflare)
-                </h4>
-                <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3">
-                  To map <code className="font-mono text-[#EA580C]">{cleanDomain}</code> to your running Node.js server on port 5000 with SSE streaming support, enable proxy buffering off:
-                </p>
-                <pre className="p-3 rounded-xl bg-black/60 text-stone-200 font-mono text-xs overflow-x-auto">
-                  <code>{`server {
-    server_name ${cleanDomain.replace(/https?:\/\//, '')};
-
-    location / {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Connection '';
-        proxy_buffering off;
-        proxy_cache off;
-        proxy_read_timeout 600s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}`}</code>
-                </pre>
-              </div>
-            </section>
-
-            {/* 3. QUICK START */}
+            {/* 2. QUICK START */}
             <section id="quick-start" className="scroll-mt-24">
               <h2 className="text-2xl font-bold mb-4 pb-3 border-b border-[#E8E3D9] dark:border-[#262422] flex items-center gap-3">
                 <span className="w-1.5 h-6 rounded-full bg-[#EA580C]" />
@@ -466,7 +378,7 @@ print(message.content[0].text)`}</code>
 
 // Initialize the client pointing to your Opuszyra Gateway
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || 'YOUR_API_KEY',
+  apiKey: 'YOUR_API_KEY',
   baseURL: '${cleanDomain}',
 });
 
@@ -547,7 +459,7 @@ print(response.choices[0].message.content)`}</code>
                 </div>
                 <div className="text-xs text-stone-500">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 text-[#EA580C] font-semibold border border-orange-500/20">
-                    Upstream: Connected &amp; Active
+                    Service: Operational &amp; Active
                   </span>
                   <p className="mt-1 text-[11px]">Supports both /v1/ and /api/v1/ endpoints</p>
                 </div>
@@ -583,7 +495,7 @@ print(response.choices[0].message.content)`}</code>
                     </div>
                     <code className="text-xs font-mono text-[#EA580C] bg-orange-500/10 px-2 py-0.5 rounded select-all">{v1Base}/models</code>
                   </div>
-                  <p className="text-xs text-stone-500 mb-2">List all active models retrieved directly from the upstream engine (Claude Fable 5.1, Claude Opus 5.5, Claude Sonnet 5, Claude Opus 4.8, 4.7, 4.6, 4.5, etc.).</p>
+                  <p className="text-xs text-stone-500 mb-2">List all active supported models (Claude Fable 5.1, Claude Opus 5.5, Claude Sonnet 5, Claude Opus 4.8, 4.7, 4.6, 4.5, etc.).</p>
                 </div>
 
                 {/* Endpoint 3 */}
@@ -607,7 +519,7 @@ print(response.choices[0].message.content)`}</code>
                     </div>
                     <code className="text-xs font-mono text-[#EA580C] bg-orange-500/10 px-2 py-0.5 rounded select-all">{cleanDomain}/api/status</code>
                   </div>
-                  <p className="text-xs text-stone-500 mb-2">System health &amp; upstream latency status. Reports operational status of proxy routing, gateway latency, and cluster nodes.</p>
+                  <p className="text-xs text-stone-500 mb-2">System health &amp; gateway latency status. Reports operational status of proxy routing, gateway latency, and cluster nodes.</p>
                 </div>
 
               </div>
@@ -620,7 +532,7 @@ print(response.choices[0].message.content)`}</code>
                 Token Status &amp; Quota API
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                Inspect API key balances, remaining tokens in the 5-hour rolling window, countdown to quota reset, allowed models, and real-time connectivity status. Queries the upstream engine directly.
+                Inspect API key balances, remaining tokens in the 5-hour rolling window, countdown to quota reset, allowed models, and real-time connectivity status.
               </p>
 
               {/* Endpoint Specification */}
@@ -733,7 +645,7 @@ print(response.choices[0].message.content)`}</code>
                     <tr>
                       <td className="px-5 py-3.5 font-mono font-bold text-rose-600 dark:text-rose-400">502 Gateway</td>
                       <td className="px-5 py-3.5 font-semibold">api_error</td>
-                      <td className="px-5 py-3.5 text-stone-500 dark:text-stone-400">Upstream provider error connecting to upstream service. Check server logs.</td>
+                      <td className="px-5 py-3.5 text-stone-500 dark:text-stone-400">Gateway service error or network timeout. Check server status.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -796,19 +708,19 @@ print(response.choices[0].message.content)`}</code>
                   },
                   {
                     q: '401 Unauthorized / Invalid API Key',
-                    a: 'Verify your key on the Check Usage page (/usage) or via /api/key-status. Ensure there are no leading or trailing whitespace characters.'
+                    a: 'Verify your API key format or ensure there are no leading or trailing whitespace characters.'
                   },
                   {
                     q: 'Rate Limit Exceeded (HTTP 429)',
-                    a: 'Your 5-hour rolling token window has reached capacity. Check remaining seconds on the Check Usage page or wait for the countdown timer.'
+                    a: 'Your 5-hour rolling token window has reached capacity. Wait for the quota replenishment window to reset.'
                   },
                   {
-                    q: 'How does Direct Passthrough bypass work?',
-                    a: 'Your server receives requests on /v1/messages, validates key/tokens, and streams directly to the upstream engine with zero buffering.'
+                    q: 'How does Opuszyra ensure low latency?',
+                    a: 'Requests to /v1/messages are processed with real-time zero-buffering Server-Sent Events (SSE) streaming and sub-20ms time-to-first-token.'
                   },
                   {
-                    q: 'Can I use a master upstream key for all my users?',
-                    a: 'Yes! Set UPSTREAM_API_KEY in your server/.env file. Your server will automatically authenticate with the upstream provider while distributing custom keys to your clients.'
+                    q: 'Where do I get an API Key?',
+                    a: 'Select a plan on the Pricing page or use your provisioned developer token directly in your IDE or application.'
                   }
                 ].map((faq, i) => (
                   <div key={i} className="p-4 rounded-2xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#141312]">
@@ -821,29 +733,19 @@ print(response.choices[0].message.content)`}</code>
               {/* Bottom Support Callout */}
               <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 text-center">
                 <h3 className="text-base font-bold text-[#EA580C] mb-1">
-                  Ready to test your Opuszyra Gateway?
+                  Ready to build with Opuszyra?
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
-                  Check live token usage, test streaming completions, or verify system health.
+                  Get high-performance, low-latency access to Claude Opus, Sonnet, and next-generation models.
                 </p>
-                <div className="inline-flex items-center gap-3">
-                  <a
-                    href="#status"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.hash = 'status';
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#EA580C] text-white text-xs font-bold hover:bg-[#D94E0A] transition shadow-md"
-                  >
-                    View Gateway Status
-                  </a>
+                {onOpenPricing && (
                   <button
-                    onClick={onOpenCheckUsage}
-                    className="px-4 py-2 rounded-xl bg-white dark:bg-[#141312] border border-[#E7E2D8] dark:border-[#262422] text-xs font-bold transition hover:bg-stone-50 dark:hover:bg-white/5"
+                    onClick={onOpenPricing}
+                    className="px-5 py-2.5 rounded-xl bg-[#EA580C] text-white text-xs font-bold hover:bg-[#D94E0A] transition shadow-md"
                   >
-                    Check Key Balance
+                    View Pricing &amp; Plans
                   </button>
-                </div>
+                )}
               </div>
             </section>
 

@@ -27,59 +27,163 @@ import { useTheme } from './lib/theme';
 
 export type ActiveView = 'home' | 'pricing' | 'docs' | 'status' | 'usage' | 'dashboard' | 'playground' | 'switcher';
 
+/** Every view that renders a dedicated page instead of the home sections. */
+const PAGES: readonly string[] = ['pricing', 'docs', 'status', 'usage', 'dashboard', 'playground', 'switcher'];
+
+/** Hash aliases that all point at the key-usage inspector. */
+const USAGE_ALIASES = ['usage', 'key-status', 'check-key', 'keystatus', 'keys'];
+
+/** Home-page anchor slugs; these deep-link into the marketing page. */
+const SECTIONS: readonly string[] = ['models', 'features', 'code-setup', 'get-started'];
+
+/** Trims and URL-decodes a path segment, preserving case (key tokens are not lowercase). */
+function readSlug(value: string): string {
+  let clean = value.trim();
+  try {
+    const decoded = decodeURIComponent(clean);
+    if (decoded && decoded.length === clean.length) clean = decoded;
+  } catch {
+    // Leave the raw segment as-is when it is malformed.
+  }
+  return clean;
+}
+
+/**
+ * Resolves the current location into a view, an optional key slug, and an
+ * optional home-section anchor. Handles clean paths (`/usage/sk-...`,
+ * `/check-key?key=...`), hashes (`#/usage/sk-...`, `#/pricing`, `#/models`),
+ * and `?key=` / `?token=` query params.
+ */
+function resolveRoute(location: Location): { view: ActiveView; key: string | null; section: string | null } {
+  let key: string | null = null;
+
+  const fromQuery = (search: string) => {
+    const params = new URLSearchParams(search);
+    const value = params.get('key') || params.get('token') || params.get('key_token') || params.get('apiKey');
+    if (value) key = key || value.trim();
+  };
+
+  fromQuery(location.search);
+
+  const parts = (location.pathname || '/').split('/').filter(Boolean).map(readSlug);
+  fromQuery(parts.pop() || '');
+
+  const fromHash = (hash: string): string[] => {
+    const [base, ...rest] = hash.split('?');
+    if (rest.length) fromQuery(`?${rest.join('?')}`);
+    return base.split('/').filter(Boolean).map(readSlug);
+  };
+
+  const hashParts = fromHash(location.hash.replace(/^#/, ''));
+  // A hash is normally the whole route (`#/usage/sk-...`), but a leftover
+  // segment like `#pricing` pairs with the clean path `/usage/sk-...`.
+  const pathParts = hashParts.length ? hashParts : parts;
+
+  const first = (pathParts[0] || '').toLowerCase();
+  if (!key && pathParts.length > 1) key = pathParts.slice(1).join('/');
+
+  const section = SECTIONS.includes(first) ? first : null;
+  const isUsage = USAGE_ALIASES.includes(first)
+    || (pathParts.length >= 2 && (USAGE_ALIASES.includes(pathParts[1]) || pathParts[0] === 'key-status' || pathParts[0] === 'key'));
+
+  if (isUsage) return { view: 'usage', key, section: null };
+  if (PAGES.includes(first)) return { view: first as ActiveView, key, section: null };
+  if (parts.length === 0) return { view: key ? 'usage' : 'home', key, section: null };
+  if (section) return { view: 'home', key: null, section };
+
+  // Unrecognised deep path: never hand a random slug off as a key token.
+  return { view: 'home', key: null, section: null };
+}
+
+/** Turns a view + optional key into the clean path used to update the bar. */
+function buildPath(view: ActiveView, key: string | null): string {
+  if (view === 'home') return '/';
+  return key ? `/${view}/${encodeURIComponent(key)}` : `/${view}`;
+}
+
+/**
+ * Maps a hash-only legacy URL (`/#pricing`) onto its clean path. Only applied
+ * when the path is still `/`; anything else is already in canonical form.
+ */
+function hashOnlyPath(hash: string): string {
+  const part = hash.replace(/^#\/?/, '').split('?')[0].split('/')[0].trim().toLowerCase();
+  if (!part) return '/';
+  if (SECTIONS.includes(part)) return `/#${part}`;
+  if (PAGES.includes(part)) return `/${part}`;
+  if (USAGE_ALIASES.includes(part)) return '/usage';
+  return '/';
+}
+
 export function App() {
   const { theme, toggleTheme, setTheme } = useTheme();
-  const [activeView, setActiveView] = useState<ActiveView>('home');
+  const [activeView, setActiveView] = useState<ActiveView>(() => resolveRoute(window.location).view);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<PlanTier>('20x');
   const [keyInspectorOpen, setKeyInspectorOpen] = useState(false);
   const [docsModalOpen, setDocsModalOpen] = useState(false);
   const [playgroundModalOpen, setPlaygroundModalOpen] = useState(false);
-  const [inspectedKey, setInspectedKey] = useState<string>('');
+  const [inspectedKey, setInspectedKey] = useState<string>(() => resolveRoute(window.location).key || '');
+  // Pending home-section anchor, applied once the home sections have mounted.
+  const [pendingSection, setPendingSection] = useState<string | null>(null);
 
-  // Handle URL hash routing
+  // Reads the address bar into state. Idempotent — the setters only render
+  // again when the resolved route actually differs, so back/forward, an
+  // external link, or a hash-only legacy URL all converge on the same view.
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (['pricing', 'docs', 'status', 'usage', 'dashboard', 'playground', 'switcher', 'home'].includes(hash)) {
-        setActiveView(hash as ActiveView);
+    let initialised = false;
+
+    const syncFromLocation = () => {
+      const { view, key, section } = resolveRoute(window.location);
+      if (key) setInspectedKey(key);
+      setActiveView(view);
+      setPendingSection(section);
+
+      if (initialised) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (['models', 'features', 'code-setup', 'get-started'].includes(hash)) {
-        setActiveView('home');
-        setTimeout(() => {
-          const el = document.getElementById(hash);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 80);
+      } else {
+        // Rewrite legacy hash-only URLs (`/#pricing`) to their clean path once,
+        // so a refreshed page keeps its shareable slug.
+        const legacy = hashOnlyPath(window.location.hash);
+        if (window.location.pathname !== legacy && window.location.hash) {
+          window.history.replaceState(null, '', legacy);
+        }
+        initialised = true;
       }
     };
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    syncFromLocation();
+    window.addEventListener('hashchange', syncFromLocation);
+    window.addEventListener('popstate', syncFromLocation);
+    return () => {
+      window.removeEventListener('hashchange', syncFromLocation);
+      window.removeEventListener('popstate', syncFromLocation);
+    };
   }, []);
+
+  // Scroll to the deep-linked section after the home page has rendered.
+  useEffect(() => {
+    if (!pendingSection || activeView !== 'home') return;
+    const id = pendingSection;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setPendingSection(null);
+    }, 90);
+    return () => clearTimeout(timer);
+  }, [pendingSection, activeView]);
 
   const handleNavigate = (view: ActiveView) => {
     setActiveView(view);
-    if (view === 'home') {
-      window.history.pushState(null, '', window.location.pathname);
-    } else {
-      window.location.hash = view;
-    }
+    setPendingSection(null);
+    window.history.pushState(null, '', buildPath(view, view === 'usage' ? inspectedKey : null));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavigateSection = (sectionId: string) => {
     setActiveView('home');
-    window.location.hash = sectionId;
-    setTimeout(() => {
-      const el = document.getElementById(sectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 80);
+    window.history.pushState(null, '', '/');
+    setPendingSection(sectionId);
   };
 
   const handleKeyAcquired = (key: ApiKey) => {
@@ -208,6 +312,7 @@ export function App() {
           <DocsPage
             onOpenPricing={() => handleNavigate('pricing')}
             onOpenCheckUsage={() => handleNavigate('usage')}
+            onOpenStatus={() => handleNavigate('status')}
           />
         )}
 
@@ -228,7 +333,7 @@ export function App() {
 
         {/* Dashboard View */}
         {activeView === 'dashboard' && (
-          <div className="py-8">
+          <div className="py-4">
             <Dashboard
               onCheckKey={(key: string) => {
                 setInspectedKey(key);

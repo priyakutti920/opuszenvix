@@ -62,8 +62,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 15000);
-    return () => clearInterval(interval);
   }, []);
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -115,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6 sm:space-y-8">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -207,15 +205,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm">
+          <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-white/[0.06] bg-dark-950/60 font-mono text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="py-3.5 px-6">Name / Key</th>
-                <th className="py-3.5 px-4">Tier</th>
-                <th className="py-3.5 px-4">Window Used</th>
-                <th className="py-3.5 px-4">5h Reset Timer</th>
-                <th className="py-3.5 px-4">Rate Limits</th>
-                <th className="py-3.5 px-6 text-right">Actions</th>
+                <th className="py-3.5 px-4 sm:px-6">Name / Key</th>
+                <th className="py-3.5 px-3 sm:px-4">Tier</th>
+                <th className="py-3.5 px-3 sm:px-4">Window Used</th>
+                <th className="py-3.5 px-3 sm:px-4">5h Reset Timer</th>
+                <th className="py-3.5 px-3 sm:px-4">Rate Limits</th>
+                <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
