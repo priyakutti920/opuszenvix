@@ -225,7 +225,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 return (
                   <tr key={k.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 sm:px-6">
                       <div className="font-bold text-white font-mono text-xs sm:text-sm">{k.name}</div>
                       <div className="flex items-center gap-2 mt-1">
                         <code className="text-xs font-mono text-slate-400 select-all">{displayToken}</code>
@@ -288,8 +288,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div className="text-[10px] text-slate-500">{(k.rate_limit_tpm / 1000).toFixed(0)}k TPM</div>
                     </td>
 
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="py-4 px-4 sm:px-6 text-right">
+                      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                         <button
                           onClick={() => onCheckKey?.(k.key_token)}
                           className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono"
