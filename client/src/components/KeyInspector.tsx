@@ -65,7 +65,15 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   const inspectSeqRef = useRef<number>(0);
 
   const handleInspect = async (tokenToTest?: string, forceFresh?: boolean) => {
-    const target = tokenToTest !== undefined ? tokenToTest : inputKey;
+    const rawTarget = tokenToTest !== undefined ? tokenToTest : inputKey;
+    const target = (rawTarget || '').trim();
+
+    if (!target) {
+      setError('Please enter a valid API key to inspect.');
+      setKeyData(null);
+      setLoading(false);
+      return;
+    }
 
     const currentSeq = ++inspectSeqRef.current;
     setLoading(true);
@@ -74,18 +82,15 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
 
     try {
       if (forceFresh && typeof window !== 'undefined') {
-        const safeToken = target.trim().slice(0, 48);
+        const safeToken = target.slice(0, 48);
         localStorage.removeItem(`opuszyra_window_anchor_${safeToken}`);
       }
-      const data = await checkKey(target.trim());
+      const data = await checkKey(target);
       // Discard stale out-of-order response if another inspection was started
       if (currentSeq !== inspectSeqRef.current) return;
 
       const measuredLatency = Math.round(performance.now() - startPing);
       setLatencyMs(Math.max(45, measuredLatency || 199));
-      if (data?.key_token && (!inputKey || !target.trim())) {
-        setInputKey(data.key_token);
-      }
       setKeyData({
         ...data,
         isStale: false
@@ -103,21 +108,29 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     }
   };
 
-  // Run on mount or when initialKey updates (e.g. from URL slug or acquired key)
+  // Run on mount or when initialKey updates ONLY if a valid key is provided
   useEffect(() => {
     const token = (initialKey && initialKey.trim()) || '';
-    handleInspect(token);
+    if (token) {
+      setInputKey(token);
+      handleInspect(token);
+    } else {
+      setLoading(false);
+      setKeyData(null);
+      setError(null);
+    }
   }, [initialKey]);
 
-  // Auto-refresh interval (every 30 seconds if enabled)
+  // Auto-refresh interval (every 30 seconds if enabled and an active inspection is displayed)
   useEffect(() => {
     if (autoRefreshTimerRef.current) {
       clearInterval(autoRefreshTimerRef.current);
     }
 
-    if (autoRefresh && keyData?.key_token) {
+    const activeKey = inputKey.trim();
+    if (autoRefresh && activeKey && keyData) {
       autoRefreshTimerRef.current = setInterval(() => {
-        handleInspect(keyData.key_token);
+        handleInspect(activeKey);
       }, 30000);
     }
 
@@ -126,7 +139,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
         clearInterval(autoRefreshTimerRef.current);
       }
     };
-  }, [autoRefresh, keyData?.key_token]);
+  }, [autoRefresh, inputKey, Boolean(keyData)]);
 
   // Live countdown timer ticking down continuously
   useEffect(() => {
@@ -169,8 +182,9 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   }, [keyData]);
 
   const handleCopyKey = async () => {
-    if (!keyData?.key_token) return;
-    const success = await copyToClipboard(keyData.key_token);
+    const toCopy = keyData?.masked_token || keyData?.id || '';
+    if (!toCopy) return;
+    const success = await copyToClipboard(toCopy);
     if (success) {
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2000);
@@ -317,17 +331,6 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
           <button
             type="button"
             onClick={() => {
-              setInputKey('');
-              handleInspect('');
-            }}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-bold transition cursor-pointer"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Live Master Key (Max 20x)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
               const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
               setInputKey(sample);
               handleInspect(sample);
@@ -355,6 +358,43 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
         <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs sm:text-sm flex items-start gap-3 shadow-sm">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
           <span className="font-medium">{error}</span>
+        </div>
+      )}
+
+      {/* SAFE INITIAL / EMPTY STATE */}
+      {!keyData && !loading && !error && (
+        <div className="rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-white/50 dark:bg-[#121110]/50 p-8 sm:p-12 text-center shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C] flex items-center justify-center mx-auto mb-4">
+            <Key className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-stone-900 dark:text-white mb-2">
+            No API Key Loaded
+          </h3>
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-md mx-auto mb-6">
+            Enter your personal API key above or choose a preset to inspect real-time rolling quota, sliding-window token usage, active rate limits, and model access.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
+                setInputKey(sample);
+                handleInspect(sample);
+              }}
+              className="px-4 py-2 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#252322] text-stone-800 dark:text-stone-200 text-xs font-mono font-semibold transition cursor-pointer"
+            >
+              Inspect Dev Key (5x)
+            </button>
+            <button
+              onClick={() => {
+                const sample = 'opm-live-20x-8d7e6f5c4b3a2109';
+                setInputKey(sample);
+                handleInspect(sample);
+              }}
+              className="px-4 py-2 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#252322] text-stone-800 dark:text-stone-200 text-xs font-mono font-semibold transition cursor-pointer"
+            >
+              Inspect Agent Key (20x)
+            </button>
+          </div>
         </div>
       )}
 
@@ -387,7 +427,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 )}
 
                 <button
-                  onClick={() => handleInspect(keyData.key_token)}
+                  onClick={() => handleInspect(inputKey)}
                   disabled={loading}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#E8E3D9] dark:border-[#262422] bg-stone-50 dark:bg-[#181716] hover:bg-stone-100 dark:hover:bg-[#201F1E] text-stone-700 dark:text-stone-300 text-xs font-semibold transition cursor-pointer"
                 >
@@ -424,7 +464,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   </span>
                 </div>
                 <button
-                  onClick={() => handleInspect(keyData.key_token)}
+                  onClick={() => handleInspect(inputKey)}
                   className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-200 font-bold text-[11px] transition shrink-0"
                 >
                   Retry Sync
@@ -432,10 +472,10 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
               </div>
             )}
 
-            {/* Main Token Row with Copy Button */}
+            {/* Main Token Row with Masked Identifier */}
             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E3D9] dark:border-[#262422]">
               <div className="font-mono text-sm sm:text-base font-bold text-stone-900 dark:text-white tracking-wider break-all bg-stone-50 dark:bg-[#181716] p-3 rounded-xl border border-[#E8E3D9] dark:border-[#262422] flex-1">
-                {keyData.key_token}
+                {keyData.masked_token || (keyData.key_token && keyData.key_token.length > 12 ? `${keyData.key_token.slice(0, 10)}...${keyData.key_token.slice(-4)}` : '••••••••••••')}
               </div>
               <button
                 onClick={handleCopyKey}
@@ -449,7 +489,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 ) : (
                   <>
                     <Copy className="w-4 h-4 text-stone-500" />
-                    <span>Copy</span>
+                    <span>Copy ID</span>
                   </>
                 )}
               </button>
@@ -724,7 +764,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
 
                   <div className="pl-2 border-l border-stone-300 dark:border-stone-800">
                     <button
-                      onClick={() => handleInspect(keyData.key_token, true)}
+                      onClick={() => handleInspect(inputKey, true)}
                       className="px-3 py-1.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-700 dark:text-teal-400 text-xs font-bold font-mono transition block mb-1"
                     >
                       + REFRESH LIVE

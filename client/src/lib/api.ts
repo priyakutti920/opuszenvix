@@ -154,15 +154,17 @@ export function getAnchoredWindowTimer(token: string, candidateResetStr?: string
 
 export async function checkKey(keyToken: string = ''): Promise<CheckKeyData> {
   const token = (keyToken || '').trim();
+  if (!token) {
+    throw new Error('API key is required to check key status.');
+  }
   let serverError: string | null = null;
 
   // 1. Try local Gateway /api/key-status via POST
   try {
-    const postBody = token ? { key: token, key_token: token } : {};
     const json = await safeJsonFetch(`${API_BASE}/key-status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(postBody),
+      body: JSON.stringify({ key: token, key_token: token }),
     });
     if (json.key || json.status === 'ok') {
       const data = json.key || json;
@@ -182,9 +184,9 @@ export async function checkKey(keyToken: string = ''): Promise<CheckKeyData> {
     }
   }
 
-  // 2. Try URL slug endpoint: /api/key-status/:token or GET /api/key-status
+  // 2. Try URL slug endpoint: /api/key-status/:token
   try {
-    const url = token ? `${API_BASE}/key-status/${encodeURIComponent(token)}` : `${API_BASE}/key-status`;
+    const url = `${API_BASE}/key-status/${encodeURIComponent(token)}`;
     const json = await safeJsonFetch(url);
     if (json.key || json.status === 'ok') {
       const data = json.key || json;

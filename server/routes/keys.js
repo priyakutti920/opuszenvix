@@ -5,6 +5,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { getUpstreamBase, getMasterUpstreamKey } from '../lib/config.js';
 import { quotaFor } from '../lib/quotas.js';
 import { calculateSlidingWindowUsage } from '../lib/quotaEngine.js';
+import { redactKeyToken } from '../lib/security.js';
 
 const router = express.Router();
 
@@ -92,38 +93,309 @@ const collapseModelIds = (ids) => {
   return collapsed;
 };
 
+// Helper: Sanitize object payloads to ensure sensitive credentials are never leaked
+export const sanitizePayload = (obj, masterKey) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map((item) => sanitizePayload(item, masterKey));
+
+  const sensitiveKeys = new Set(['key', 'apikey', 'key_token', 'keytoken', 'token', 'authorization', 'secret']);
+  const sanitized = {};
+
+  for (const [k, v] of Object.entries(obj)) {
+    const lowerKey = k.toLowerCase();
+    if (sensitiveKeys.has(lowerKey)) {
+      if (typeof v === 'string') {
+        sanitized[k] = redactKeyToken(v) || (v.length > 8 ? `${v.slice(0, 6)}…${v.slice(-4)}` : '••••••••');
+      } else {
+        sanitized[k] = undefined;
+      }
+    } else if (typeof v === 'string' && masterKey && v.includes(masterKey)) {
+      sanitized[k] = v.replaceAll(masterKey, '[REDACTED_MASTER_KEY]');
+    } else if (typeof v === 'object' && v !== null) {
+      sanitized[k] = sanitizePayload(v, masterKey);
+    } else {
+      sanitized[k] = v;
+    }
+  }
+  return sanitized;
+};
+
+// Helper: Verify whether request has valid administrative credentials
+export const verifyAdminAuth = (req) => {
+  const adminKey = (process.env.ADMIN_API_KEY || '').trim();
+  if (!adminKey) {
+    // If ADMIN_API_KEY is unset, the gateway keeps admin telemetry open for local operators
+    // matching the opt-in adminKeyRequired security model in server/lib/security.js
+    return true;
+  }
+  const candidate = (
+    req.headers['x-admin-key'] ||
+    (req.headers['authorization']?.startsWith('Bearer ') ? req.headers['authorization'].slice(7) : null) ||
+    req.headers['x-api-key'] ||
+    ''
+  ).trim();
+  return Boolean(candidate && candidate === adminKey);
+};
+
+// Helper: Serve safe, non-sensitive master key telemetry for authorized admins
+export const serveMasterTelemetry = async (req, res, masterKey, upstreamBase) => {
+  try {
+    if (!masterKey) {
+      return res.status(503).json({
+        type: 'error',
+        error: {
+          type: 'service_unavailable',
+          message: 'Upstream master API key is not configured on this server.'
+        }
+      });
+    }
+
+    const liveModelsPromise = fetchLiveModelIds(upstreamBase);
+    let upstreamData = null;
+    if (upstreamBase) {
+      try {
+        const getRes = await fetch(`${upstreamBase}/api/key-status?key=${encodeURIComponent(masterKey)}`, {
+          signal: AbortSignal.timeout(8000),
+          headers: { Accept: 'application/json' }
+        });
+        if (getRes.ok) {
+          const parsed = await getRes.json();
+          if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found') {
+            upstreamData = parsed;
+          }
+        }
+      } catch (upErr) {
+        console.warn('Upstream master key-status fetch warning:', (upErr.message || '').replace(/[a-zA-Z0-9_-]{20,}/g, '[REDACTED]'));
+      }
+    }
+
+    const now = new Date();
+    const tier = '20x';
+    const defaultLimit = quotaFor(tier).limit;
+    const rawUpstreamLimit = Number(upstreamData?.windowTokensLimit);
+    const tokenLimit = rawUpstreamLimit && rawUpstreamLimit !== 100000000 && rawUpstreamLimit !== 200000000
+      ? rawUpstreamLimit
+      : defaultLimit;
+
+    const keyEntity = {
+      id: 'upstream-master-key',
+      key_token: masterKey,
+      tier,
+      window_token_limit: tokenLimit
+    };
+
+    const slidingUsage = await calculateSlidingWindowUsage(keyEntity, {
+      upstreamData,
+      now
+    });
+
+    const percentUsed = slidingUsage.usage_percentage;
+    const tokensUsed = slidingUsage.used_tokens;
+    const remainingTokens = slidingUsage.remaining_tokens;
+    const percentRemaining = slidingUsage.remaining_percentage;
+    const timeRemainingFormatted = slidingUsage.time_remaining_formatted;
+    const secondsRemaining = slidingUsage.seconds_remaining;
+    const resetTimeStr = upstreamData?.windowResetAt || slidingUsage.window_resets_at;
+    const windowStartedAt = slidingUsage.window_started_at;
+
+    const masked = masterKey.length > 12
+      ? `${masterKey.slice(0, 10)}...${masterKey.slice(-4)}`
+      : '••••••••••••';
+
+    const upstreamModels = Array.isArray(upstreamData?.allowedModels) ? upstreamData.allowedModels : [];
+    const liveModels = await liveModelsPromise;
+    const allowedModels = upstreamModels.length > 0 ? upstreamModels : (liveModels.length > 0 ? liveModels : FALLBACK_MODELS);
+
+    const recentLogs = Array.isArray(upstreamData?.recentLogs)
+      ? upstreamData.recentLogs.map((log, idx) => ({
+          id: `upstream-master-log-${idx}`,
+          timestamp: log.time ? new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) : 'Just now',
+          model: log.model || 'claude-sonnet-4-6',
+          tokens: log.tokens ?? '-',
+          status: log.status ? `${log.status} OK` : '200 OK'
+        }))
+      : [];
+
+    const finalByModel = (slidingUsage.byModel && Object.keys(slidingUsage.byModel).length > 0)
+      ? slidingUsage.byModel
+      : (upstreamData?.byModel || null);
+
+    const safePayload = sanitizePayload(upstreamData, masterKey);
+
+    const result = {
+      success: true,
+      status: 'ok',
+      isMaster: true,
+      isRealtime: upstreamData?.isRealtime ?? true,
+      keyStatus: 'active',
+      name: 'Master Upstream Key (Max 20x)',
+      planName: 'Max 20x Key (Master)',
+      planSource: 'provider',
+      isPlanVerified: true,
+      quotaSource: slidingUsage.quota_source,
+      isQuotaVerified: slidingUsage.is_quota_verified,
+      usageSource: slidingUsage.usage_source,
+      isUsageVerified: slidingUsage.is_usage_verified,
+      lastSyncTime: now.toISOString(),
+      masked_token: masked,
+      key: {
+        id: 'upstream-master-key',
+        name: 'Master Upstream Key (Max 20x)',
+        masked_token: masked,
+        tier,
+        status: 'active',
+        planName: 'Max 20x Key (Master)',
+        planSource: 'provider',
+        isPlanVerified: true,
+        quotaSource: slidingUsage.quota_source,
+        isQuotaVerified: slidingUsage.is_quota_verified,
+        usageSource: slidingUsage.usage_source,
+        isUsageVerified: slidingUsage.is_usage_verified,
+        lastSyncTime: now.toISOString(),
+        rate_limit_rpm: slidingUsage.rate_limit_rpm || 60,
+        rate_limit_tpm: slidingUsage.rate_limit_tpm || 1000000,
+        window_token_limit: slidingUsage.quota_limit,
+        window_tokens_used: tokensUsed,
+        window_tokens_remaining: remainingTokens,
+        percentUsed,
+        percentRemaining,
+        timeRemainingFormatted,
+        secondsRemaining,
+        window_started_at: windowStartedAt,
+        window_resets_at: resetTimeStr,
+        created_at: upstreamData?.createdAt || windowStartedAt,
+        expires_at: upstreamData?.expiresAt || new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString(),
+        total_tokens_consumed: tokensUsed !== null ? tokensUsed : 0,
+        total_requests: upstreamData?.totalRequests ?? 0,
+        successRequests: upstreamData?.successRequests ?? 0,
+        failedRequests: upstreamData?.failedRequests ?? 0,
+        last24hRequests: upstreamData?.last24h?.requests ?? (upstreamData?.last24hRequests || 0),
+        models_accessible: allowedModels,
+        allowedProviders: upstreamData?.allowedProviders || ['opuslive'],
+        connectionStatus: upstreamData?.connectionStatus || 'Online',
+        unlimited: upstreamData?.unlimited ?? false,
+        windowActive: upstreamData?.windowActive ?? true,
+        byModel: finalByModel,
+        recentLogs: recentLogs.length > 0 ? recentLogs : undefined,
+        rawPayload: safePayload
+      },
+      unlimited: upstreamData?.unlimited ?? false,
+      usagePercent: percentUsed,
+      totalRequests: upstreamData?.totalRequests ?? 0,
+      successRequests: upstreamData?.successRequests ?? 0,
+      failedRequests: upstreamData?.failedRequests ?? 0,
+      last24h: upstreamData?.last24h || { requests: upstreamData?.last24hRequests || 0 },
+      rateLimit: slidingUsage.rate_limit_rpm || 60,
+      connectionStatus: upstreamData?.connectionStatus || 'Online',
+      isActive: true,
+      windowActive: true,
+      windowTokensLimit: slidingUsage.quota_limit,
+      windowTokensUsed: tokensUsed,
+      remainingTokens,
+      windowResetAt: resetTimeStr,
+      allowedModels,
+      allowedProviders: upstreamData?.allowedProviders || ['opuslive'],
+      allocatedCredits: upstreamData?.allocatedCredits ?? 0,
+      usedCredits: upstreamData?.usedCredits ?? 0,
+      remainingCredits: upstreamData?.remainingCredits ?? 0,
+      byModel: finalByModel,
+      recentLogs,
+      rawPayload: safePayload
+    };
+
+    let jsonStr = JSON.stringify(result);
+    if (masterKey && jsonStr.includes(masterKey)) {
+      jsonStr = jsonStr.replaceAll(masterKey, '[REDACTED_MASTER_KEY]');
+    }
+    return res.type('application/json').send(jsonStr);
+  } catch (err) {
+    const safeError = (err?.message || 'Master key telemetry error.').replace(/[a-zA-Z0-9_-]{20,}/g, '[REDACTED]');
+    return res.status(500).json({ success: false, error: safeError });
+  }
+};
+
+// Admin-only Master Upstream Key telemetry endpoint handler
+export const handleMasterStatusTelemetry = async (req, res) => {
+  if (!verifyAdminAuth(req)) {
+    return res.status(401).json({
+      type: 'error',
+      error: {
+        type: 'authentication_error',
+        message: 'Missing or invalid admin credential.'
+      }
+    });
+  }
+  const masterKey = getMasterUpstreamKey();
+  let upstreamBase = null;
+  try {
+    upstreamBase = getUpstreamBase();
+  } catch {}
+  return serveMasterTelemetry(req, res, masterKey, upstreamBase);
+};
+
 // Core Key Status Inspector (queries upstream /api/key-status + local DB)
 export const handleKeyStatusInspection = async (req, res) => {
   try {
     let keyToken = req.params?.token || req.params?.key || req.body?.key || req.body?.key_token || req.body?.token || req.query?.key || req.query?.token;
     
-    if (!keyToken) {
-      const auth = req.headers['authorization'];
-      if (auth && auth.startsWith('Bearer ')) {
-        keyToken = auth.substring(7);
-      } else if (req.headers['x-api-key']) {
-        keyToken = req.headers['x-api-key'];
-      }
+    const auth = req.headers['authorization'];
+    const xApiKey = req.headers['x-api-key'];
+    let headerToken = null;
+    if (auth && typeof auth === 'string' && auth.startsWith('Bearer ')) {
+      headerToken = auth.substring(7).trim();
+    } else if (xApiKey && typeof xApiKey === 'string') {
+      headerToken = xApiKey.trim();
     }
 
+    if (!keyToken && headerToken) {
+      keyToken = headerToken;
+    }
+
+    // Require an explicit key token; NEVER silently fall back to master key
     if (!keyToken || typeof keyToken !== 'string' || !keyToken.trim()) {
-      const defaultKey = (process.env.UPSTREAM_API_KEY || '').trim();
-      if (defaultKey) {
-        keyToken = defaultKey;
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing API key. Pass ?key=YOUR_KEY, Authorization: Bearer YOUR_KEY, or a JSON body with { "key": "..." }.'
-        });
-      }
+      return res.status(400).json({
+        success: false,
+        error: 'Missing API key. Pass ?key=YOUR_KEY, Authorization: Bearer YOUR_KEY, or a JSON body with { "key": "..." }.'
+      });
     }
 
     const trimmedKey = keyToken.trim();
+    const masterKey = getMasterUpstreamKey();
+    const isAdmin = verifyAdminAuth(req);
+
+    // Cross-user key inspection check:
+    // If caller authenticated with a header credential, they cannot inspect a different user's key without admin privileges
+    if (headerToken && trimmedKey !== headerToken && !isAdmin) {
+      return res.status(403).json({
+        type: 'error',
+        error: {
+          type: 'permission_denied',
+          message: 'Unauthorized: You cannot inspect another user’s API key.'
+        }
+      });
+    }
+
     let upstreamBase = null;
     try {
       upstreamBase = getUpstreamBase();
     } catch {
       // UPSTREAM_API_BASE not configured
+    }
+
+    // Master key telemetry check:
+    // Unauthenticated callers or non-admins cannot inspect the upstream master key
+    const isMasterRequest = Boolean(trimmedKey === 'master' || (masterKey && trimmedKey === masterKey));
+    if (isMasterRequest) {
+      if (!isAdmin) {
+        return res.status(401).json({
+          type: 'error',
+          error: {
+            type: 'authentication_error',
+            message: 'Admin authorization required to access master key telemetry.'
+          }
+        });
+      }
+      return serveMasterTelemetry(req, res, masterKey, upstreamBase);
     }
 
     // Kick off the live model catalog lookup up front so it overlaps the
@@ -279,8 +551,8 @@ export const handleKeyStatusInspection = async (req, res) => {
     const windowStartedAt = slidingUsage.window_started_at;
 
     const masked = trimmedKey.length > 12 
-      ? `${trimmedKey.slice(0, 14)}...${trimmedKey.slice(-4)}`
-      : trimmedKey;
+      ? `${trimmedKey.slice(0, 10)}...${trimmedKey.slice(-4)}`
+      : '••••••••••••';
 
     const upstreamModels = Array.isArray(upstreamData?.allowedModels) ? upstreamData.allowedModels : [];
     const liveModels = await liveModelsPromise;
@@ -301,6 +573,8 @@ export const handleKeyStatusInspection = async (req, res) => {
       ? slidingUsage.byModel
       : (upstreamData?.byModel || null);
 
+    const safePayload = sanitizePayload(upstreamData || localRecord, masterKey);
+
     const result = {
       success: true,
       status: 'ok',
@@ -315,6 +589,7 @@ export const handleKeyStatusInspection = async (req, res) => {
       usageSource: slidingUsage.usage_source,
       isUsageVerified: slidingUsage.is_usage_verified,
       lastSyncTime: now.toISOString(),
+      masked_token: masked,
       key: {
         id: localRecord?.id || 'upstream-key',
         name: keyName,
@@ -358,7 +633,7 @@ export const handleKeyStatusInspection = async (req, res) => {
         windowActive: upstreamData?.windowActive ?? true,
         byModel: finalByModel,
         recentLogs: recentLogs.length > 0 ? recentLogs : undefined,
-        rawPayload: upstreamData || localRecord
+        rawPayload: safePayload
       },
       // Upstream-compatible root fields
       unlimited: upstreamData?.unlimited ?? false,
@@ -382,15 +657,24 @@ export const handleKeyStatusInspection = async (req, res) => {
       remainingCredits: upstreamData?.remainingCredits ?? 0,
       byModel: finalByModel,
       recentLogs,
-      rawPayload: upstreamData || localRecord
+      rawPayload: safePayload
     };
 
-    return res.json(result);
+    let jsonStr = JSON.stringify(result);
+    if (masterKey && jsonStr.includes(masterKey)) {
+      jsonStr = jsonStr.replaceAll(masterKey, '[REDACTED_MASTER_KEY]');
+    }
+
+    return res.type('application/json').send(jsonStr);
   } catch (err) {
-    console.error('Error inspecting key:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    const safeError = (err?.message || 'Key inspection encountered an error.').replace(/[a-zA-Z0-9_-]{20,}/g, '[REDACTED]');
+    return res.status(500).json({ success: false, error: safeError });
   }
 };
+
+// Mount Master Status Admin Telemetry routes
+router.get('/master-status', handleMasterStatusTelemetry);
+router.post('/master-status', handleMasterStatusTelemetry);
 
 // Mount Key Inspection routes (supporting query, body, and slug parameter)
 router.all(['/check', '/check/:token', '/check/:token/*'], handleKeyStatusInspection);

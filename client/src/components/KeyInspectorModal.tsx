@@ -24,16 +24,20 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
   if (!isOpen) return null;
 
   const handleInspect = async (tokenToTest?: string) => {
-    const token = tokenToTest !== undefined ? tokenToTest : keyInput.trim();
+    const rawToken = tokenToTest !== undefined ? tokenToTest : keyInput;
+    const token = (rawToken || '').trim();
+    if (!token) {
+      setError('Please enter an API key to inspect.');
+      setKeyData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
     setSuccessMsg('');
     try {
       const data = await checkKey(token);
       setKeyData(data);
-      if (data?.key_token && (!keyInput || !token.trim())) {
-        setKeyInput(data.key_token);
-      }
     } catch (err: any) {
       setError(err.message || 'Key inspection failed. Ensure key exists.');
       setKeyData(null);
@@ -44,7 +48,16 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      handleInspect(initialKey || '');
+      const token = (initialKey && initialKey.trim()) || '';
+      if (token) {
+        setKeyInput(token);
+        handleInspect(token);
+      } else {
+        setKeyData(null);
+        setError('');
+        setSuccessMsg('');
+        setLoading(false);
+      }
     }
   }, [isOpen, initialKey]);
 
@@ -56,7 +69,7 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
       await resetKeyWindow(keyData.id);
       setSuccessMsg('Window token limit reset successfully! Full quota restored.');
       // Refresh key status
-      await handleInspect(keyData.key_token);
+      await handleInspect(keyInput);
     } catch (err: any) {
       setError(err.message || 'Failed to reset window');
     } finally {
@@ -132,17 +145,6 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
           {/* Quick Demo Keys */}
           <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
             <span>Quick inspect:</span>
-            <button
-              onClick={() => {
-                setKeyInput('');
-                handleInspect('');
-              }}
-              className="text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Live Master Key (Max 20x)</span>
-            </button>
-            <span>·</span>
             <button
               onClick={() => {
                 const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
