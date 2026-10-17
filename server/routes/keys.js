@@ -329,6 +329,8 @@ export const handleKeyStatusInspection = async (req, res) => {
         connectionStatus: upstreamData?.connectionStatus || 'Online',
         unlimited: upstreamData?.unlimited ?? false,
         windowActive: upstreamData?.windowActive ?? true,
+        byModel: upstreamData?.byModel || null,
+        planName: upstreamData?.planName || keyName,
         recentLogs: recentLogs.length > 0 ? recentLogs : undefined,
         rawPayload: upstreamData || localRecord
       },
@@ -352,6 +354,8 @@ export const handleKeyStatusInspection = async (req, res) => {
       allocatedCredits: upstreamData?.allocatedCredits ?? 0,
       usedCredits: upstreamData?.usedCredits ?? 0,
       remainingCredits: upstreamData?.remainingCredits ?? 0,
+      byModel: upstreamData?.byModel || null,
+      planName: upstreamData?.planName || keyName,
       recentLogs,
       rawPayload: upstreamData || localRecord
     };

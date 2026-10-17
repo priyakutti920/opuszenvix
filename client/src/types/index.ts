@@ -57,6 +57,8 @@ export interface CheckKeyData {
   remainingCredits?: number;
   unlimited?: boolean;
   windowActive?: boolean;
+  planName?: string;
+  byModel?: Record<string, { percent: number }>;
   rawPayload?: any;
   recentLogs?: Array<{
     id: string;

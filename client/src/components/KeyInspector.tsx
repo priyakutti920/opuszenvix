@@ -380,16 +380,16 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   PLAN / TIER
                 </span>
                 <span className="font-bold text-stone-900 dark:text-white text-sm">
-                  {keyData.tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key'}
+                  {keyData.planName || (keyData.tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key')}
                 </span>
               </div>
 
               <div>
                 <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-wider block font-bold mb-1">
-                  ISSUED
+                  THROUGHPUT RATE
                 </span>
-                <span className="text-stone-700 dark:text-stone-300 font-medium">
-                  {formatFullDate(keyData.created_at || keyData.window_started_at)}
+                <span className="text-stone-700 dark:text-stone-300 font-bold text-sm">
+                  {keyData.rate_limit_rpm || 60} RPM • {keyData.tier === '20x' ? '1M' : '400K'} TPM
                 </span>
               </div>
 
@@ -428,7 +428,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 </h3>
               </div>
               <span className="text-[11px] font-mono font-bold uppercase text-teal-700 dark:text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 self-start sm:self-auto">
-                {keyData.tier === '20x' ? '5M TPM CAPACITY TIER' : '1M TPM CAPACITY TIER'}
+                {keyData.tier === '20x' ? '1M TPM BURST CAPACITY' : '400K TPM BURST CAPACITY'}
               </span>
             </div>
             
@@ -471,14 +471,46 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-stone-900 dark:text-white">
                   {tokenLimit.toLocaleString()}{' '}
-                  <span className="text-xs font-semibold text-stone-500">[TPM]</span>
+                  <span className="text-xs font-semibold text-stone-500">[5H WINDOW]</span>
                 </div>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
-                  Maximum concurrent quota
+                  Rolling 5-hour quota allowance
                 </p>
               </div>
 
             </div>
+
+            {/* Model Breakdown if provided by upstream telemetry */}
+            {(keyData.byModel || keyData.rawPayload?.byModel) && (
+              <div className="mb-6 p-4 rounded-2xl bg-stone-50/70 dark:bg-[#181716]/70 border border-[#E8E3D9] dark:border-[#262422]">
+                <div className="flex items-center justify-between mb-3 text-xs font-mono">
+                  <span className="text-stone-400 uppercase text-[10px] font-bold">
+                    MODEL USAGE BREAKDOWN (ACTIVE 5-HOUR WINDOW)
+                  </span>
+                  <span className="text-stone-500 text-[11px]">
+                    Live Telemetry
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {Object.entries(keyData.byModel || keyData.rawPayload.byModel).map(([modelName, info]: [string, any]) => {
+                    const pct = typeof info?.percent === 'number' ? info.percent : 0;
+                    return (
+                      <div key={modelName} className="p-2.5 rounded-xl bg-white dark:bg-[#131211] border border-[#E8E3D9] dark:border-[#262422]">
+                        <div className="text-[11px] font-bold text-stone-700 dark:text-stone-300 capitalize mb-1">
+                          Claude {modelName}
+                        </div>
+                        <div className="flex items-baseline justify-between font-mono">
+                          <span className="text-sm font-black text-stone-900 dark:text-white">{pct}%</span>
+                          <span className="text-[10px] text-stone-400">
+                            {Math.round((pct / 100) * tokenLimit).toLocaleString()} tok
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Quota Progress Bar */}
             <div className="mb-4">

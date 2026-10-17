@@ -242,8 +242,13 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
     if (upData) {
       const timer = getAnchoredWindowTimer(token, upData.windowResetAt);
 
-      const tokenLimit = upData.windowTokensLimit || 10000000;
-      const tokensUsed = upData.windowTokensUsed || 0;
+      const is20x = Boolean(
+        (upData.planName && upData.planName.toLowerCase().includes('20x')) ||
+        (upData.name && upData.name.toLowerCase().includes('20x'))
+      );
+      const tier: PlanTier = upData.tier || (is20x ? '20x' : '5x');
+      const tokenLimit = upData.windowTokensLimit || (tier === '20x' ? 100000000 : 25000000);
+      const tokensUsed = upData.windowTokensUsed ?? (upData.usagePercent !== undefined ? Math.round((upData.usagePercent / 100) * tokenLimit) : 0);
       const remainingTokens = upData.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
       const percentUsed = upData.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
 
@@ -251,13 +256,15 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
 
       return {
         id: 'upstream-key',
-        name: upData.name || 'API Key',
+        name: upData.name || (tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key'),
+        planName: upData.planName || upData.name || (tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key'),
+        byModel: upData.byModel || null,
         key_token: token,
         masked_token: masked,
-        tier: tokenLimit >= 50000000 ? '20x' : '5x',
+        tier,
         status: upData.keyStatus || 'active',
         rate_limit_rpm: upData.rateLimit || 60,
-        rate_limit_tpm: 400000,
+        rate_limit_tpm: tier === '20x' ? 1000000 : 400000,
         window_token_limit: tokenLimit,
         window_tokens_used: tokensUsed,
         window_tokens_remaining: remainingTokens,
