@@ -70,7 +70,6 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
               </p>
               <ul className="space-y-3">
                 {[
-                  "Includes",
                   "All 13 models — Fable 5, Sonnet 5, Opus, Sonnet, Haiku",
                   "5× the usage of official Claude Pro",
                   "30 days of access",
@@ -131,7 +130,6 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
               </p>
               <ul className="space-y-3">
                 {[
-                  "Includes",
                   "All 13 models — Fable 5, Sonnet 5, Opus, Sonnet, Haiku",
                   "20× the usage of official Claude Pro",
                   "Rolling 5-hour window — resets itself",
@@ -191,7 +189,6 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan }) => {
               </p>
               <ul className="space-y-3">
                 {[
-                  "Includes",
                   "All 13 models — Fable 5, Sonnet 5, Opus, Sonnet, Haiku",
                   "5× the usage of official Claude Pro",
                   "7 days of access",

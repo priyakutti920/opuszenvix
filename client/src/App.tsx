@@ -261,6 +261,8 @@ export function App() {
         onOpenDocs={() => handleNavigate('docs')}
         onOpenStatus={() => handleNavigate('status')}
         onOpenCheckKey={() => handleNavigate('usage')}
+        onOpenPlayground={() => handleNavigate('playground')}
+        onOpenDashboard={() => handleNavigate('dashboard')}
         onNavigateSection={handleNavigateSection}
       />
 

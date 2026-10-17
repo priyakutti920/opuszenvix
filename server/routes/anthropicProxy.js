@@ -14,8 +14,14 @@ const getUpstreamTimeoutMs = () => Number(process.env.UPSTREAM_TIMEOUT_MS) || 60
 
 // A retry here would risk double-billing a paid completion or double-counting
 // streamed output, so all upstream calls are single-attempt.
-const upstreamRequest = (url, init) =>
-  fetch(url, { ...init, signal: upstreamTimeoutSignal(getUpstreamTimeoutMs()) });
+// Connect client disconnect signal to cancel in-flight upstream fetches immediately.
+const upstreamRequest = (url, init, clientSignal) => {
+  const timeoutSignal = upstreamTimeoutSignal(getUpstreamTimeoutMs());
+  const signal = clientSignal
+    ? AbortSignal.any([timeoutSignal, clientSignal])
+    : timeoutSignal;
+  return fetch(url, { ...init, signal });
+};
 
 // Upstream error bodies are forwarded verbatim today, which can echo the
 // master key back to the caller: an upstream auth failure often repeats the
@@ -208,7 +214,7 @@ router.post('/messages', async (req, res) => {
     }
   }
 
-  const { model = 'claude-3-7-sonnet-20250219', stream = false } = req.body;
+  const { model = 'claude-sonnet-4-6', stream = false } = req.body;
 
   if (!isValidMessages(req.body.messages)) {
     return res.status(400).json({
@@ -238,7 +244,7 @@ router.post('/messages', async (req, res) => {
       method: 'POST',
       headers: forwardHeaders,
       body: JSON.stringify(req.body)
-    });
+    }, req.signal);
 
     // If upstream returns an error, forward with the same status code but a
     // sanitised body, so an upstream response cannot carry the master key
@@ -253,6 +259,10 @@ router.post('/messages', async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no');
+      res.socket?.setNoDelay(true);
+      if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+      }
 
       if (upstreamRes.body) {
         const nodeStream = Readable.fromWeb(upstreamRes.body);
@@ -324,12 +334,12 @@ router.post('/messages', async (req, res) => {
     return res.status(upstreamRes.status).json(data);
 
   } catch (err) {
+    if (req.signal?.aborted || res.headersSent) return res.end();
     // Only report a timeout if the response had not started: once headers are
     // sent the client has disconnected, and that is not an upstream failure.
-    const timedOut = isTimeoutError(err) && !res.headersSent;
+    const timedOut = isTimeoutError(err);
     console.error('Upstream passthrough network failure:', err?.name || 'Error', '-', err?.message || '');
 
-    if (res.headersSent) return res.end();
     return res.status(504).json({
       type: 'error',
       error: {
@@ -365,7 +375,7 @@ router.post('/chat/completions', async (req, res) => {
         'x-api-key': effectiveKey
       },
       body: JSON.stringify(req.body)
-    });
+    }, req.signal);
 
     if (!upstreamRes.ok) {
       return await forwardSafeUpstreamError(res, upstreamRes);
@@ -375,6 +385,10 @@ router.post('/chat/completions', async (req, res) => {
       res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.socket?.setNoDelay(true);
+      if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+      }
       const nodeStream = Readable.fromWeb(upstreamRes.body);
       nodeStream.on('error', (err) => {
         console.error('Streaming passthrough error:', err?.name || 'StreamError', '-', err?.message || '');
@@ -393,10 +407,10 @@ router.post('/chat/completions', async (req, res) => {
     const data = await upstreamRes.json();
     return res.status(upstreamRes.status).json(data);
   } catch (err) {
-    const timedOut = isTimeoutError(err) && !res.headersSent;
+    if (req.signal?.aborted || res.headersSent) return res.end();
+    const timedOut = isTimeoutError(err);
     console.error('Upstream passthrough network failure:', err?.name || 'Error', '-', err?.message || '');
 
-    if (res.headersSent) return res.end();
     return res.status(504).json({
       error: {
         type: 'api_error',

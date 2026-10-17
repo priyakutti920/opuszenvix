@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { 
   BookOpen, 
-  Terminal, 
   Code2, 
   Copy, 
   Check, 
   ExternalLink, 
   Sparkles, 
   Zap, 
-  Layers, 
   ShieldCheck, 
-  Cpu, 
   ChevronRight, 
   ArrowRight, 
   FileCode, 
@@ -38,7 +35,7 @@ interface DocsPageProps {
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview' },
-  { id: 'gateway-guide', title: 'Gateway Architecture' },
+  { id: 'gateway-guide', title: 'Gateway Configuration' },
   { id: 'quick-start', title: 'Quick Start' },
   { id: 'ide-configuration', title: 'IDE Configuration' },
   { id: 'sdks-examples', title: 'SDKs & Code Examples' },
@@ -178,107 +175,14 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   {v1Base}
                 </code>.
               </p>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  {
-                    emoji: '🔀',
-                    title: 'Direct Passthrough Bypass',
-                    desc: 'Seamlessly forward /v1/messages, /v1/models, and /v1/chat/completions with zero buffering and low latency.'
-                  },
-                  {
-                    emoji: '⚡',
-                    title: 'Zero-Latency SSE Streaming',
-                    desc: 'Real-time Server-Sent Events pass directly to the client with sub-20ms Time-To-First-Token (TTFT).'
-                  },
-                  {
-                    emoji: '🔍',
-                    title: 'Live Key Status Inspection',
-                    desc: 'Integrated with upstream /api/key-status for real-time 5-hour rolling quotas, countdowns, and allowed models.'
-                  },
-                  {
-                    emoji: '🌐',
-                    title: 'High Availability Gateway',
-                    desc: 'Connect directly to https://api.opuszyra.live with ultra-reliable routing, zero buffering, and 99.9% uptime.'
-                  },
-                  {
-                    emoji: '💰',
-                    title: 'Prompt Caching Enabled',
-                    desc: 'Anthropic prompt cache read tokens pass through without extra charges, accelerating large context windows.'
-                  },
-                  {
-                    emoji: '🛡️',
-                    title: '5-Hour Rolling Budget Protection',
-                    desc: 'Continuous quota replenishment prevents over-budget spikes with automatic reset countdowns.'
-                  }
-                ].map((card, i) => (
-                  <div key={i} className="p-4 rounded-2xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#121110] hover:border-[#EA580C]/50 transition-all shadow-xs">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-lg">{card.emoji}</span>
-                      <span className="text-sm font-bold">{card.title}</span>
-                    </div>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
-                      {card.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
             </section>
 
-            {/* 2. GATEWAY ARCHITECTURE */}
+            {/* 2. GATEWAY CONFIGURATION */}
             <section id="gateway-guide" className="scroll-mt-24">
               <h2 className="text-2xl font-bold mb-4 pb-3 border-b border-[#E8E3D9] dark:border-[#262422] flex items-center gap-3">
                 <span className="w-1.5 h-6 rounded-full bg-[#EA580C]" />
-                API Gateway Architecture
+                Gateway Configuration
               </h2>
-              <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                When you deploy Opuszyra, you become the authoritative API gateway for your users. Clients send requests to your domain (<code className="font-mono text-[#EA580C]">{cleanDomain}</code>), and your server handles authentication, quota validation, and forwards traffic seamlessly to the upstream inference provider.
-              </p>
-
-              {/* Architecture Diagram Box */}
-              <div className="p-6 rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#121110] mb-8 shadow-sm">
-                <div className="text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Layers className="w-4 h-4" />
-                  <span>Request Flow Pipeline</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                  <div className="p-4 rounded-2xl border border-stone-200 dark:border-[#262422] bg-stone-50 dark:bg-[#181716] text-center">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C] flex items-center justify-center mx-auto mb-2">
-                      <Terminal className="w-5 h-5" />
-                    </div>
-                    <div className="text-xs font-bold text-stone-900 dark:text-white">Your Developer / Client</div>
-                    <div className="text-[11px] text-stone-500 font-mono mt-1">Cursor • Claude Code • Python • TS</div>
-                    <div className="mt-2 text-[10px] text-[#EA580C] font-mono break-all bg-orange-500/5 p-1 rounded">
-                      Base URL: {cleanDomain}/v1
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl border-2 border-orange-500/40 bg-orange-500/[0.05] text-center relative">
-                    <div className="w-10 h-10 rounded-xl bg-[#EA580C] text-white flex items-center justify-center mx-auto mb-2 shadow-md">
-                      <Server className="w-5 h-5" />
-                    </div>
-                    <div className="text-xs font-bold text-[#EA580C]">Your Gateway Server</div>
-                    <div className="text-[11px] text-stone-500 font-mono mt-1">{cleanDomain}</div>
-                    <div className="mt-2 text-[10px] text-stone-400">
-                      • Auth &amp; Key Verification<br />
-                      • 5-Hour Rolling Metering<br />
-                      • Passthrough Streaming (SSE)
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl border border-stone-200 dark:border-[#262422] bg-stone-50 dark:bg-[#181716] text-center">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto mb-2">
-                      <Cpu className="w-5 h-5" />
-                    </div>
-                    <div className="text-xs font-bold text-stone-900 dark:text-white">Upstream Engine</div>
-                    <div className="text-[11px] text-stone-500 font-mono mt-1">Upstream Gateway</div>
-                    <div className="mt-2 text-[10px] text-emerald-500 font-mono bg-emerald-500/5 p-1 rounded">
-                      Claude 3.7 / 3.5 / 4 / 5 Models
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Environment Variables Configuration Guide */}
               <h3 className="text-base font-bold mb-3 flex items-center gap-2">

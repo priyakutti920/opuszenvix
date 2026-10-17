@@ -6,6 +6,8 @@ interface FooterProps {
   onOpenDocs: () => void;
   onOpenStatus?: () => void;
   onOpenCheckKey: () => void;
+  onOpenPlayground?: () => void;
+  onOpenDashboard?: () => void;
   onNavigateSection?: (sectionId: string) => void;
 }
 
@@ -14,6 +16,8 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenDocs,
   onOpenStatus,
   onOpenCheckKey,
+  onOpenPlayground,
+  onOpenDashboard,
   onNavigateSection,
 }) => {
   return (
@@ -75,6 +79,20 @@ export const Footer: React.FC<FooterProps> = ({
                   Pricing &amp; Plans
                 </button>
               </li>
+              {onOpenPlayground && (
+                <li>
+                  <button onClick={onOpenPlayground} className="hover:text-white transition">
+                    Live Playground
+                  </button>
+                </li>
+              )}
+              {onOpenDashboard && (
+                <li>
+                  <button onClick={onOpenDashboard} className="hover:text-white transition">
+                    API Dashboard
+                  </button>
+                </li>
+              )}
               <li>
                 <a
                   href="#features"
