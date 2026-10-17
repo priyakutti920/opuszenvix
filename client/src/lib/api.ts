@@ -152,20 +152,22 @@ export function getAnchoredWindowTimer(token: string, candidateResetStr?: string
   };
 }
 
-export async function checkKey(keyToken: string): Promise<CheckKeyData> {
-  const token = keyToken.trim();
+export async function checkKey(keyToken: string = ''): Promise<CheckKeyData> {
+  const token = (keyToken || '').trim();
   let serverError: string | null = null;
 
   // 1. Try local Gateway /api/key-status via POST
   try {
+    const postBody = token ? { key: token, key_token: token } : {};
     const json = await safeJsonFetch(`${API_BASE}/key-status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: token, key_token: token }),
+      body: JSON.stringify(postBody),
     });
     if (json.key || json.status === 'ok') {
       const data = json.key || json;
-      const timer = getAnchoredWindowTimer(token, data.window_resets_at || data.windowResetAt);
+      const actualToken = data.key_token || token;
+      const timer = getAnchoredWindowTimer(actualToken, data.window_resets_at || data.windowResetAt);
       return {
         ...data,
         window_resets_at: timer.window_resets_at,
@@ -180,12 +182,14 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
     }
   }
 
-  // 2. Try URL slug endpoint: /api/key-status/:token
+  // 2. Try URL slug endpoint: /api/key-status/:token or GET /api/key-status
   try {
-    const json = await safeJsonFetch(`${API_BASE}/key-status/${encodeURIComponent(token)}`);
+    const url = token ? `${API_BASE}/key-status/${encodeURIComponent(token)}` : `${API_BASE}/key-status`;
+    const json = await safeJsonFetch(url);
     if (json.key || json.status === 'ok') {
       const data = json.key || json;
-      const timer = getAnchoredWindowTimer(token, data.window_resets_at || data.windowResetAt);
+      const actualToken = data.key_token || token;
+      const timer = getAnchoredWindowTimer(actualToken, data.window_resets_at || data.windowResetAt);
       return {
         ...data,
         window_resets_at: timer.window_resets_at,

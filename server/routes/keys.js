@@ -107,10 +107,15 @@ export const handleKeyStatusInspection = async (req, res) => {
     }
 
     if (!keyToken || typeof keyToken !== 'string' || !keyToken.trim()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing API key. Pass ?key=YOUR_KEY, Authorization: Bearer YOUR_KEY, or a JSON body with { "key": "..." }.'
-      });
+      const defaultKey = (process.env.UPSTREAM_API_KEY || '').trim();
+      if (defaultKey) {
+        keyToken = defaultKey;
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing API key. Pass ?key=YOUR_KEY, Authorization: Bearer YOUR_KEY, or a JSON body with { "key": "..." }.'
+        });
+      }
     }
 
     const trimmedKey = keyToken.trim();

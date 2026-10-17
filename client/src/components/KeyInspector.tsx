@@ -65,11 +65,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   const inspectSeqRef = useRef<number>(0);
 
   const handleInspect = async (tokenToTest?: string, forceFresh?: boolean) => {
-    const target = tokenToTest || inputKey;
-    if (!target.trim()) {
-      setError('Please enter a valid Opuszyra API key.');
-      return;
-    }
+    const target = tokenToTest !== undefined ? tokenToTest : inputKey;
 
     const currentSeq = ++inspectSeqRef.current;
     setLoading(true);
@@ -87,6 +83,9 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
 
       const measuredLatency = Math.round(performance.now() - startPing);
       setLatencyMs(Math.max(45, measuredLatency || 199));
+      if (data?.key_token && (!inputKey || !target.trim())) {
+        setInputKey(data.key_token);
+      }
       setKeyData({
         ...data,
         isStale: false
@@ -106,10 +105,8 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
 
   // Run on mount or when initialKey updates (e.g. from URL slug or acquired key)
   useEffect(() => {
-    if (initialKey && initialKey.trim()) {
-      setInputKey(initialKey.trim());
-      handleInspect(initialKey.trim());
-    }
+    const token = (initialKey && initialKey.trim()) || '';
+    handleInspect(token);
   }, [initialKey]);
 
   // Auto-refresh interval (every 30 seconds if enabled)
@@ -311,6 +308,44 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
           >
             <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>{loading ? 'Fetching...' : 'Fetch Live API'}</span>
+          </button>
+        </div>
+
+        {/* Quick Key Presets */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 px-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
+          <span className="font-semibold text-stone-400 dark:text-stone-500">Quick Select:</span>
+          <button
+            type="button"
+            onClick={() => {
+              setInputKey('');
+              handleInspect('');
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-bold transition cursor-pointer"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Live Master Key (Max 20x)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
+              setInputKey(sample);
+              handleInspect(sample);
+            }}
+            className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-[#1A1918] border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition cursor-pointer"
+          >
+            Dev Key (5x)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const sample = 'opm-live-20x-8d7e6f5c4b3a2109';
+              setInputKey(sample);
+              handleInspect(sample);
+            }}
+            className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-[#1A1918] border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition cursor-pointer"
+          >
+            Agent Key (20x)
           </button>
         </div>
       </div>

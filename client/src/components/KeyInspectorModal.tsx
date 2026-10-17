@@ -24,17 +24,16 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
   if (!isOpen) return null;
 
   const handleInspect = async (tokenToTest?: string) => {
-    const token = tokenToTest || keyInput.trim();
-    if (!token) {
-      setError('Please paste an API key token to inspect');
-      return;
-    }
+    const token = tokenToTest !== undefined ? tokenToTest : keyInput.trim();
     setLoading(true);
     setError('');
     setSuccessMsg('');
     try {
       const data = await checkKey(token);
       setKeyData(data);
+      if (data?.key_token && (!keyInput || !token.trim())) {
+        setKeyInput(data.key_token);
+      }
     } catch (err: any) {
       setError(err.message || 'Key inspection failed. Ensure key exists.');
       setKeyData(null);
@@ -42,6 +41,12 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      handleInspect(initialKey || '');
+    }
+  }, [isOpen, initialKey]);
 
   const handleResetWindow = async () => {
     if (!keyData) return;
@@ -125,8 +130,19 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
           </div>
 
           {/* Quick Demo Keys */}
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-            <span>Try sample key:</span>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+            <span>Quick inspect:</span>
+            <button
+              onClick={() => {
+                setKeyInput('');
+                handleInspect('');
+              }}
+              className="text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live Master Key (Max 20x)</span>
+            </button>
+            <span>·</span>
             <button
               onClick={() => {
                 const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
