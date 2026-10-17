@@ -202,12 +202,12 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   };
 
   // Number metrics
-  const tokenLimit = keyData ? (keyData.window_token_limit || 20000000) : 20000000;
+  const tokenLimit = keyData ? (keyData.window_token_limit || (keyData.tier === '20x' ? 200000000 : 25000000)) : 200000000;
   const tokensUsed = keyData ? (keyData.window_tokens_used || 0) : 0;
   const tokensRemaining = keyData ? (keyData.window_tokens_remaining || Math.max(0, tokenLimit - tokensUsed)) : tokenLimit;
   
-  const usedPercent = Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1))));
-  const remainingPercent = Math.max(0, Number((100 - usedPercent).toFixed(1)));
+  const usedPercent = keyData?.percentUsed !== undefined ? keyData.percentUsed : Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1))));
+  const remainingPercent = keyData?.percentRemaining !== undefined ? keyData.percentRemaining : Math.max(0, Number((100 - usedPercent).toFixed(1)));
 
   // 5-hour cycle calculations (18000s cycle)
   const secRemaining = keyData?.secondsRemaining ?? 10800;

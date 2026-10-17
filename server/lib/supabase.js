@@ -36,7 +36,7 @@ class MockSupabaseDatabase {
         status: 'active',
         rate_limit_rpm: 120,
         rate_limit_tpm: 1000000,
-        window_token_limit: 100000000,
+        window_token_limit: 200000000,
         window_tokens_used: 12450000,
         window_started_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
         window_resets_at: new Date(Date.now() + 1000 * 60 * 260).toISOString(),

@@ -118,7 +118,7 @@ INSERT INTO public.api_keys (
     'active',
     120,
     1000000,
-    100000000,
+    200000000,
     12450000,
     (NOW() - INTERVAL '40 minutes'),
     (NOW() + INTERVAL '4 hours 20 minutes'),

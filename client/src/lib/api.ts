@@ -247,7 +247,7 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         (upData.name && upData.name.toLowerCase().includes('20x'))
       );
       const tier: PlanTier = upData.tier || (is20x ? '20x' : '5x');
-      const tokenLimit = upData.windowTokensLimit || (tier === '20x' ? 100000000 : 25000000);
+      const tokenLimit = upData.windowTokensLimit || (tier === '20x' ? 200000000 : 25000000);
       const tokensUsed = upData.windowTokensUsed ?? (upData.usagePercent !== undefined ? Math.round((upData.usagePercent / 100) * tokenLimit) : 0);
       const remainingTokens = upData.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
       const percentUsed = upData.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
