@@ -242,22 +242,69 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
     if (upData) {
       const timer = getAnchoredWindowTimer(token, upData.windowResetAt);
 
+      let planName = 'Unverified Plan';
+      let planSource: 'provider' | 'database' | 'unverified' = 'unverified';
+      let isPlanVerified = false;
+
+      if (upData.planName && typeof upData.planName === 'string' && upData.planName.trim()) {
+        planName = upData.planName.trim();
+        planSource = 'provider';
+        isPlanVerified = true;
+      }
+
       const is20x = Boolean(
         (upData.planName && upData.planName.toLowerCase().includes('20x')) ||
         (upData.name && upData.name.toLowerCase().includes('20x'))
       );
       const tier: PlanTier = upData.tier || (is20x ? '20x' : '5x');
-      const tokenLimit = upData.windowTokensLimit || (tier === '20x' ? 200000000 : 25000000);
-      const tokensUsed = upData.windowTokensUsed ?? (upData.usagePercent !== undefined ? Math.round((upData.usagePercent / 100) * tokenLimit) : 0);
-      const remainingTokens = upData.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
-      const percentUsed = upData.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
+      const defaultLimit = tier === '20x' ? 20000000 : 25000000;
+      const rawLimit = Number(upData.windowTokensLimit);
+      const isStaleLimitOverride = tier === '20x' && (rawLimit === 100000000 || rawLimit === 200000000);
+      const tokenLimit = (rawLimit && !isStaleLimitOverride) ? rawLimit : defaultLimit;
+      const isQuotaVerified = Boolean(rawLimit && !isStaleLimitOverride);
+      const quotaSource: 'provider' | 'configured_tier' = isQuotaVerified ? 'provider' : 'configured_tier';
+
+      let tokensUsed: number | null = null;
+      let usageSource: 'provider_tokens' | 'provider_percent' | 'new_key' | 'unavailable' = 'unavailable';
+      let isUsageVerified = false;
+
+      if (typeof upData.windowTokensUsed === 'number') {
+        tokensUsed = upData.windowTokensUsed;
+        usageSource = 'provider_tokens';
+        isUsageVerified = true;
+      } else if (typeof upData.usagePercent === 'number') {
+        tokensUsed = Math.round((upData.usagePercent / 100) * tokenLimit);
+        usageSource = 'provider_percent';
+        isUsageVerified = true;
+      } else if (typeof upData.key?.window_tokens_used === 'number') {
+        tokensUsed = upData.key.window_tokens_used;
+        usageSource = 'provider_tokens';
+        isUsageVerified = true;
+      } else if (upData.totalRequests === 0) {
+        tokensUsed = 0;
+        usageSource = 'new_key';
+        isUsageVerified = true;
+      }
+
+      const remainingTokens = tokensUsed !== null ? Math.max(0, tokenLimit - tokensUsed) : null;
+      const percentUsed = typeof upData.usagePercent === 'number'
+        ? upData.usagePercent
+        : (tokensUsed !== null ? Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1)))) : null);
+      const percentRemaining = percentUsed !== null ? Math.max(0, Number((100 - percentUsed).toFixed(1))) : null;
 
       const masked = token.length > 12 ? `${token.slice(0, 14)}...${token.slice(-4)}` : token;
 
       return {
         id: 'upstream-key',
-        name: upData.name || (tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key'),
-        planName: upData.planName || upData.name || (tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key'),
+        name: upData.name || planName,
+        planName,
+        planSource,
+        isPlanVerified,
+        quotaSource,
+        isQuotaVerified,
+        usageSource,
+        isUsageVerified,
+        lastSyncTime: new Date().toISOString(),
         byModel: upData.byModel || null,
         key_token: token,
         masked_token: masked,
@@ -269,12 +316,12 @@ export async function checkKey(keyToken: string): Promise<CheckKeyData> {
         window_tokens_used: tokensUsed,
         window_tokens_remaining: remainingTokens,
         percentUsed,
-        percentRemaining: Math.max(0, 100 - percentUsed),
+        percentRemaining,
         timeRemainingFormatted: timer.timeRemainingFormatted,
         secondsRemaining: timer.secondsRemaining,
         window_started_at: new Date(new Date(timer.window_resets_at).getTime() - 5 * 60 * 60 * 1000).toISOString(),
         window_resets_at: timer.window_resets_at,
-        total_tokens_consumed: upData.totalRequests ? tokensUsed : 0,
+        total_tokens_consumed: upData.totalRequests ? (tokensUsed ?? 0) : 0,
         total_requests: upData.totalRequests || 0,
         successRequests: upData.successRequests || 0,
         failedRequests: upData.failedRequests || 0,

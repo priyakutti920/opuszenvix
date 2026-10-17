@@ -187,17 +187,17 @@ export const KeyInspectorModal: React.FC<KeyInspectorModalProps> = ({
                 <div className="flex justify-between text-xs text-slate-300 mb-1.5">
                   <span>5-Hour Rolling Allowance:</span>
                   <span className="text-brand-300 font-bold">
-                    {(keyData.window_tokens_remaining / 1000000).toFixed(2)}M / {(keyData.window_token_limit / 1000000).toFixed(0)}M remaining
+                    {keyData.window_tokens_remaining !== null ? `${(keyData.window_tokens_remaining / 1000000).toFixed(2)}M` : 'N/A'} / {(keyData.window_token_limit / 1000000).toFixed(0)}M remaining
                   </span>
                 </div>
                 <div className="h-3 w-full rounded-full bg-dark-900 border border-white/5 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-brand-500 to-amber-500 transition-all duration-700"
-                    style={{ width: `${Math.min(keyData.percentUsed, 100)}%` }}
+                    style={{ width: `${Math.min(keyData.percentUsed ?? 0, 100)}%` }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-                  <span>Used: {keyData.percentUsed}%</span>
+                  <span>Used: {keyData.percentUsed !== null ? `${keyData.percentUsed}%` : 'N/A'}</span>
                   <span className="text-slate-300">Resets in: {keyData.timeRemainingFormatted}</span>
                 </div>
               </div>

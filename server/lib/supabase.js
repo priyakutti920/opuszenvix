@@ -36,8 +36,8 @@ class MockSupabaseDatabase {
         status: 'active',
         rate_limit_rpm: 120,
         rate_limit_tpm: 1000000,
-        window_token_limit: 200000000,
-        window_tokens_used: 12450000,
+        window_token_limit: 20000000,
+        window_tokens_used: 1245000,
         window_started_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
         window_resets_at: new Date(Date.now() + 1000 * 60 * 260).toISOString(),
         total_tokens_consumed: 45600000,
@@ -102,6 +102,55 @@ class MockSupabaseDatabase {
         const chain = {
           eq: (col, val) => {
             results = results.filter(item => item[col] === val);
+            return chain;
+          },
+          neq: (col, val) => {
+            results = results.filter(item => item[col] !== val);
+            return chain;
+          },
+          gte: (col, val) => {
+            results = results.filter(item => {
+              if (item[col] === undefined || item[col] === null) return false;
+              if (typeof val === 'string' && !isNaN(Date.parse(val)) && !isNaN(Date.parse(item[col]))) {
+                return new Date(item[col]).getTime() >= new Date(val).getTime();
+              }
+              return item[col] >= val;
+            });
+            return chain;
+          },
+          gt: (col, val) => {
+            results = results.filter(item => {
+              if (item[col] === undefined || item[col] === null) return false;
+              if (typeof val === 'string' && !isNaN(Date.parse(val)) && !isNaN(Date.parse(item[col]))) {
+                return new Date(item[col]).getTime() > new Date(val).getTime();
+              }
+              return item[col] > val;
+            });
+            return chain;
+          },
+          lte: (col, val) => {
+            results = results.filter(item => {
+              if (item[col] === undefined || item[col] === null) return false;
+              if (typeof val === 'string' && !isNaN(Date.parse(val)) && !isNaN(Date.parse(item[col]))) {
+                return new Date(item[col]).getTime() <= new Date(val).getTime();
+              }
+              return item[col] <= val;
+            });
+            return chain;
+          },
+          lt: (col, val) => {
+            results = results.filter(item => {
+              if (item[col] === undefined || item[col] === null) return false;
+              if (typeof val === 'string' && !isNaN(Date.parse(val)) && !isNaN(Date.parse(item[col]))) {
+                return new Date(item[col]).getTime() < new Date(val).getTime();
+              }
+              return item[col] < val;
+            });
+            return chain;
+          },
+          in: (col, vals) => {
+            const set = new Set(Array.isArray(vals) ? vals : [vals]);
+            results = results.filter(item => set.has(item[col]));
             return chain;
           },
           order: (col, { ascending = true } = {}) => {

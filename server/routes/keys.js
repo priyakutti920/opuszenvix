@@ -4,37 +4,34 @@ import crypto from 'crypto';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { getUpstreamBase, getMasterUpstreamKey } from '../lib/config.js';
 import { quotaFor } from '../lib/quotas.js';
+import { calculateSlidingWindowUsage } from '../lib/quotaEngine.js';
 
 const router = express.Router();
 
 // In-memory persistent window anchors (persists established window expiration across re-checks & refreshes)
 const windowAnchors = new Map();
 
-// Helper: refresh 5-hour window if expired locally
-const evaluateRollingWindow = (key) => {
+// Helper: refresh 5-hour window evaluation
+export const evaluateRollingWindow = (key) => {
   const now = new Date();
-  const resetAt = new Date(key.window_resets_at || now.getTime() + 5 * 60 * 60 * 1000);
-  
-  if (now >= resetAt) {
-    const newReset = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
-    key.window_started_at = now.toISOString();
-    key.window_resets_at = newReset;
-    key.window_tokens_used = 0;
-  }
-  
-  const msRemaining = Math.max(0, new Date(key.window_resets_at).getTime() - now.getTime());
+  const limit = Number(key.window_token_limit) || quotaFor(key.tier).limit;
+  const used = Number(key.window_tokens_used || 0);
+  const remaining = Math.max(0, limit - used);
+  const percentUsed = Math.min(100, Number(((used / limit) * 100).toFixed(1)));
+  const percentRemaining = Math.max(0, Number((100 - percentUsed).toFixed(1)));
+
+  const resetAt = new Date(key.window_resets_at || (now.getTime() + 5 * 60 * 60 * 1000));
+  const msRemaining = Math.max(0, resetAt.getTime() - now.getTime());
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
   const secondsRemaining = Math.floor(msRemaining / 1000);
 
-  const limit = Number(key.window_token_limit || 25000000);
-  const used = Number(key.window_tokens_used || 0);
-  const percentUsed = Math.min(100, Math.round((used / limit) * 100));
-  const percentRemaining = Math.max(0, 100 - percentUsed);
-
   return {
     ...key,
+    window_token_limit: limit,
+    window_tokens_used: used,
+    window_tokens_remaining: remaining,
     percentUsed,
     percentRemaining,
     timeRemainingFormatted: `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`,
@@ -211,64 +208,70 @@ export const handleKeyStatusInspection = async (req, res) => {
 
     // Unified status values & Window calculations
     const now = new Date();
-    let resetTimeStr = null;
-    let windowStartedAt = null;
+    
+    // Authoritative Plan & Tier detection (no inference from key prefix or RPM/TPM)
+    let planName = 'Unverified Plan';
+    let planSource = 'unverified';
+    let isPlanVerified = false;
 
-    if (upstreamData?.windowResetAt) {
-      resetTimeStr = upstreamData.windowResetAt;
-      windowStartedAt = upstreamData.windowStartedAt || new Date(new Date(resetTimeStr).getTime() - 5 * 3600 * 1000).toISOString();
-      windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
-    } else {
-      const existingAnchor = windowAnchors.get(trimmedKey);
-      if (existingAnchor && new Date(existingAnchor.resetAt) > now) {
-        resetTimeStr = existingAnchor.resetAt;
-        windowStartedAt = existingAnchor.startedAt;
-      } else if (localRecord?.window_resets_at && new Date(localRecord.window_resets_at) > now) {
-        resetTimeStr = localRecord.window_resets_at;
-        windowStartedAt = localRecord.window_started_at || new Date(new Date(resetTimeStr).getTime() - 5 * 3600 * 1000).toISOString();
-        windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
-      } else {
-        windowStartedAt = now.toISOString();
-        resetTimeStr = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
-        windowAnchors.set(trimmedKey, { resetAt: resetTimeStr, startedAt: windowStartedAt });
-      }
+    if (upstreamData?.planName && typeof upstreamData.planName === 'string' && upstreamData.planName.trim()) {
+      planName = upstreamData.planName.trim();
+      planSource = 'provider';
+      isPlanVerified = true;
+    } else if (localRecord?.plan_name && typeof localRecord.plan_name === 'string' && localRecord.plan_name.trim()) {
+      planName = localRecord.plan_name.trim();
+      planSource = 'database';
+      isPlanVerified = true;
+    } else if (localRecord?.tier) {
+      planName = `${localRecord.tier.toUpperCase()} Plan (Configured)`;
+      planSource = 'database_tier';
+      isPlanVerified = true;
     }
 
-    const resetDate = new Date(resetTimeStr);
-    const msRemaining = Math.max(0, resetDate.getTime() - now.getTime());
-    const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
-    const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-    const secondsMod = Math.floor((msRemaining % (1000 * 60)) / 1000);
-    const secondsRemaining = Math.floor(msRemaining / 1000);
-    const timeRemainingFormatted = `${String(hoursRemaining).padStart(2, '0')}:${String(minutesRemaining).padStart(2, '0')}:${String(secondsMod).padStart(2, '0')}`;
-
-    // Plan & Tier detection
-    const is20x = Boolean(
-      (upstreamData?.planName && upstreamData.planName.toLowerCase().includes('20x')) ||
-      (upstreamData?.name && upstreamData.name.toLowerCase().includes('20x')) ||
-      localRecord?.tier === '20x'
-    );
-    const tier = localRecord?.tier || (is20x ? '20x' : '5x');
-    // Never let a malformed limit come back as zero — that renders an infinite
-    // bar-width calculation in the dashboard.
-    const tokenLimit = Number(upstreamData?.windowTokensLimit) ||
-      Number(localRecord?.window_token_limit) ||
-      quotaFor(tier).limit;
-
-    let percentUsed = 0;
-    let tokensUsed = 0;
-    let remainingTokens = tokenLimit;
-
-    if (upstreamData?.usagePercent !== undefined && upstreamData.usagePercent !== null) {
-      percentUsed = Number(upstreamData.usagePercent);
-      tokensUsed = upstreamData.windowTokensUsed ?? Math.round((percentUsed / 100) * tokenLimit);
-      remainingTokens = upstreamData.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
-    } else {
-      tokensUsed = upstreamData?.windowTokensUsed ?? (localRecord?.window_tokens_used || 0);
-      remainingTokens = upstreamData?.remainingTokens ?? Math.max(0, tokenLimit - tokensUsed);
-      percentUsed = upstreamData?.usagePercent ?? Math.min(100, Math.round((tokensUsed / tokenLimit) * 100));
+    // Tier mapping for internal rate/quota table lookup ('20x' or '5x')
+    let tier = localRecord?.tier;
+    if (!tier && upstreamData?.planName) {
+      if (upstreamData.planName.toLowerCase().includes('20x')) tier = '20x';
+      else if (upstreamData.planName.toLowerCase().includes('5x')) tier = '5x';
     }
-    const percentRemaining = Math.max(0, Number((100 - percentUsed).toFixed(1)));
+    if (!tier) tier = '20x'; // Default internal tier allocation
+
+    // Authoritative Quota Limit calculation (intended: 20,000,000 for Max 20x)
+    const isLegacyStaleOverride = (t, val) =>
+      t === '20x' && (val === 100000000 || val === 200000000);
+
+    const defaultLimit = quotaFor(tier).limit;
+    const rawUpstreamLimit = Number(upstreamData?.windowTokensLimit);
+    const rawLocalLimit = Number(localRecord?.window_token_limit);
+
+    let tokenLimit = defaultLimit;
+    if (rawUpstreamLimit && !isLegacyStaleOverride(tier, rawUpstreamLimit)) {
+      tokenLimit = rawUpstreamLimit;
+    } else if (rawLocalLimit && !isLegacyStaleOverride(tier, rawLocalLimit)) {
+      tokenLimit = rawLocalLimit;
+    }
+
+    // Build key entity for authoritative rolling 5-hour quota calculation
+    const keyEntity = localRecord || {
+      id: null,
+      key_token: trimmedKey,
+      tier,
+      window_token_limit: tokenLimit
+    };
+
+    const slidingUsage = await calculateSlidingWindowUsage(keyEntity, {
+      upstreamData,
+      now
+    });
+
+    const percentUsed = slidingUsage.usage_percentage;
+    const tokensUsed = slidingUsage.used_tokens;
+    const remainingTokens = slidingUsage.remaining_tokens;
+    const percentRemaining = slidingUsage.remaining_percentage;
+    const timeRemainingFormatted = slidingUsage.time_remaining_formatted;
+    const secondsRemaining = slidingUsage.seconds_remaining;
+    const resetTimeStr = upstreamData?.windowResetAt || slidingUsage.window_resets_at;
+    const windowStartedAt = slidingUsage.window_started_at;
 
     const masked = trimmedKey.length > 12 
       ? `${trimmedKey.slice(0, 14)}...${trimmedKey.slice(-4)}`
@@ -288,7 +291,10 @@ export const handleKeyStatusInspection = async (req, res) => {
         }))
       : [];
 
-    const keyName = upstreamData?.name || localRecord?.name || (tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key');
+    const keyName = upstreamData?.name || localRecord?.name || planName;
+    const finalByModel = (slidingUsage.byModel && Object.keys(slidingUsage.byModel).length > 0)
+      ? slidingUsage.byModel
+      : (upstreamData?.byModel || null);
 
     const result = {
       success: true,
@@ -296,6 +302,14 @@ export const handleKeyStatusInspection = async (req, res) => {
       isRealtime: upstreamData?.isRealtime ?? true,
       keyStatus: (upstreamData?.isActive || upstreamData?.status === 'found') ? 'active' : (upstreamData?.keyStatus || localRecord?.status || 'active'),
       name: keyName,
+      planName,
+      planSource,
+      isPlanVerified,
+      quotaSource: slidingUsage.quota_source,
+      isQuotaVerified: slidingUsage.is_quota_verified,
+      usageSource: slidingUsage.usage_source,
+      isUsageVerified: slidingUsage.is_usage_verified,
+      lastSyncTime: now.toISOString(),
       key: {
         id: localRecord?.id || 'upstream-key',
         name: keyName,
@@ -303,9 +317,17 @@ export const handleKeyStatusInspection = async (req, res) => {
         masked_token: masked,
         tier,
         status: (upstreamData?.isActive || upstreamData?.status === 'found') ? 'active' : (upstreamData?.keyStatus || localRecord?.status || 'active'),
-        rate_limit_rpm: upstreamData?.rateLimit || localRecord?.rate_limit_rpm || 60,
-        rate_limit_tpm: localRecord?.rate_limit_tpm || (tier === '20x' ? 1000000 : 400000),
-        window_token_limit: tokenLimit,
+        planName,
+        planSource,
+        isPlanVerified,
+        quotaSource: slidingUsage.quota_source,
+        isQuotaVerified: slidingUsage.is_quota_verified,
+        usageSource: slidingUsage.usage_source,
+        isUsageVerified: slidingUsage.is_usage_verified,
+        lastSyncTime: now.toISOString(),
+        rate_limit_rpm: slidingUsage.rate_limit_rpm || 60,
+        rate_limit_tpm: slidingUsage.rate_limit_tpm || (tier === '20x' ? 1000000 : 400000),
+        window_token_limit: slidingUsage.quota_limit,
         window_tokens_used: tokensUsed,
         window_tokens_remaining: remainingTokens,
         percentUsed,
@@ -316,7 +338,7 @@ export const handleKeyStatusInspection = async (req, res) => {
         window_resets_at: resetTimeStr,
         created_at: upstreamData?.createdAt || localRecord?.created_at || windowStartedAt,
         expires_at: upstreamData?.expiresAt || localRecord?.expires_at || new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString(),
-        total_tokens_consumed: localRecord?.total_tokens_consumed || tokensUsed,
+        total_tokens_consumed: localRecord?.total_tokens_consumed || (tokensUsed !== null ? tokensUsed : 0),
         total_requests: upstreamData?.totalRequests ?? (localRecord?.total_requests || 0),
         successRequests: upstreamData?.successRequests ?? 0,
         failedRequests: upstreamData?.failedRequests ?? 0,
@@ -329,8 +351,7 @@ export const handleKeyStatusInspection = async (req, res) => {
         connectionStatus: upstreamData?.connectionStatus || 'Online',
         unlimited: upstreamData?.unlimited ?? false,
         windowActive: upstreamData?.windowActive ?? true,
-        byModel: upstreamData?.byModel || null,
-        planName: upstreamData?.planName || keyName,
+        byModel: finalByModel,
         recentLogs: recentLogs.length > 0 ? recentLogs : undefined,
         rawPayload: upstreamData || localRecord
       },
@@ -341,11 +362,11 @@ export const handleKeyStatusInspection = async (req, res) => {
       successRequests: upstreamData?.successRequests ?? 0,
       failedRequests: upstreamData?.failedRequests ?? 0,
       last24h: upstreamData?.last24h || { requests: upstreamData?.last24hRequests || 0 },
-      rateLimit: upstreamData?.rateLimit || 60,
+      rateLimit: slidingUsage.rate_limit_rpm || 60,
       connectionStatus: upstreamData?.connectionStatus || 'Online',
       isActive: true,
       windowActive: true,
-      windowTokensLimit: tokenLimit,
+      windowTokensLimit: slidingUsage.quota_limit,
       windowTokensUsed: tokensUsed,
       remainingTokens,
       windowResetAt: resetTimeStr,
@@ -354,8 +375,7 @@ export const handleKeyStatusInspection = async (req, res) => {
       allocatedCredits: upstreamData?.allocatedCredits ?? 0,
       usedCredits: upstreamData?.usedCredits ?? 0,
       remainingCredits: upstreamData?.remainingCredits ?? 0,
-      byModel: upstreamData?.byModel || null,
-      planName: upstreamData?.planName || keyName,
+      byModel: finalByModel,
       recentLogs,
       rawPayload: upstreamData || localRecord
     };

@@ -62,6 +62,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   const [latencyMs, setLatencyMs] = useState(199);
 
   const autoRefreshTimerRef = useRef<any>(null);
+  const inspectSeqRef = useRef<number>(0);
 
   const handleInspect = async (tokenToTest?: string, forceFresh?: boolean) => {
     const target = tokenToTest || inputKey;
@@ -70,6 +71,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
       return;
     }
 
+    const currentSeq = ++inspectSeqRef.current;
     setLoading(true);
     setError(null);
     const startPing = performance.now();
@@ -80,14 +82,25 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
         localStorage.removeItem(`opuszyra_window_anchor_${safeToken}`);
       }
       const data = await checkKey(target.trim());
+      // Discard stale out-of-order response if another inspection was started
+      if (currentSeq !== inspectSeqRef.current) return;
+
       const measuredLatency = Math.round(performance.now() - startPing);
       setLatencyMs(Math.max(45, measuredLatency || 199));
-      setKeyData(data);
+      setKeyData({
+        ...data,
+        isStale: false
+      });
     } catch (err: any) {
-      setError(err.message || 'Key inspection failed. Please verify your token.');
-      setKeyData(null);
+      if (currentSeq !== inspectSeqRef.current) return;
+      const errMsg = err.message || 'Key inspection failed. Please verify your token.';
+      setError(errMsg);
+      // Retain last verified data if present, tagging with stale indicator
+      setKeyData((prev) => prev ? { ...prev, isStale: true } : null);
     } finally {
-      setLoading(false);
+      if (currentSeq === inspectSeqRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -201,13 +214,23 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     }
   };
 
-  // Number metrics
-  const tokenLimit = keyData ? (keyData.window_token_limit || (keyData.tier === '20x' ? 200000000 : 25000000)) : 200000000;
-  const tokensUsed = keyData ? (keyData.window_tokens_used || 0) : 0;
-  const tokensRemaining = keyData ? (keyData.window_tokens_remaining || Math.max(0, tokenLimit - tokensUsed)) : tokenLimit;
+  // Number metrics (Authoritative intended quota: 20,000,000 for Max 20x Key)
+  const defaultTierLimit = keyData?.tier === '20x' ? 20000000 : 25000000;
+  const rawLimit = keyData?.window_token_limit;
+  const isStaleLimitOverride = keyData?.tier === '20x' && (rawLimit === 100000000 || rawLimit === 200000000);
+  const tokenLimit = (rawLimit && !isStaleLimitOverride) ? rawLimit : defaultTierLimit;
+  const isUsageVerified = keyData ? (keyData.isUsageVerified !== false && keyData.window_tokens_used !== null) : false;
+  const tokensUsed = keyData && typeof keyData.window_tokens_used === 'number' ? keyData.window_tokens_used : null;
+  const tokensRemaining = keyData && typeof keyData.window_tokens_remaining === 'number'
+    ? keyData.window_tokens_remaining
+    : (tokensUsed !== null ? Math.max(0, tokenLimit - tokensUsed) : null);
   
-  const usedPercent = keyData?.percentUsed !== undefined ? keyData.percentUsed : Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1))));
-  const remainingPercent = keyData?.percentRemaining !== undefined ? keyData.percentRemaining : Math.max(0, Number((100 - usedPercent).toFixed(1)));
+  const usedPercent = keyData?.percentUsed !== undefined && keyData.percentUsed !== null
+    ? keyData.percentUsed
+    : (tokensUsed !== null ? Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1)))) : null);
+  const remainingPercent = keyData?.percentRemaining !== undefined && keyData.percentRemaining !== null
+    ? keyData.percentRemaining
+    : (usedPercent !== null ? Math.max(0, Number((100 - usedPercent).toFixed(1))) : null);
 
   // 5-hour cycle calculations (18000s cycle)
   const secRemaining = keyData?.secondsRemaining ?? 10800;
@@ -322,10 +345,16 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {keyData.lastSyncTime && (
+                  <span className="text-[10px] font-mono text-stone-400 hidden sm:inline" title={formatFullDate(keyData.lastSyncTime)}>
+                    Synced: {formatShortTime(keyData.lastSyncTime)}
+                  </span>
+                )}
+
                 <button
                   onClick={() => handleInspect(keyData.key_token)}
                   disabled={loading}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#E8E3D9] dark:border-[#262422] bg-stone-50 dark:bg-[#181716] hover:bg-stone-100 dark:hover:bg-[#201F1E] text-stone-700 dark:text-stone-300 text-xs font-semibold transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#E8E3D9] dark:border-[#262422] bg-stone-50 dark:bg-[#181716] hover:bg-stone-100 dark:hover:bg-[#201F1E] text-stone-700 dark:text-stone-300 text-xs font-semibold transition cursor-pointer"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#EA580C]' : ''}`} />
                   <span>Sync Live API</span>
@@ -349,6 +378,24 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Stale Data Notice Banner if previous sync succeeded but refresh encountered an error */}
+            {keyData.isStale && (
+              <div className="mt-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-mono flex items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>
+                    <strong>Stale Data Notice:</strong> Upstream sync encountered an issue. Retaining last verified telemetry synced at {formatShortTime(keyData.lastSyncTime)}.
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleInspect(keyData.key_token)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-200 font-bold text-[11px] transition shrink-0"
+                >
+                  Retry Sync
+                </button>
+              </div>
+            )}
 
             {/* Main Token Row with Copy Button */}
             <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E3D9] dark:border-[#262422]">
@@ -376,11 +423,26 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
             {/* 4-Column Metadata Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 text-xs font-mono">
               <div>
-                <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-wider block font-bold mb-1">
-                  PLAN / TIER
-                </span>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-wider font-bold">
+                    PLAN / TIER
+                  </span>
+                  {keyData.planSource === 'provider' ? (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                      Provider Verified
+                    </span>
+                  ) : keyData.isPlanVerified ? (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-bold">
+                      Configured Tier
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
+                      Unverified
+                    </span>
+                  )}
+                </div>
                 <span className="font-bold text-stone-900 dark:text-white text-sm">
-                  {keyData.planName || (keyData.tier === '20x' ? 'Max 20x Key' : 'Standard 5x Key')}
+                  {keyData.planName || (keyData.tier === '20x' ? 'Max 20x' : 'Standard 5x')}
                 </span>
               </div>
 
@@ -389,7 +451,10 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   THROUGHPUT RATE
                 </span>
                 <span className="text-stone-700 dark:text-stone-300 font-bold text-sm">
-                  {keyData.rate_limit_rpm || 60} RPM • {keyData.tier === '20x' ? '1M' : '400K'} TPM
+                  {keyData.rate_limit_rpm || 60} RPM • {((keyData.rate_limit_tpm || 1000000) >= 1000000 ? '1M' : '400K')} TPM
+                </span>
+                <span className="text-[10px] text-stone-400 block mt-0.5">
+                  60 req/min rate • 1M tok/min burst
                 </span>
               </div>
 
@@ -428,27 +493,47 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 </h3>
               </div>
               <span className="text-[11px] font-mono font-bold uppercase text-teal-700 dark:text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 self-start sm:self-auto">
-                {keyData.tier === '20x' ? '1M TPM BURST CAPACITY' : '400K TPM BURST CAPACITY'}
+                {((keyData.rate_limit_tpm || 1000000) >= 1000000 ? '1M' : '400K')} TPM BURST CAPACITY
               </span>
             </div>
             
             <p className="text-xs text-stone-500 dark:text-stone-400 mb-6 leading-relaxed">
-              Calculated from real-time sliding 5-hour rolling windows and lifetime prompt quota architecture.
+              Calculated from real-time sliding 5-hour rolling windows and authoritative upstream telemetry.
             </p>
 
             {/* 3 Stat Boxes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               
               <div className="p-4 rounded-2xl bg-stone-50 dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#262422]">
-                <div className="text-[10px] font-mono font-bold uppercase text-stone-400 mb-1">
-                  USED TOKENS
+                <div className="text-[10px] font-mono font-bold uppercase text-stone-400 mb-1 flex items-center justify-between">
+                  <span>USED TOKENS</span>
+                  {keyData.usageSource === 'provider_percent' && (
+                    <span className="text-[9px] text-teal-600 dark:text-teal-400 font-bold">Provider Telemetry</span>
+                  )}
+                  {keyData.usageSource === 'local_gateway' && (
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Gateway Logged</span>
+                  )}
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-stone-900 dark:text-white">
-                  {tokensUsed.toLocaleString()}{' '}
-                  <span className="text-xs font-semibold text-stone-500">[{usedPercent}%]</span>
+                  {tokensUsed !== null ? (
+                    <>
+                      {tokensUsed.toLocaleString()}{' '}
+                      <span className="text-xs font-semibold text-stone-500">[{usedPercent}%]</span>
+                    </>
+                  ) : (
+                    <span className="text-stone-400 dark:text-stone-500 text-base font-semibold">Usage unavailable</span>
+                  )}
                 </div>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
-                  Token usage across active sliding window
+                  {keyData.usageSource === 'provider_percent'
+                    ? `Authoritative upstream telemetry (${usedPercent}% of 5h window)`
+                    : keyData.usageSource === 'local_gateway'
+                    ? 'Logged tokens across active 5-hour sliding window'
+                    : keyData.usageSource === 'new_key'
+                    ? '0 tokens consumed (new key)'
+                    : tokensUsed !== null
+                    ? 'Token usage across active sliding window'
+                    : 'Usage telemetry unavailable for this token'}
                 </p>
               </div>
 
@@ -457,8 +542,14 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   REMAINING TOKENS
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                  {tokensRemaining.toLocaleString()}{' '}
-                  <span className="text-xs font-semibold text-emerald-500/80">[{remainingPercent}%]</span>
+                  {tokensRemaining !== null ? (
+                    <>
+                      {tokensRemaining.toLocaleString()}{' '}
+                      <span className="text-xs font-semibold text-emerald-500/80">[{remainingPercent}%]</span>
+                    </>
+                  ) : (
+                    <span className="text-stone-400 dark:text-stone-500 text-base font-semibold">N/A</span>
+                  )}
                 </div>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
                   Available for prompt &amp; completions
@@ -466,8 +557,13 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
               </div>
 
               <div className="p-4 rounded-2xl bg-stone-50 dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#262422]">
-                <div className="text-[10px] font-mono font-bold uppercase text-stone-400 mb-1">
-                  TOTAL TOKEN LIMIT
+                <div className="text-[10px] font-mono font-bold uppercase text-stone-400 mb-1 flex items-center justify-between">
+                  <span>TOTAL TOKEN LIMIT</span>
+                  {keyData.isQuotaVerified ? (
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Verified Quota</span>
+                  ) : (
+                    <span className="text-[9px] text-stone-400 font-bold">Configured Tier</span>
+                  )}
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-stone-900 dark:text-white">
                   {tokenLimit.toLocaleString()}{' '}
@@ -516,12 +612,16 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
             <div className="mb-4">
               <div className="flex justify-between text-xs font-mono font-bold text-stone-500 mb-2">
                 <span>Quota Utilization</span>
-                <span>{tokensUsed.toLocaleString()} / {tokenLimit.toLocaleString()} tokens</span>
+                <span>
+                  {tokensUsed !== null
+                    ? `${tokensUsed.toLocaleString()} / ${tokenLimit.toLocaleString()} tokens`
+                    : `Limit: ${tokenLimit.toLocaleString()} tokens (Usage unmetered)`}
+                </span>
               </div>
               <div className="w-full h-3 rounded-full bg-stone-200 dark:bg-[#201F1E] overflow-hidden p-0.5">
                 <div 
                   className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${Math.max(4, usedPercent)}%` }}
+                  style={{ width: `${tokensUsed !== null ? Math.max(4, Math.min(100, usedPercent || 0)) : 0}%` }}
                 ></div>
               </div>
             </div>

@@ -3,6 +3,13 @@ import { Readable } from 'stream';
 import { supabase } from '../lib/supabase.js';
 import { upstreamTimeoutSignal, isTimeoutError } from '../lib/security.js';
 import { getUpstreamBase, getMasterUpstreamKey } from '../lib/config.js';
+import {
+  calculateSlidingWindowUsage,
+  recordRequestUsage,
+  extractAnthropicTokens,
+  extractOpenAiTokens,
+  createStreamUsageParser
+} from '../lib/quotaEngine.js';
 
 const router = express.Router();
 
@@ -211,21 +218,17 @@ router.post('/messages', async (req, res) => {
           });
         }
 
-        // Check 5-hour rolling window
-        const now = new Date();
-        if (now >= new Date(keyRecord.window_resets_at)) {
-          keyRecord.window_tokens_used = 0;
-          keyRecord.window_started_at = now.toISOString();
-          keyRecord.window_resets_at = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
-        }
-
-        if (keyRecord.window_tokens_used >= keyRecord.window_token_limit) {
-          const minutesRemaining = Math.max(1, Math.round((new Date(keyRecord.window_resets_at).getTime() - now.getTime()) / 60000));
+        // Check 5-hour sliding rolling window
+        const slidingUsage = await calculateSlidingWindowUsage(keyRecord);
+        const effectiveUsed = Math.max(slidingUsage.used_tokens, Number(keyRecord.window_tokens_used) || 0);
+        const isLimitReached = slidingUsage.is_over_quota || (effectiveUsed >= slidingUsage.quota_limit);
+        if (isLimitReached) {
+          const minutesRemaining = Math.max(1, Math.round(slidingUsage.seconds_remaining / 60));
           return res.status(429).json({
             type: 'error',
             error: {
               type: 'rate_limit_error',
-              message: `5-hour window capacity exceeded (${keyRecord.window_tokens_used}/${keyRecord.window_token_limit} tokens). Resets in ${minutesRemaining} minutes.`
+              message: `5-hour window capacity exceeded (${effectiveUsed}/${slidingUsage.quota_limit} tokens). Resets in ${minutesRemaining} minutes.`
             }
           });
         }
@@ -287,26 +290,11 @@ router.post('/messages', async (req, res) => {
 
       if (upstreamRes.body) {
         const nodeStream = Readable.fromWeb(upstreamRes.body);
-
-        let accumulatedOutputTokens = 0;
-        let accumulatedInputTokens = 0;
+        const streamParser = createStreamUsageParser('anthropic');
 
         nodeStream.on('data', (chunk) => {
           res.write(chunk);
-          // Non-blocking parse of token usage from SSE lines
-          try {
-            const chunkStr = chunk.toString();
-            const lines = chunkStr.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ') && line.includes('usage')) {
-                const data = JSON.parse(line.slice(6));
-                if (data.message?.usage?.input_tokens) accumulatedInputTokens = data.message.usage.input_tokens;
-                if (data.usage?.output_tokens) accumulatedOutputTokens = data.usage.output_tokens;
-              }
-            }
-          } catch {
-            // ignore
-          }
+          streamParser.pushChunk(chunk);
         });
 
         let streamCompleted = false;
@@ -314,8 +302,20 @@ router.post('/messages', async (req, res) => {
         nodeStream.on('end', () => {
           streamCompleted = true;
           res.end();
-          if (keyRecord && (accumulatedInputTokens > 0 || accumulatedOutputTokens > 0)) {
-            updateTokensAndLog(keyRecord, model, accumulatedInputTokens, accumulatedOutputTokens, 0, Date.now() - startTime).catch(() => {});
+          const { inputTokens, outputTokens, cachedTokens } = streamParser.getUsage();
+          if (keyRecord) {
+            recordRequestUsage({
+              keyRecord,
+              model,
+              inputTokens,
+              outputTokens,
+              cachedTokens,
+              latencyMs: Date.now() - startTime,
+              statusCode: 200,
+              endpoint: '/v1/messages',
+              requestId: req.headers['x-request-id'] || null,
+              clientIp: req.ip || req.headers['x-forwarded-for'] || null
+            }).catch(() => {});
           }
         });
 
@@ -344,12 +344,21 @@ router.post('/messages', async (req, res) => {
 
     // NON-STREAMING PASSTHROUGH
     const data = await upstreamRes.json();
-    const inputTokens = data?.usage?.input_tokens || 50;
-    const outputTokens = data?.usage?.output_tokens || 100;
-    const cachedTokens = data?.usage?.cache_read_input_tokens || 0;
+    const { inputTokens, outputTokens, cachedTokens } = extractAnthropicTokens(data);
 
     if (keyRecord) {
-      updateTokensAndLog(keyRecord, model, inputTokens, outputTokens, cachedTokens, Date.now() - startTime).catch(() => {});
+      recordRequestUsage({
+        keyRecord,
+        model,
+        inputTokens,
+        outputTokens,
+        cachedTokens,
+        latencyMs: Date.now() - startTime,
+        statusCode: upstreamRes.status,
+        endpoint: '/v1/messages',
+        requestId: req.headers['x-request-id'] || null,
+        clientIp: req.ip || req.headers['x-forwarded-for'] || null
+      }).catch(() => {});
     }
 
     return res.status(upstreamRes.status).json(data);
@@ -375,6 +384,7 @@ router.post('/messages', async (req, res) => {
 
 // 4. OpenAI format passthrough (/v1/chat/completions)
 router.post('/chat/completions', async (req, res) => {
+  const startTime = Date.now();
   let upstreamBase;
   try {
     upstreamBase = getUpstreamBase();
@@ -395,7 +405,47 @@ router.post('/chat/completions', async (req, res) => {
 
   const effectiveKey = masterKey || clientKey;
 
-  const { stream = false } = req.body;
+  // Local Supabase validation if key is tracked in database
+  let keyRecord = null;
+  if (clientKey) {
+    try {
+      const { data } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('key_token', clientKey)
+        .maybeSingle();
+
+      if (data) {
+        keyRecord = data;
+
+        if (keyRecord.status !== 'active') {
+          return res.status(403).json({
+            error: {
+              type: 'permission_error',
+              message: `API Key is currently ${keyRecord.status}`
+            }
+          });
+        }
+
+        const slidingUsage = await calculateSlidingWindowUsage(keyRecord);
+        const effectiveUsed = Math.max(slidingUsage.used_tokens, Number(keyRecord.window_tokens_used) || 0);
+        const isLimitReached = slidingUsage.is_over_quota || (effectiveUsed >= slidingUsage.quota_limit);
+        if (isLimitReached) {
+          const minutesRemaining = Math.max(1, Math.round(slidingUsage.seconds_remaining / 60));
+          return res.status(429).json({
+            error: {
+              type: 'rate_limit_error',
+              message: `5-hour window capacity exceeded (${effectiveUsed}/${slidingUsage.quota_limit} tokens). Resets in ${minutesRemaining} minutes.`
+            }
+          });
+        }
+      }
+    } catch {
+      // Supabase offline, proceed with passthrough
+    }
+  }
+
+  const { model = 'gpt-4o', stream = false } = req.body;
 
   try {
     const upstreamRes = await upstreamRequest(`${upstreamBase}/v1/chat/completions`, {
@@ -421,6 +471,35 @@ router.post('/chat/completions', async (req, res) => {
         res.flushHeaders();
       }
       const nodeStream = Readable.fromWeb(upstreamRes.body);
+      const streamParser = createStreamUsageParser('openai');
+
+      nodeStream.on('data', (chunk) => {
+        res.write(chunk);
+        streamParser.pushChunk(chunk);
+      });
+
+      let streamCompleted = false;
+
+      nodeStream.on('end', () => {
+        streamCompleted = true;
+        res.end();
+        const { inputTokens, outputTokens, cachedTokens } = streamParser.getUsage();
+        if (keyRecord) {
+          recordRequestUsage({
+            keyRecord,
+            model,
+            inputTokens,
+            outputTokens,
+            cachedTokens,
+            latencyMs: Date.now() - startTime,
+            statusCode: 200,
+            endpoint: '/v1/chat/completions',
+            requestId: req.headers['x-request-id'] || null,
+            clientIp: req.ip || req.headers['x-forwarded-for'] || null
+          }).catch(() => {});
+        }
+      });
+
       nodeStream.on('error', (err) => {
         console.error('Streaming passthrough error:', err?.name || 'StreamError', '-', err?.message || '');
         if (res.writableEnded) return;
@@ -431,11 +510,34 @@ router.post('/chat/completions', async (req, res) => {
         }
         res.end();
       });
-      nodeStream.pipe(res);
+
+      req.on('close', () => {
+        if (!streamCompleted) {
+          nodeStream.destroy();
+        }
+      });
+
       return;
     }
 
     const data = await upstreamRes.json();
+    const { inputTokens, outputTokens, cachedTokens } = extractOpenAiTokens(data);
+
+    if (keyRecord) {
+      recordRequestUsage({
+        keyRecord,
+        model,
+        inputTokens,
+        outputTokens,
+        cachedTokens,
+        latencyMs: Date.now() - startTime,
+        statusCode: upstreamRes.status,
+        endpoint: '/v1/chat/completions',
+        requestId: req.headers['x-request-id'] || null,
+        clientIp: req.ip || req.headers['x-forwarded-for'] || null
+      }).catch(() => {});
+    }
+
     return res.status(upstreamRes.status).json(data);
   } catch (err) {
     if (req.signal?.aborted || res.headersSent) return res.end();
@@ -453,38 +555,18 @@ router.post('/chat/completions', async (req, res) => {
   }
 });
 
-async function updateTokensAndLog(keyRecord, model, inputTokens, outputTokens, cachedTokens, latencyMs) {
-  try {
-    const totalReqTokens = inputTokens + outputTokens;
-    const newUsed = Number(keyRecord.window_tokens_used || 0) + totalReqTokens;
-    const newTotal = Number(keyRecord.total_tokens_consumed || 0) + totalReqTokens;
-    const newRequests = Number(keyRecord.total_requests || 0) + 1;
-
-    keyRecord.window_tokens_used = newUsed;
-    keyRecord.total_tokens_consumed = newTotal;
-    keyRecord.total_requests = newRequests;
-
-    await supabase.from('api_keys').update({
-      window_tokens_used: newUsed,
-      total_tokens_consumed: newTotal,
-      total_requests: newRequests,
-      window_started_at: keyRecord.window_started_at,
-      window_resets_at: keyRecord.window_resets_at
-    }).eq('id', keyRecord.id);
-
-    await supabase.from('usage_logs').insert({
-      key_id: keyRecord.id,
-      model,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      cached_tokens: cachedTokens,
-      latency_ms: latencyMs,
-      status_code: 200,
-      endpoint: '/v1/messages'
-    });
-  } catch {
-    // Silent fail if log fails
-  }
+// Backward-compatible export/wrapper
+export async function updateTokensAndLog(keyRecord, model, inputTokens, outputTokens, cachedTokens, latencyMs) {
+  return recordRequestUsage({
+    keyRecord,
+    model,
+    inputTokens,
+    outputTokens,
+    cachedTokens,
+    latencyMs,
+    statusCode: 200,
+    endpoint: '/v1/messages'
+  });
 }
 
 export default router;
