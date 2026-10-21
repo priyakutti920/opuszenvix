@@ -261,8 +261,8 @@ const isConfigured = supabaseUrl && supabaseKey && !supabaseUrl.includes('your-p
 - **In-Memory Mock Database (`MockSupabaseDatabase`)**:
   When credentials are unset or placeholder strings, provides an in-memory database implementing Supabase's query builder interface (`from()`, `select()`, `insert()`, `update()`, `delete()`, `eq()`, `order()`, `limit()`, `maybeSingle()`).
   - Pre-seeded with developer keys:
-    - `opm-live-5x-9f8a3c2e1b4d7f0a` (Standard Dev Key, 25M limit, 60 RPM)
-    - `opm-live-20x-8d7e6f5c4b3a2109` (Heavy Agentic Key, 100M limit, 120 RPM)
+    - `opm-live-5x-9f8a3c2e1b4d7f0a` (Standard Dev Key, 5M limit, 60 RPM)
+    - `opm-live-20x-8d7e6f5c4b3a2109` (Heavy Agentic Key, 20M limit, 120 RPM)
   - Pre-seeded with historical request logs for dashboard visualization.
 
 ---
@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS public.api_keys (
     status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'revoked', 'expired')),
     rate_limit_rpm INT NOT NULL DEFAULT 60,
     rate_limit_tpm INT NOT NULL DEFAULT 400000,
-    window_token_limit BIGINT NOT NULL DEFAULT 25000000,
+    window_token_limit BIGINT NOT NULL DEFAULT 5000000,
     window_tokens_used BIGINT NOT NULL DEFAULT 0,
     window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     window_resets_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '5 hours'),

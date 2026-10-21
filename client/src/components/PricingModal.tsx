@@ -139,7 +139,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         status: 'active',
         rate_limit_rpm: selectedTier === '20x' ? 120 : 60,
         rate_limit_tpm: selectedTier === '20x' ? 1000000 : 400000,
-        window_token_limit: selectedTier === '20x' ? 200000000 : 25000000,
+        window_token_limit: selectedTier === '20x' ? 20000000 : 5000000,
         window_tokens_used: 0,
         window_started_at: new Date().toISOString(),
         window_resets_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),

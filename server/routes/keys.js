@@ -3,8 +3,15 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { getUpstreamBase, getMasterUpstreamKey } from '../lib/config.js';
-import { quotaFor } from '../lib/quotas.js';
-import { calculateSlidingWindowUsage } from '../lib/quotaEngine.js';
+import { quotaFor, isLegacyStaleOverride, normalizeTier } from '../lib/quotas.js';
+import {
+  calculateSlidingWindowUsage,
+  extractTotalTokens,
+  extractTotalRequests,
+  extractWindowTokensLimit,
+  extractWindowTokensUsed,
+  parseTokenValue
+} from '../lib/quotaEngine.js';
 import { redactKeyToken } from '../lib/security.js';
 
 const router = express.Router();
@@ -15,8 +22,12 @@ const windowAnchors = new Map();
 // Helper: refresh 5-hour window evaluation
 export const evaluateRollingWindow = (key) => {
   const now = new Date();
-  const limit = Number(key.window_token_limit) || quotaFor(key.tier).limit;
-  const used = Number(key.window_tokens_used || 0);
+  const tier = normalizeTier(key?.tier);
+  const rawLimit = Number(key?.window_token_limit);
+  const limit = (rawLimit && !isLegacyStaleOverride(tier, rawLimit))
+    ? rawLimit
+    : quotaFor(tier).limit;
+  const used = Number(key?.window_tokens_used || 0);
   const remaining = Math.max(0, limit - used);
   const percentUsed = Math.min(100, Number(((used / limit) * 100).toFixed(1)));
   const percentRemaining = Math.max(0, Number((100 - percentUsed).toFixed(1)));
@@ -120,6 +131,34 @@ export const sanitizePayload = (obj, masterKey) => {
   return sanitized;
 };
 
+// Helper: Authoritative status normalization across upstream and database records
+export const normalizeKeyStatus = (upstreamData, localRecord) => {
+  const isExpired = Boolean(
+    upstreamData?.isExpired ||
+    upstreamData?.is_expired ||
+    localRecord?.is_expired ||
+    (localRecord?.expires_at && new Date(localRecord.expires_at).getTime() < Date.now()) ||
+    (upstreamData?.expiresAt && new Date(upstreamData.expiresAt).getTime() < Date.now())
+  );
+  const rawStatus = String(
+    upstreamData?.keyStatus ||
+    (upstreamData?.status !== 'found' && upstreamData?.status !== 'ok' ? upstreamData?.status : '') ||
+    localRecord?.status ||
+    ''
+  ).toLowerCase();
+
+  if (isExpired || rawStatus.includes('expir')) {
+    return 'expired';
+  }
+  if (rawStatus.includes('revok')) {
+    return 'revoked';
+  }
+  if (rawStatus.includes('pause') || rawStatus === 'inactive' || upstreamData?.isActive === false || localRecord?.is_active === false) {
+    return 'paused';
+  }
+  return 'active';
+};
+
 // Helper: Verify whether request has valid administrative credentials
 export const verifyAdminAuth = (req) => {
   const adminKey = (process.env.ADMIN_API_KEY || '').trim();
@@ -173,7 +212,7 @@ export const serveMasterTelemetry = async (req, res, masterKey, upstreamBase) =>
     const tier = '20x';
     const defaultLimit = quotaFor(tier).limit;
     const rawUpstreamLimit = Number(upstreamData?.windowTokensLimit);
-    const tokenLimit = rawUpstreamLimit && rawUpstreamLimit !== 100000000 && rawUpstreamLimit !== 200000000
+    const tokenLimit = rawUpstreamLimit && !isLegacyStaleOverride(tier, rawUpstreamLimit)
       ? rawUpstreamLimit
       : defaultLimit;
 
@@ -222,6 +261,9 @@ export const serveMasterTelemetry = async (req, res, masterKey, upstreamBase) =>
 
     const safePayload = sanitizePayload(upstreamData, masterKey);
 
+    const masterTotalTokens = extractTotalTokens(upstreamData) ?? (tokensUsed !== null ? tokensUsed : 0);
+    const masterTotalRequests = extractTotalRequests(upstreamData) ?? 0;
+
     const result = {
       success: true,
       status: 'ok',
@@ -265,8 +307,11 @@ export const serveMasterTelemetry = async (req, res, masterKey, upstreamBase) =>
         window_resets_at: resetTimeStr,
         created_at: upstreamData?.createdAt || windowStartedAt,
         expires_at: upstreamData?.expiresAt || new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString(),
-        total_tokens_consumed: tokensUsed !== null ? tokensUsed : 0,
-        total_requests: upstreamData?.totalRequests ?? 0,
+        total_tokens_consumed: masterTotalTokens,
+        totalTokens: masterTotalTokens,
+        totalTokensConsumed: masterTotalTokens,
+        total_requests: masterTotalRequests,
+        totalRequests: masterTotalRequests,
         successRequests: upstreamData?.successRequests ?? 0,
         failedRequests: upstreamData?.failedRequests ?? 0,
         last24hRequests: upstreamData?.last24h?.requests ?? (upstreamData?.last24hRequests || 0),
@@ -281,7 +326,11 @@ export const serveMasterTelemetry = async (req, res, masterKey, upstreamBase) =>
       },
       unlimited: upstreamData?.unlimited ?? false,
       usagePercent: percentUsed,
-      totalRequests: upstreamData?.totalRequests ?? 0,
+      totalRequests: masterTotalRequests,
+      total_requests: masterTotalRequests,
+      total_tokens_consumed: masterTotalTokens,
+      totalTokens: masterTotalTokens,
+      totalTokensConsumed: masterTotalTokens,
       successRequests: upstreamData?.successRequests ?? 0,
       failedRequests: upstreamData?.failedRequests ?? 0,
       last24h: upstreamData?.last24h || { requests: upstreamData?.last24hRequests || 0 },
@@ -351,6 +400,20 @@ export const handleKeyStatusInspection = async (req, res) => {
       keyToken = headerToken;
     }
 
+    // Sanitize input token: trim, strip "Bearer ", quotes, or shell export prefix
+    if (typeof keyToken === 'string') {
+      keyToken = keyToken.trim();
+      if (keyToken.toLowerCase().startsWith('bearer ')) {
+        keyToken = keyToken.slice(7).trim();
+      }
+      if ((keyToken.startsWith('"') && keyToken.endsWith('"')) || (keyToken.startsWith("'") && keyToken.endsWith("'"))) {
+        keyToken = keyToken.slice(1, -1).trim();
+      }
+      if (keyToken.includes('=')) {
+        keyToken = keyToken.split('=').pop().trim();
+      }
+    }
+
     // Require an explicit key token; NEVER silently fall back to master key
     if (!keyToken || typeof keyToken !== 'string' || !keyToken.trim()) {
       return res.status(400).json({
@@ -398,88 +461,192 @@ export const handleKeyStatusInspection = async (req, res) => {
       return serveMasterTelemetry(req, res, masterKey, upstreamBase);
     }
 
-    // Kick off the live model catalog lookup up front so it overlaps the
-    // key-status call below rather than adding its own round-trip to latency.
+    // Concurrent lookup: kick off live models, upstream key status, and local DB record in parallel
     const liveModelsPromise = fetchLiveModelIds(upstreamBase);
 
-    // 1. Fetch real-time status from upstream API (/api/key-status)
-    let upstreamData = null;
-    if (upstreamBase) {
-      try {
-        // First try GET with query string (upstream primary format)
-        const getRes = await fetch(`${upstreamBase}/api/key-status?key=${encodeURIComponent(trimmedKey)}`, {
-          signal: AbortSignal.timeout(8000),
-          headers: { 'Accept': 'application/json' }
-        });
-        if (getRes.ok) {
-          const parsed = await getRes.json();
-          // Check if upstream returned a valid key record (and not an error payload)
-          if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found') {
-            upstreamData = parsed;
-          }
-        }
-        
-        // If GET didn't find it or failed, try POST
-        if (!upstreamData) {
-          const postRes = await fetch(`${upstreamBase}/api/key-status`, {
+    let lastUpstreamStatus = null;
+    let lastUpstreamError = null;
+    let hadTimeout = false;
+
+    const fetchUpstream = async () => {
+      const timeoutMs = 4000;
+      const headers = {
+        'Accept': 'application/json',
+        'x-api-key': trimmedKey,
+        'Authorization': `Bearer ${trimmedKey}`
+      };
+
+      const candidateBases = [
+        upstreamBase
+      ].filter(Boolean);
+
+      if (candidateBases.length === 0) {
+        candidateBases.push('https://api.opusmax.live');
+      }
+
+      for (const base of candidateBases) {
+        // 1. Primary: POST to avoid placing secret tokens in URL query strings
+        try {
+          const postRes = await fetch(`${base}/api/key-status`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ key: trimmedKey }),
-            signal: AbortSignal.timeout(8000)
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ key: trimmedKey, token: trimmedKey, key_token: trimmedKey }),
+            signal: AbortSignal.timeout(timeoutMs)
           });
           if (postRes.ok) {
             const parsed = await postRes.json();
-            if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found') {
-              upstreamData = parsed;
+            if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found' && !parsed.error) {
+              const isGenericMaster = Boolean(parsed.name === 'api.opusmax.live Key' && parsed.planName === 'Upstream Enterprise' && trimmedKey !== masterKey);
+              if (!isGenericMaster && (
+                parsed.status === 'ok' ||
+                parsed.status === 'found' ||
+                parsed.status === 'active' ||
+                parsed.status === 'paused' ||
+                parsed.status === 'revoked' ||
+                parsed.status === 'expired' ||
+                parsed.isActive !== undefined ||
+                parsed.keyStatus ||
+                parsed.isExpired !== undefined ||
+                parsed.key ||
+                parsed.planName ||
+                parsed.tier
+              )) {
+                return parsed;
+              }
+            } else if (parsed?.error === 'API key not found' || parsed?.status === 'error') {
+              lastUpstreamStatus = 404;
+              lastUpstreamError = parsed.error || 'Key not found';
             }
+          } else {
+            lastUpstreamStatus = postRes.status;
+          }
+        } catch (upErr) {
+          if (upErr.name === 'TimeoutError' || upErr.code === 'ABORT_ERR') {
+            hadTimeout = true;
           }
         }
-      } catch (upErr) {
-        console.warn(`Upstream key-status query to ${upstreamBase} warning:`, upErr.message);
-      }
-    }
 
-    // 2. Fetch local key record from Supabase if present
-    let localRecord = null;
-    try {
-      const { data } = await supabase
-        .from('api_keys')
-        .select('*')
-        .eq('key_token', trimmedKey)
-        .maybeSingle();
-      if (data) localRecord = data;
-    } catch {
-      // Local DB offline/unreachable
-    }
+        // 2. Fallback to GET
+        try {
+          const getRes = await fetch(`${base}/api/key-status?key=${encodeURIComponent(trimmedKey)}`, {
+            signal: AbortSignal.timeout(timeoutMs),
+            headers
+          });
+          if (getRes.ok) {
+            const parsed = await getRes.json();
+            if (parsed && parsed.status !== 'error' && parsed.error !== 'API key not found' && !parsed.error) {
+              const isGenericMaster = Boolean(parsed.name === 'api.opusmax.live Key' && parsed.planName === 'Upstream Enterprise' && trimmedKey !== masterKey);
+              if (!isGenericMaster && (
+                parsed.status === 'ok' ||
+                parsed.status === 'found' ||
+                parsed.status === 'active' ||
+                parsed.status === 'paused' ||
+                parsed.status === 'revoked' ||
+                parsed.status === 'expired' ||
+                parsed.isActive !== undefined ||
+                parsed.keyStatus ||
+                parsed.isExpired !== undefined ||
+                parsed.key ||
+                parsed.planName ||
+                parsed.tier
+              )) {
+                return parsed;
+              }
+            } else if (parsed?.error === 'API key not found' || parsed?.status === 'error') {
+              lastUpstreamStatus = 404;
+              lastUpstreamError = parsed.error || 'Key not found';
+            }
+          } else {
+            lastUpstreamStatus = getRes.status;
+          }
+        } catch (upErr) {
+          if (upErr.name === 'TimeoutError' || upErr.code === 'ABORT_ERR') {
+            hadTimeout = true;
+          }
+        }
+      }
+      return null;
+    };
+
+    const fetchLocal = async () => {
+      try {
+        const { data } = await supabase
+          .from('api_keys')
+          .select('*')
+          .eq('key_token', trimmedKey)
+          .maybeSingle();
+        return data || null;
+      } catch {
+        return null;
+      }
+    };
+
+    const [upstreamData, localRecord, liveModels] = await Promise.all([
+      fetchUpstream(),
+      fetchLocal(),
+      liveModelsPromise
+    ]);
 
     // Key Validation Trust Boundary:
     const isUpstreamKeyValid = Boolean(
       upstreamData && (
         upstreamData.status === 'found' || 
-        upstreamData.isActive === true || 
+        upstreamData.status === 'ok' ||
+        upstreamData.status === 'active' ||
+        upstreamData.status === 'paused' ||
+        upstreamData.status === 'revoked' ||
+        upstreamData.status === 'expired' ||
+        upstreamData.keyStatus ||
+        upstreamData.isActive !== undefined ||
+        upstreamData.success === true ||
         (upstreamData.status !== 'error' && !upstreamData.error)
       )
     );
 
-    if (!localRecord) {
-      const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
-      if (isSupabaseConfigured || isProduction) {
-        // In production/configured DB mode, only accept genuinely verified upstream or DB keys
-        if (!isUpstreamKeyValid) {
-          return res.status(404).json({
-            success: false,
-            error: 'Key not found or invalid format. Please check your token.',
-            code: 'KEY_NOT_FOUND'
-          });
-        }
-      }
-    }
-
-    // If neither upstream nor local key was found
+    // If neither upstream nor local key was found, classify failure explicitly:
     if (!isUpstreamKeyValid && !localRecord) {
+      if (lastUpstreamStatus === 401) {
+        return res.status(401).json({
+          success: false,
+          error: 'Upstream provider authentication failed (401).',
+          code: 'UPSTREAM_AUTHENTICATION_ERROR'
+        });
+      }
+      if (lastUpstreamStatus === 403) {
+        return res.status(403).json({
+          success: false,
+          error: 'Upstream provider permission denied (403).',
+          code: 'UPSTREAM_FORBIDDEN'
+        });
+      }
+      if (lastUpstreamStatus === 429) {
+        return res.status(429).json({
+          success: false,
+          error: 'Upstream provider rate limit exceeded (429). Please retry later.',
+          code: 'UPSTREAM_RATE_LIMITED'
+        });
+      }
+      if (lastUpstreamStatus && lastUpstreamStatus >= 500) {
+        return res.status(502).json({
+          success: false,
+          error: `Upstream provider error (${lastUpstreamStatus}). Inspection service failed.`,
+          code: 'UPSTREAM_SERVER_ERROR'
+        });
+      }
+      if (hadTimeout) {
+        return res.status(504).json({
+          success: false,
+          error: 'Upstream provider request timed out. Please try again.',
+          code: 'UPSTREAM_TIMEOUT'
+        });
+      }
       return res.status(404).json({
         success: false,
-        error: 'Key not found or invalid format. Please check your token.'
+        error: 'Key not found or invalid format. Please check your token.',
+        code: 'KEY_NOT_FOUND'
       });
     }
 
@@ -511,12 +678,13 @@ export const handleKeyStatusInspection = async (req, res) => {
       if (upstreamData.planName.toLowerCase().includes('20x')) tier = '20x';
       else if (upstreamData.planName.toLowerCase().includes('5x')) tier = '5x';
     }
-    if (!tier) tier = '20x'; // Default internal tier allocation
+    if (!tier && trimmedKey) {
+      if (trimmedKey.includes('-20x-') || trimmedKey.includes('20x')) tier = '20x';
+      else if (trimmedKey.includes('-5x-') || trimmedKey.includes('5x')) tier = '5x';
+    }
+    tier = normalizeTier(tier);
 
-    // Authoritative Quota Limit calculation (intended: 20,000,000 for Max 20x)
-    const isLegacyStaleOverride = (t, val) =>
-      t === '20x' && (val === 100000000 || val === 200000000);
-
+    // Authoritative Quota Limit calculation (intended: 20,000,000 for Max 20x, 5,000,000 for Max 5x)
     const defaultLimit = quotaFor(tier).limit;
     const rawUpstreamLimit = Number(upstreamData?.windowTokensLimit);
     const rawLocalLimit = Number(localRecord?.window_token_limit);
@@ -555,10 +723,9 @@ export const handleKeyStatusInspection = async (req, res) => {
       : '••••••••••••';
 
     const upstreamModels = Array.isArray(upstreamData?.allowedModels) ? upstreamData.allowedModels : [];
-    const liveModels = await liveModelsPromise;
-    const allowedModels = upstreamModels.length > 0 ? upstreamModels : (liveModels.length > 0 ? liveModels : FALLBACK_MODELS);
+    const allowedModels = upstreamModels.length > 0 ? upstreamModels : (Array.isArray(liveModels) && liveModels.length > 0 ? liveModels : FALLBACK_MODELS);
 
-    const recentLogs = Array.isArray(upstreamData?.recentLogs) 
+    let recentLogs = Array.isArray(upstreamData?.recentLogs) 
       ? upstreamData.recentLogs.map((log, idx) => ({
           id: `upstream-log-${idx}`,
           timestamp: log.time ? new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) + ' (' + new Date(log.time).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ')' : 'Just now',
@@ -568,6 +735,34 @@ export const handleKeyStatusInspection = async (req, res) => {
         }))
       : [];
 
+    // If upstream didn't provide recent logs, fetch from local gateway usage_logs
+    if (recentLogs.length === 0 && (localRecord?.id || keyEntity?.id)) {
+      try {
+        const keyId = localRecord?.id || keyEntity?.id;
+        const { data: localLogs } = await supabase
+          .from('usage_logs')
+          .select('*')
+          .eq('key_id', keyId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (Array.isArray(localLogs) && localLogs.length > 0) {
+          recentLogs = localLogs.map((log, idx) => ({
+            id: log.id || `local-log-${idx}`,
+            timestamp: log.created_at
+              ? new Date(log.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) + ' (' + new Date(log.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ')'
+              : 'Just now',
+            model: log.model || 'claude-sonnet-4-6',
+            tokens: (Number(log.input_tokens) || 0) + (Number(log.output_tokens) || 0),
+            status: log.status_code ? `${log.status_code} OK` : '200 OK'
+          }));
+        }
+      } catch (logErr) {
+        // Non-critical: don't block key-status if log query fails
+        console.warn('Warning fetching local usage logs:', logErr.message);
+      }
+    }
+
     const keyName = upstreamData?.name || localRecord?.name || planName;
     const finalByModel = (slidingUsage.byModel && Object.keys(slidingUsage.byModel).length > 0)
       ? slidingUsage.byModel
@@ -575,11 +770,45 @@ export const handleKeyStatusInspection = async (req, res) => {
 
     const safePayload = sanitizePayload(upstreamData || localRecord, masterKey);
 
+    // Calculate lifetime total tokens and requests accurately across upstream, database, and local logs
+    const upstreamTotalTokens = extractTotalTokens(upstreamData);
+    const localDbTotalTokens = parseTokenValue(localRecord?.total_tokens_consumed);
+    let localLogsTotal = 0;
+    if (localRecord?.id) {
+      try {
+        const { data: allLogs } = await supabase
+          .from('usage_logs')
+          .select('input_tokens, output_tokens')
+          .eq('key_id', localRecord.id);
+        if (Array.isArray(allLogs) && allLogs.length > 0) {
+          localLogsTotal = allLogs.reduce((acc, l) => acc + (Number(l.input_tokens) || 0) + (Number(l.output_tokens) || 0), 0);
+        }
+      } catch {}
+    }
+
+    let finalTotalTokens = 0;
+    if (upstreamTotalTokens !== null && upstreamTotalTokens > 0) {
+      finalTotalTokens = Math.max(upstreamTotalTokens, localDbTotalTokens || 0, localLogsTotal, tokensUsed || 0);
+    } else if (localDbTotalTokens !== null && localDbTotalTokens > 0) {
+      finalTotalTokens = Math.max(localDbTotalTokens, localLogsTotal, tokensUsed || 0);
+    } else if (localLogsTotal > 0) {
+      finalTotalTokens = Math.max(localLogsTotal, tokensUsed || 0);
+    } else if (tokensUsed !== null && tokensUsed > 0) {
+      finalTotalTokens = tokensUsed;
+    }
+
+    const upstreamTotalRequests = extractTotalRequests(upstreamData);
+    const localDbRequests = parseTokenValue(localRecord?.total_requests);
+    const finalTotalRequests = Math.max(upstreamTotalRequests || 0, localDbRequests || 0, recentLogs.length);
+
+    const resolvedStatus = normalizeKeyStatus(upstreamData, localRecord);
+    const isKeyActive = resolvedStatus === 'active';
+
     const result = {
       success: true,
       status: 'ok',
       isRealtime: upstreamData?.isRealtime ?? true,
-      keyStatus: (upstreamData?.isActive || upstreamData?.status === 'found') ? 'active' : (upstreamData?.keyStatus || localRecord?.status || 'active'),
+      keyStatus: resolvedStatus,
       name: keyName,
       planName,
       planSource,
@@ -596,7 +825,9 @@ export const handleKeyStatusInspection = async (req, res) => {
         key_token: trimmedKey,
         masked_token: masked,
         tier,
-        status: (upstreamData?.isActive || upstreamData?.status === 'found') ? 'active' : (upstreamData?.keyStatus || localRecord?.status || 'active'),
+        status: resolvedStatus,
+        isActive: isKeyActive,
+        isExpired: resolvedStatus === 'expired',
         planName,
         planSource,
         isPlanVerified,
@@ -618,8 +849,11 @@ export const handleKeyStatusInspection = async (req, res) => {
         window_resets_at: resetTimeStr,
         created_at: upstreamData?.createdAt || localRecord?.created_at || windowStartedAt,
         expires_at: upstreamData?.expiresAt || localRecord?.expires_at || new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString(),
-        total_tokens_consumed: localRecord?.total_tokens_consumed || (tokensUsed !== null ? tokensUsed : 0),
-        total_requests: upstreamData?.totalRequests ?? (localRecord?.total_requests || 0),
+        total_tokens_consumed: finalTotalTokens,
+        totalTokens: finalTotalTokens,
+        totalTokensConsumed: finalTotalTokens,
+        total_requests: finalTotalRequests,
+        totalRequests: finalTotalRequests,
         successRequests: upstreamData?.successRequests ?? 0,
         failedRequests: upstreamData?.failedRequests ?? 0,
         last24hRequests: upstreamData?.last24h?.requests ?? (upstreamData?.last24hRequests || 0),
@@ -627,25 +861,31 @@ export const handleKeyStatusInspection = async (req, res) => {
         usedCredits: upstreamData?.usedCredits ?? 0,
         remainingCredits: upstreamData?.remainingCredits ?? 0,
         models_accessible: allowedModels,
+        allowedModels: allowedModels,
         allowedProviders: upstreamData?.allowedProviders || ['opuslive'],
         connectionStatus: upstreamData?.connectionStatus || 'Online',
         unlimited: upstreamData?.unlimited ?? false,
-        windowActive: upstreamData?.windowActive ?? true,
+        windowActive: isKeyActive,
         byModel: finalByModel,
-        recentLogs: recentLogs.length > 0 ? recentLogs : undefined,
+        recentLogs: recentLogs,
         rawPayload: safePayload
       },
       // Upstream-compatible root fields
       unlimited: upstreamData?.unlimited ?? false,
       usagePercent: percentUsed,
-      totalRequests: upstreamData?.totalRequests ?? (localRecord?.total_requests || 0),
+      totalRequests: finalTotalRequests,
+      total_requests: finalTotalRequests,
+      total_tokens_consumed: finalTotalTokens,
+      totalTokens: finalTotalTokens,
+      totalTokensConsumed: finalTotalTokens,
       successRequests: upstreamData?.successRequests ?? 0,
       failedRequests: upstreamData?.failedRequests ?? 0,
       last24h: upstreamData?.last24h || { requests: upstreamData?.last24hRequests || 0 },
       rateLimit: slidingUsage.rate_limit_rpm || 60,
       connectionStatus: upstreamData?.connectionStatus || 'Online',
-      isActive: true,
-      windowActive: true,
+      isActive: isKeyActive,
+      isExpired: resolvedStatus === 'expired',
+      windowActive: isKeyActive,
       windowTokensLimit: slidingUsage.quota_limit,
       windowTokensUsed: tokensUsed,
       remainingTokens,
@@ -656,8 +896,23 @@ export const handleKeyStatusInspection = async (req, res) => {
       usedCredits: upstreamData?.usedCredits ?? 0,
       remainingCredits: upstreamData?.remainingCredits ?? 0,
       byModel: finalByModel,
-      recentLogs,
-      rawPayload: safePayload
+      recentLogs: recentLogs,
+      rawPayload: safePayload,
+      // Comprehensive snake_case root aliases for client compatibility
+      key_token: trimmedKey,
+      tier,
+      window_token_limit: slidingUsage.quota_limit,
+      window_tokens_used: tokensUsed,
+      window_tokens_remaining: remainingTokens,
+      percentUsed,
+      percentRemaining,
+      timeRemainingFormatted,
+      secondsRemaining,
+      window_started_at: windowStartedAt,
+      window_resets_at: resetTimeStr,
+      rate_limit_rpm: slidingUsage.rate_limit_rpm || 60,
+      rate_limit_tpm: slidingUsage.rate_limit_tpm || (tier === '20x' ? 1000000 : 400000),
+      models_accessible: allowedModels
     };
 
     let jsonStr = JSON.stringify(result);

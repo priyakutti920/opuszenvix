@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase.js';
-import { quotaFor } from './quotas.js';
+import { quotaFor, isLegacyStaleOverride, normalizeTier } from './quotas.js';
 
 export const WINDOW_DURATION_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 
@@ -235,6 +235,180 @@ export function createStreamUsageParser(format = 'anthropic') {
 }
 
 /**
+ * Robustly parses a token count or quota number from any number or formatted string.
+ * Handles commas ("4,280,500"), unit suffixes ("8.42M", "500k"), and numeric strings.
+ */
+export function parseTokenValue(val) {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  if (typeof val === 'string') {
+    const clean = val.trim().replace(/,/g, '');
+    if (!clean) return null;
+    if (/^[\d.]+[mM]$/.test(clean)) {
+      const num = parseFloat(clean);
+      return Number.isFinite(num) ? Math.round(num * 1000000) : null;
+    }
+    if (/^[\d.]+[kK]$/.test(clean)) {
+      const num = parseFloat(clean);
+      return Number.isFinite(num) ? Math.round(num * 1000) : null;
+    }
+    const num = Number(clean);
+    return Number.isFinite(num) ? num : null;
+  }
+  return null;
+}
+
+/**
+ * Extracts rolling window token usage from any source object across all known aliases.
+ */
+export function extractWindowTokensUsed(source) {
+  if (!source || typeof source !== 'object') return null;
+  const candidates = [
+    source.windowTokensUsed,
+    source.window_tokens_used,
+    source.tokensUsed,
+    source.used_tokens,
+    source.usedTokens,
+    source.tokens_used,
+    source.key?.windowTokensUsed,
+    source.key?.window_tokens_used,
+    source.key?.tokensUsed,
+    source.key?.used_tokens,
+    source.key?.usedTokens,
+    source.key?.tokens_used,
+    source.data?.windowTokensUsed,
+    source.data?.window_tokens_used,
+    source.data?.tokensUsed,
+    source.data?.used_tokens
+  ];
+  for (const c of candidates) {
+    const parsed = parseTokenValue(c);
+    if (parsed !== null && parsed >= 0) return parsed;
+  }
+  return null;
+}
+
+/**
+ * Extracts percentage of quota consumed across all known aliases.
+ */
+export function extractUsagePercent(source) {
+  if (!source || typeof source !== 'object') return null;
+  const candidates = [
+    source.usagePercent,
+    source.usage_percent,
+    source.percentUsed,
+    source.percent_used,
+    source.key?.usagePercent,
+    source.key?.usage_percent,
+    source.key?.percentUsed,
+    source.key?.percent_used,
+    source.data?.usagePercent,
+    source.data?.percentUsed
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const clean = c.trim().replace(/%/g, '');
+      const num = Number(clean);
+      if (Number.isFinite(num) && num >= 0) return num;
+    } else if (typeof c === 'number' && Number.isFinite(c) && c >= 0) {
+      return c;
+    }
+  }
+  return null;
+}
+
+/**
+ * Extracts rolling window quota limit across all known aliases.
+ */
+export function extractWindowTokensLimit(source) {
+  if (!source || typeof source !== 'object') return null;
+  const candidates = [
+    source.windowTokensLimit,
+    source.window_token_limit,
+    source.tokenLimit,
+    source.token_limit,
+    source.quotaLimit,
+    source.quota_limit,
+    source.limit,
+    source.key?.windowTokensLimit,
+    source.key?.window_token_limit,
+    source.key?.tokenLimit,
+    source.key?.token_limit,
+    source.key?.quotaLimit,
+    source.key?.quota_limit,
+    source.data?.windowTokensLimit,
+    source.data?.window_token_limit
+  ];
+  for (const c of candidates) {
+    const parsed = parseTokenValue(c);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return null;
+}
+
+/**
+ * Extracts lifetime total tokens consumed across all known aliases.
+ */
+export function extractTotalTokens(source) {
+  if (!source || typeof source !== 'object') return null;
+  const candidates = [
+    source.total_tokens_consumed,
+    source.totalTokensConsumed,
+    source.totalTokens,
+    source.total_tokens,
+    source.totalTokensUsed,
+    source.tokensTotal,
+    source.totalCount,
+    source.total_count,
+    source.tokenCount,
+    source.token_count,
+    source.consumed_tokens,
+    source.consumedTokens,
+    source.key?.total_tokens_consumed,
+    source.key?.totalTokensConsumed,
+    source.key?.totalTokens,
+    source.key?.total_tokens,
+    source.key?.totalTokensUsed,
+    source.key?.tokensTotal,
+    source.key?.totalCount,
+    source.key?.total_count,
+    source.key?.tokenCount,
+    source.key?.token_count,
+    source.data?.totalTokens,
+    source.data?.total_tokens_consumed,
+    source.data?.total_tokens
+  ];
+  for (const c of candidates) {
+    const parsed = parseTokenValue(c);
+    if (parsed !== null && parsed >= 0) return parsed;
+  }
+  return null;
+}
+
+/**
+ * Extracts total request count across all known aliases.
+ */
+export function extractTotalRequests(source) {
+  if (!source || typeof source !== 'object') return null;
+  const candidates = [
+    source.totalRequests,
+    source.total_requests,
+    source.requests,
+    source.total_requests_count,
+    source.totalRequestsCount,
+    source.key?.totalRequests,
+    source.key?.total_requests,
+    source.data?.totalRequests,
+    source.data?.total_requests
+  ];
+  for (const c of candidates) {
+    const parsed = parseTokenValue(c);
+    if (parsed !== null && parsed >= 0) return parsed;
+  }
+  return null;
+}
+
+/**
  * Calculate true sliding 5-hour rolling window usage from database logs.
  * 
  * Formula:
@@ -250,22 +424,25 @@ export async function calculateSlidingWindowUsage(keyRecord, options = {}) {
   const windowStart = new Date(now.getTime() - WINDOW_DURATION_MS);
   let windowStartIso = windowStart.toISOString();
 
-  const tier = keyRecord?.tier || '20x';
+  let rawTier = keyRecord?.tier;
+  if (!rawTier && keyRecord?.key_token) {
+    if (keyRecord.key_token.includes('20x')) rawTier = '20x';
+    else if (keyRecord.key_token.includes('5x')) rawTier = '5x';
+  }
+  const tier = normalizeTier(rawTier);
   const tierConfig = quotaFor(tier);
 
   // Authoritative Quota Limit & Verification
-  // The intended authoritative quota for Max 20x Key is 20,000,000.
-  // Legacy / stale database or cache values of 100,000,000 or 200,000,000 must not override.
+  // The intended authoritative quota is 20,000,000 for Max 20x and 5,000,000 for Max 5x.
+  // Legacy / stale database or cache values (e.g. 25M / 2.5M for 5x, or 100M / 200M for 20x) must not override.
   let quotaLimit = tierConfig.limit;
   let quotaSource = 'configured_tier';
   let isQuotaVerified = false;
 
-  const isLegacyStaleOverride = (t, val) =>
-    t === '20x' && (val === 100000000 || val === 200000000);
-
-  if (typeof options.upstreamData?.windowTokensLimit === 'number' && options.upstreamData.windowTokensLimit > 0) {
-    if (!isLegacyStaleOverride(tier, options.upstreamData.windowTokensLimit)) {
-      quotaLimit = options.upstreamData.windowTokensLimit;
+  const upstreamLimit = extractWindowTokensLimit(options.upstreamData);
+  if (typeof upstreamLimit === 'number' && upstreamLimit > 0) {
+    if (!isLegacyStaleOverride(tier, upstreamLimit)) {
+      quotaLimit = upstreamLimit;
       quotaSource = 'provider';
       isQuotaVerified = true;
     }
@@ -358,16 +535,17 @@ export async function calculateSlidingWindowUsage(keyRecord, options = {}) {
 
   // Cross-reference with authoritative upstream provider telemetry if available
   if (options.upstreamData) {
-    const up = options.upstreamData;
-    if (typeof up.windowTokensUsed === 'number') {
-      if (!hasLocalLogs || up.windowTokensUsed > usedTokens) {
-        usedTokens = up.windowTokensUsed;
+    const upTokens = extractWindowTokensUsed(options.upstreamData);
+    const upPercent = extractUsagePercent(options.upstreamData);
+    if (typeof upTokens === 'number') {
+      if (!hasLocalLogs || upTokens > usedTokens) {
+        usedTokens = upTokens;
         usageSource = 'provider_tokens';
         isUsageVerified = true;
       }
-    } else if (typeof up.usagePercent === 'number') {
+    } else if (typeof upPercent === 'number') {
       // Upstream provider explicitly provides usage percentage over active window
-      const providerCalculatedTokens = Math.round((up.usagePercent / 100) * quotaLimit);
+      const providerCalculatedTokens = Math.round((upPercent / 100) * quotaLimit);
       if (!hasLocalLogs || providerCalculatedTokens > usedTokens) {
         usedTokens = providerCalculatedTokens;
         usageSource = 'provider_percent';
@@ -378,6 +556,9 @@ export async function calculateSlidingWindowUsage(keyRecord, options = {}) {
 
   // Fallback to database stored usage if no local window logs and no upstream telemetry
   const isWindowExpired = keyRecord?.window_resets_at && new Date(keyRecord.window_resets_at).getTime() <= now.getTime();
+  const upstreamRequests = extractTotalRequests(options.upstreamData);
+  const upPercent = extractUsagePercent(options.upstreamData);
+  const upTokens = extractWindowTokensUsed(options.upstreamData);
 
   if (!isUsageVerified) {
     if (!isWindowExpired && typeof keyRecord?.window_tokens_used === 'number' && keyRecord.window_tokens_used > 0) {
@@ -386,13 +567,13 @@ export async function calculateSlidingWindowUsage(keyRecord, options = {}) {
       isUsageVerified = true;
     } else if (
       (keyRecord?.total_requests === 0 || keyRecord?.total_requests === undefined) &&
-      (!options.upstreamData || options.upstreamData.totalRequests === 0)
+      (!options.upstreamData || (upstreamRequests === 0 || upstreamRequests === null))
     ) {
       // Confirmed fresh/unused key
       usedTokens = 0;
       usageSource = 'new_key';
       isUsageVerified = true;
-    } else if (options.upstreamData && options.upstreamData.totalRequests > 0 && typeof options.upstreamData.usagePercent !== 'number') {
+    } else if (options.upstreamData && upstreamRequests > 0 && upPercent === null && upTokens === null) {
       // Active upstream key with requests, but no token telemetry returned
       usedTokens = null;
       usageSource = 'unavailable';
@@ -411,8 +592,8 @@ export async function calculateSlidingWindowUsage(keyRecord, options = {}) {
   let usagePercentage = null;
   let remainingPercentage = null;
   if (usedTokens !== null) {
-    if (usageSource === 'provider_percent' && typeof options.upstreamData?.usagePercent === 'number') {
-      usagePercentage = Math.min(100, options.upstreamData.usagePercent);
+    if (usageSource === 'provider_percent' && typeof upPercent === 'number') {
+      usagePercentage = Math.min(100, upPercent);
       remainingPercentage = Math.max(0, Number((100 - usagePercentage).toFixed(1)));
     } else {
       const rawPct = Number(((usedTokens / quotaLimit) * 100).toFixed(1));

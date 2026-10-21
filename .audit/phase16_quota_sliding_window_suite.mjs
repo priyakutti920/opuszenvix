@@ -456,7 +456,7 @@ await test('17. TPM burst capacity (1M TPM) is strictly distinguished from 5H qu
   assert.notEqual(tier20x.limit, tier20x.tpm, 'TPM burst limit must not be confused with 5-hour quota limit');
 
   const tier5x = quotaFor('5x');
-  assert.equal(tier5x.limit, 25000000, '5x 5-hour quota must be 25,000,000 tokens');
+  assert.equal(tier5x.limit, 5000000, '5x 5-hour quota must be 5,000,000 tokens');
   assert.equal(tier5x.tpm, 400000, '5x burst limit must be 400,000 TPM');
 });
 

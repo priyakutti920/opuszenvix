@@ -16,18 +16,26 @@ async function safeJsonFetch<T = any>(url: string, options?: RequestInit): Promi
   if (!contentType.includes('application/json')) {
     const text = await res.text();
     if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-      throw new Error(`API returned HTML (${res.status}). Server endpoint not found at ${url}`);
+      const err: any = new Error(`API returned HTML (${res.status}). Server endpoint not found at ${url}`);
+      err.status = res.status;
+      throw err;
     }
     try {
       return JSON.parse(text);
     } catch {
-      throw new Error(text || `Request to ${url} failed with status ${res.status}`);
+      const err: any = new Error(text || `Request to ${url} failed with status ${res.status}`);
+      err.status = res.status;
+      throw err;
     }
   }
 
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.error?.message || json.error || `Request failed with status ${res.status}`);
+    const errorMsg = json.error?.message || json.error || `Request failed with status ${res.status}`;
+    const err: any = new Error(errorMsg);
+    err.status = res.status;
+    err.data = json;
+    throw err;
   }
   return json;
 }
@@ -152,209 +160,354 @@ export function getAnchoredWindowTimer(token: string, candidateResetStr?: string
   };
 }
 
+export function parseTokenNumber(val: any): number | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  if (typeof val === 'string') {
+    const clean = val.trim().replace(/,/g, '');
+    if (!clean) return null;
+    if (/^[\d.]+[mM]$/.test(clean)) {
+      const num = parseFloat(clean);
+      return Number.isFinite(num) ? Math.round(num * 1000000) : null;
+    }
+    if (/^[\d.]+[kK]$/.test(clean)) {
+      const num = parseFloat(clean);
+      return Number.isFinite(num) ? Math.round(num * 1000) : null;
+    }
+    const num = Number(clean);
+    return Number.isFinite(num) ? num : null;
+  }
+  return null;
+}
+
+function normalizeKeyData(raw: any, token: string): CheckKeyData {
+  const data = raw.key || raw;
+  const actualToken = data.key_token || raw.key_token || token;
+  const is20x = Boolean(
+    (data.tier && (String(data.tier).includes('20x') || String(data.tier) === 'max_20x')) ||
+    (data.planName && String(data.planName).toLowerCase().includes('20x')) ||
+    (data.name && String(data.name).toLowerCase().includes('20x')) ||
+    (actualToken && actualToken.includes('20x'))
+  );
+  const tier: PlanTier = (data.tier === '20x' || data.tier === '5x' || data.tier === '5x_trial' || data.tier === 'custom')
+    ? data.tier
+    : (is20x ? '20x' : '5x');
+  const defaultLimit = tier === '20x' ? 20000000 : 5000000;
+  
+  const rawLimitCandidates = [
+    data.window_token_limit,
+    data.windowTokensLimit,
+    raw.window_token_limit,
+    raw.windowTokensLimit,
+    data.tokenLimit,
+    raw.tokenLimit,
+    data.quotaLimit,
+    raw.quotaLimit,
+    data.key?.window_token_limit,
+    data.key?.windowTokensLimit
+  ];
+  let parsedLimit: number | null = null;
+  for (const c of rawLimitCandidates) {
+    const num = parseTokenNumber(c);
+    if (num !== null && num > 0) {
+      parsedLimit = num;
+      break;
+    }
+  }
+  const isStaleLimitOverride =
+    (tier === '20x' && (parsedLimit === 100000000 || parsedLimit === 200000000)) ||
+    (tier !== '20x' && (parsedLimit === 25000000 || parsedLimit === 2500000 || parsedLimit === 100000000 || parsedLimit === 200000000));
+  const windowTokenLimit = (parsedLimit && !isStaleLimitOverride) ? parsedLimit : defaultLimit;
+
+  let tokensUsed: number | null = null;
+  const candidateUsed = [
+    data.window_tokens_used,
+    data.windowTokensUsed,
+    raw.window_tokens_used,
+    raw.windowTokensUsed,
+    data.tokensUsed,
+    raw.tokensUsed,
+    data.used_tokens,
+    raw.used_tokens,
+    data.usedTokens,
+    raw.usedTokens,
+    data.tokens_used,
+    raw.tokens_used,
+    data.key?.window_tokens_used,
+    data.key?.windowTokensUsed,
+    raw.key?.window_tokens_used,
+    raw.key?.windowTokensUsed,
+    data.key?.tokensUsed,
+    data.key?.used_tokens
+  ];
+  for (const c of candidateUsed) {
+    const num = parseTokenNumber(c);
+    if (num !== null && num >= 0) {
+      tokensUsed = num;
+      break;
+    }
+  }
+
+  if (tokensUsed === null) {
+    const candidatePct = [
+      data.usagePercent,
+      raw.usagePercent,
+      data.percentUsed,
+      raw.percentUsed,
+      data.usage_percent,
+      raw.usage_percent,
+      data.key?.usagePercent,
+      raw.key?.usagePercent
+    ];
+    for (const p of candidatePct) {
+      const pct = typeof p === 'string' ? parseTokenNumber(p.replace(/%/g, '')) : (typeof p === 'number' ? p : null);
+      if (pct !== null && pct >= 0) {
+        tokensUsed = Math.round((pct / 100) * windowTokenLimit);
+        break;
+      }
+    }
+  }
+
+  if (tokensUsed === null && (data.totalRequests === 0 || raw.totalRequests === 0 || data.total_requests === 0 || raw.total_requests === 0)) {
+    tokensUsed = 0;
+  }
+
+  const tokensRemaining = typeof data.window_tokens_remaining === 'number'
+    ? data.window_tokens_remaining
+    : typeof data.remainingTokens === 'number'
+    ? data.remainingTokens
+    : typeof raw.remainingTokens === 'number'
+    ? raw.remainingTokens
+    : (tokensUsed !== null ? Math.max(0, windowTokenLimit - tokensUsed) : null);
+
+  const percentUsed = typeof data.percentUsed === 'number'
+    ? data.percentUsed
+    : typeof data.usagePercent === 'number'
+    ? data.usagePercent
+    : typeof raw.usagePercent === 'number'
+    ? raw.usagePercent
+    : (tokensUsed !== null ? Math.min(100, Math.max(0, Number(((tokensUsed / windowTokenLimit) * 100).toFixed(1)))) : null);
+
+  const percentRemaining = typeof data.percentRemaining === 'number'
+    ? data.percentRemaining
+    : (percentUsed !== null ? Math.max(0, Number((100 - percentUsed).toFixed(1))) : null);
+
+  const rawReset = data.window_resets_at || data.windowResetAt || raw.windowResetAt;
+  const timer = getAnchoredWindowTimer(actualToken, rawReset);
+
+  const masked = data.masked_token || raw.masked_token || (
+    actualToken.length > 12 ? `${actualToken.slice(0, 10)}...${actualToken.slice(-4)}` : actualToken
+  );
+
+  const models = Array.isArray(data.models_accessible) && data.models_accessible.length > 0
+    ? data.models_accessible
+    : Array.isArray(data.allowedModels) && data.allowedModels.length > 0
+    ? data.allowedModels
+    : Array.isArray(raw.allowedModels) && raw.allowedModels.length > 0
+    ? raw.allowedModels
+    : ['claude-opus-5-5', 'claude-sonnet-5', 'claude-fable-5-1', 'claude-sonnet-4-6'];
+
+  const rawLogs = Array.isArray(data.recentLogs) ? data.recentLogs : Array.isArray(raw.recentLogs) ? raw.recentLogs : [];
+  const logs = rawLogs.map((log: any, idx: number) => {
+    let ts = log.timestamp;
+    if (!ts && log.time) {
+      try {
+        const d = new Date(log.time);
+        ts = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) +
+          ' (' + d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ')';
+      } catch {
+        ts = String(log.time);
+      }
+    }
+    return {
+      id: log.id || `upstream-log-${idx}`,
+      timestamp: ts || 'Just now',
+      model: log.model || 'claude-opus-5-5',
+      tokens: log.tokens ?? '-',
+      status: typeof log.status === 'number' ? `${log.status} OK` : (log.status || '200 OK')
+    };
+  });
+
+  // Robust normalized status
+  let status: 'active' | 'paused' | 'revoked' | 'expired' = 'active';
+  const rawStatus = String(data.status || data.keyStatus || raw.keyStatus || (data.isActive ? 'active' : '')).toLowerCase();
+  if (data.isExpired || raw.isExpired || rawStatus.includes('expir')) {
+    status = 'expired';
+  } else if (rawStatus.includes('revok')) {
+    status = 'revoked';
+  } else if (rawStatus.includes('pause') || rawStatus === 'inactive' || data.isActive === false) {
+    status = 'paused';
+  } else {
+    status = 'active';
+  }
+
+  let totalTokensConsumed = 0;
+  const candidateTotal = [
+    data.total_tokens_consumed,
+    raw.total_tokens_consumed,
+    data.totalTokensConsumed,
+    raw.totalTokensConsumed,
+    data.totalTokens,
+    raw.totalTokens,
+    data.total_tokens,
+    raw.total_tokens,
+    data.totalTokensUsed,
+    raw.totalTokensUsed,
+    data.tokensTotal,
+    raw.tokensTotal,
+    data.totalCount,
+    raw.totalCount,
+    data.tokenCount,
+    raw.tokenCount,
+    data.consumed_tokens,
+    raw.consumed_tokens,
+    data.key?.total_tokens_consumed,
+    raw.key?.total_tokens_consumed,
+    data.key?.totalTokens,
+    raw.key?.totalTokens,
+    data.key?.totalTokensConsumed,
+    raw.key?.totalTokensConsumed
+  ];
+  for (const c of candidateTotal) {
+    const num = parseTokenNumber(c);
+    if (num !== null && num >= 0) {
+      totalTokensConsumed = num;
+      break;
+    }
+  }
+  if (!totalTokensConsumed && tokensUsed !== null && tokensUsed > 0) {
+    totalTokensConsumed = tokensUsed;
+  }
+
+  let totalRequests = 0;
+  const candidateRequests = [
+    data.total_requests,
+    raw.total_requests,
+    data.totalRequests,
+    raw.totalRequests,
+    data.requests,
+    raw.requests,
+    data.key?.total_requests,
+    raw.key?.total_requests,
+    data.key?.totalRequests,
+    raw.key?.totalRequests
+  ];
+  for (const c of candidateRequests) {
+    const num = parseTokenNumber(c);
+    if (num !== null && num >= 0) {
+      totalRequests = num;
+      break;
+    }
+  }
+
+  return {
+    id: data.id || raw.id || 'upstream-key',
+    name: data.name || raw.name || data.planName || `${tier.toUpperCase()} API Key`,
+    planName: data.planName || raw.planName || `${tier.toUpperCase()} Plan`,
+    planSource: data.planSource || raw.planSource || 'unverified',
+    isPlanVerified: data.isPlanVerified ?? raw.isPlanVerified ?? true,
+    quotaSource: data.quotaSource || raw.quotaSource || 'configured_tier',
+    isQuotaVerified: data.isQuotaVerified ?? raw.isQuotaVerified ?? true,
+    usageSource: data.usageSource || raw.usageSource || (tokensUsed !== null ? 'local_gateway' : 'unavailable'),
+    isUsageVerified: data.isUsageVerified ?? raw.isUsageVerified ?? (tokensUsed !== null),
+    lastSyncTime: data.lastSyncTime || raw.lastSyncTime || new Date().toISOString(),
+    key_token: actualToken,
+    masked_token: masked,
+    tier,
+    status,
+    rate_limit_rpm: Number(data.rate_limit_rpm || data.rateLimit || raw.rateLimit || 60),
+    rate_limit_tpm: Number(data.rate_limit_tpm || (tier === '20x' ? 1000000 : 400000)),
+    window_token_limit: windowTokenLimit,
+    window_tokens_used: tokensUsed,
+    window_tokens_remaining: tokensRemaining,
+    percentUsed,
+    percentRemaining,
+    timeRemainingFormatted: timer.timeRemainingFormatted,
+    secondsRemaining: timer.secondsRemaining,
+    window_started_at: data.window_started_at || raw.windowStartedAt || new Date(new Date(timer.window_resets_at).getTime() - 5 * 3600 * 1000).toISOString(),
+    window_resets_at: timer.window_resets_at,
+    created_at: data.created_at || raw.createdAt || raw.created_at || new Date().toISOString(),
+    expires_at: data.expires_at || raw.expiresAt || raw.expires_at || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+    total_tokens_consumed: totalTokensConsumed,
+    total_requests: totalRequests,
+    successRequests: Number(data.successRequests ?? raw.successRequests ?? 0),
+    failedRequests: Number(data.failedRequests ?? raw.failedRequests ?? 0),
+    last24hRequests: Number(data.last24hRequests ?? data.last24h?.requests ?? raw.last24h?.requests ?? 0),
+    allocatedCredits: data.allocatedCredits ?? raw.allocatedCredits ?? 0,
+    usedCredits: data.usedCredits ?? raw.usedCredits ?? 0,
+    remainingCredits: data.remainingCredits ?? raw.remainingCredits ?? 0,
+    models_accessible: models,
+    allowedProviders: data.allowedProviders || raw.allowedProviders || ['opuslive'],
+    connectionStatus: data.connectionStatus || raw.connectionStatus || 'Online',
+    unlimited: data.unlimited ?? raw.unlimited ?? false,
+    windowActive: data.windowActive ?? raw.windowActive ?? true,
+    byModel: data.byModel || raw.byModel || null,
+    recentLogs: logs,
+    rawPayload: raw.rawPayload || raw
+  };
+}
+
 export async function checkKey(keyToken: string = ''): Promise<CheckKeyData> {
-  const token = (keyToken || '').trim();
+  let token = (keyToken || '').trim();
+  if (token.toLowerCase().startsWith('bearer ')) {
+    token = token.slice(7).trim();
+  }
+  if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+    token = token.slice(1, -1).trim();
+  }
+  if (token.includes('=')) {
+    token = token.split('=').pop()!.trim();
+  }
   if (!token) {
     throw new Error('API key is required to check key status.');
   }
-  let serverError: string | null = null;
 
-  // 1. Try local Gateway /api/key-status via POST
+  const handleApiError = (err: any) => {
+    if (err?.status === 400) {
+      throw new Error(err.message || 'Invalid API key format.');
+    }
+    if (err?.status === 401) {
+      throw new Error(err.message || 'Unauthorized: Authentication required to inspect key.');
+    }
+    if (err?.status === 403) {
+      throw new Error(err.message || 'Forbidden: You cannot inspect another user’s API key.');
+    }
+    if (err?.status === 404) {
+      throw new Error(err.message || 'Key not found or invalid format. Please check your token.');
+    }
+    if (err?.status === 429) {
+      throw new Error(err.message || 'Key inspection rate limit exceeded. Please wait a moment and try again.');
+    }
+    if (err?.status === 504 || err?.name === 'TimeoutError' || (err?.message && err.message.toLowerCase().includes('timeout'))) {
+      throw new Error('Key inspection request timed out while connecting to upstream. Please try again.');
+    }
+    if (err?.status && err.status >= 500) {
+      throw new Error(err.message || `Upstream inspection service error (${err.status}). Please try again later.`);
+    }
+  };
+
+  // 1. Primary: Safe POST to avoid placing secret tokens in URL query strings or browser history
   try {
     const json = await safeJsonFetch(`${API_BASE}/key-status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: token, key_token: token }),
     });
-    if (json.key || json.status === 'ok') {
-      const data = json.key || json;
-      const actualToken = data.key_token || token;
-      const timer = getAnchoredWindowTimer(actualToken, data.window_resets_at || data.windowResetAt);
-      return {
-        ...data,
-        window_resets_at: timer.window_resets_at,
-        secondsRemaining: timer.secondsRemaining,
-        timeRemainingFormatted: timer.timeRemainingFormatted,
-        rawPayload: json.rawPayload || json
-      };
+    if (json.key || json.status === 'ok' || json.status === 'found' || json.status === 'active' || json.status === 'paused' || json.status === 'revoked' || json.status === 'expired' || json.success || json.keyStatus) {
+      return normalizeKeyData(json, token);
     }
   } catch (err: any) {
-    if (err?.message && !err.message.includes('API returned HTML')) {
-      serverError = err.message;
-    }
+    handleApiError(err);
   }
 
-  // 2. Try URL slug endpoint: /api/key-status/:token
+  // 2. Fallback: GET /api/key-status?key=... if POST was rejected or unhandled by proxy
   try {
-    const url = `${API_BASE}/key-status/${encodeURIComponent(token)}`;
-    const json = await safeJsonFetch(url);
-    if (json.key || json.status === 'ok') {
-      const data = json.key || json;
-      const actualToken = data.key_token || token;
-      const timer = getAnchoredWindowTimer(actualToken, data.window_resets_at || data.windowResetAt);
-      return {
-        ...data,
-        window_resets_at: timer.window_resets_at,
-        secondsRemaining: timer.secondsRemaining,
-        timeRemainingFormatted: timer.timeRemainingFormatted,
-        rawPayload: json.rawPayload || json
-      };
+    const json = await safeJsonFetch(`${API_BASE}/key-status?key=${encodeURIComponent(token)}`);
+    if (json.key || json.status === 'ok' || json.status === 'found' || json.status === 'active' || json.status === 'paused' || json.status === 'revoked' || json.status === 'expired' || json.success || json.keyStatus) {
+      return normalizeKeyData(json, token);
     }
   } catch (err: any) {
-    if (err?.message && !err.message.includes('API returned HTML')) {
-      serverError = err.message;
-    }
-  }
-
-  // 3. Try secondary /api/keys/check
-  try {
-    const json = await safeJsonFetch(`${API_BASE}/keys/check`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key_token: token }),
-    });
-    if (json.key) {
-      const timer = getAnchoredWindowTimer(token, json.key.window_resets_at);
-      return {
-        ...json.key,
-        window_resets_at: timer.window_resets_at,
-        secondsRemaining: timer.secondsRemaining,
-        timeRemainingFormatted: timer.timeRemainingFormatted,
-        rawPayload: json.rawPayload || json
-      };
-    }
-  } catch (err: any) {
-    if (err?.message && !err.message.includes('API returned HTML')) {
-      serverError = err.message;
-    }
-  }
-
-  // 4. Fallback to GET query format on gateway /api/key-status
-  try {
-    let upData: any = null;
-    
-    try {
-      const getRes = await fetch(`${API_BASE}/key-status?key=${encodeURIComponent(token)}`, {
-        signal: AbortSignal.timeout(6000),
-        headers: { 'Accept': 'application/json' }
-      });
-      if (getRes.ok) {
-        upData = await getRes.json();
-      }
-    } catch {
-      // ignore
-    }
-
-    if (upData) {
-      const timer = getAnchoredWindowTimer(token, upData.windowResetAt);
-
-      let planName = 'Unverified Plan';
-      let planSource: 'provider' | 'database' | 'unverified' = 'unverified';
-      let isPlanVerified = false;
-
-      if (upData.planName && typeof upData.planName === 'string' && upData.planName.trim()) {
-        planName = upData.planName.trim();
-        planSource = 'provider';
-        isPlanVerified = true;
-      }
-
-      const is20x = Boolean(
-        (upData.planName && upData.planName.toLowerCase().includes('20x')) ||
-        (upData.name && upData.name.toLowerCase().includes('20x'))
-      );
-      const tier: PlanTier = upData.tier || (is20x ? '20x' : '5x');
-      const defaultLimit = tier === '20x' ? 20000000 : 25000000;
-      const rawLimit = Number(upData.windowTokensLimit);
-      const isStaleLimitOverride = tier === '20x' && (rawLimit === 100000000 || rawLimit === 200000000);
-      const tokenLimit = (rawLimit && !isStaleLimitOverride) ? rawLimit : defaultLimit;
-      const isQuotaVerified = Boolean(rawLimit && !isStaleLimitOverride);
-      const quotaSource: 'provider' | 'configured_tier' = isQuotaVerified ? 'provider' : 'configured_tier';
-
-      let tokensUsed: number | null = null;
-      let usageSource: 'provider_tokens' | 'provider_percent' | 'new_key' | 'unavailable' = 'unavailable';
-      let isUsageVerified = false;
-
-      if (typeof upData.windowTokensUsed === 'number') {
-        tokensUsed = upData.windowTokensUsed;
-        usageSource = 'provider_tokens';
-        isUsageVerified = true;
-      } else if (typeof upData.usagePercent === 'number') {
-        tokensUsed = Math.round((upData.usagePercent / 100) * tokenLimit);
-        usageSource = 'provider_percent';
-        isUsageVerified = true;
-      } else if (typeof upData.key?.window_tokens_used === 'number') {
-        tokensUsed = upData.key.window_tokens_used;
-        usageSource = 'provider_tokens';
-        isUsageVerified = true;
-      } else if (upData.totalRequests === 0) {
-        tokensUsed = 0;
-        usageSource = 'new_key';
-        isUsageVerified = true;
-      }
-
-      const remainingTokens = tokensUsed !== null ? Math.max(0, tokenLimit - tokensUsed) : null;
-      const percentUsed = typeof upData.usagePercent === 'number'
-        ? upData.usagePercent
-        : (tokensUsed !== null ? Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1)))) : null);
-      const percentRemaining = percentUsed !== null ? Math.max(0, Number((100 - percentUsed).toFixed(1))) : null;
-
-      const masked = token.length > 12 ? `${token.slice(0, 14)}...${token.slice(-4)}` : token;
-
-      return {
-        id: 'upstream-key',
-        name: upData.name || planName,
-        planName,
-        planSource,
-        isPlanVerified,
-        quotaSource,
-        isQuotaVerified,
-        usageSource,
-        isUsageVerified,
-        lastSyncTime: new Date().toISOString(),
-        byModel: upData.byModel || null,
-        key_token: token,
-        masked_token: masked,
-        tier,
-        status: upData.keyStatus || 'active',
-        rate_limit_rpm: upData.rateLimit || 60,
-        rate_limit_tpm: tier === '20x' ? 1000000 : 400000,
-        window_token_limit: tokenLimit,
-        window_tokens_used: tokensUsed,
-        window_tokens_remaining: remainingTokens,
-        percentUsed,
-        percentRemaining,
-        timeRemainingFormatted: timer.timeRemainingFormatted,
-        secondsRemaining: timer.secondsRemaining,
-        window_started_at: new Date(new Date(timer.window_resets_at).getTime() - 5 * 60 * 60 * 1000).toISOString(),
-        window_resets_at: timer.window_resets_at,
-        total_tokens_consumed: upData.totalRequests ? (tokensUsed ?? 0) : 0,
-        total_requests: upData.totalRequests || 0,
-        successRequests: upData.successRequests || 0,
-        failedRequests: upData.failedRequests || 0,
-        last24hRequests: upData.last24h?.requests || 0,
-        allocatedCredits: upData.allocatedCredits ?? 0,
-        usedCredits: upData.usedCredits ?? 0,
-        remainingCredits: upData.remainingCredits ?? 0,
-        unlimited: upData.unlimited ?? false,
-        windowActive: upData.windowActive ?? true,
-        models_accessible: upData.allowedModels || [
-          'claude-opus-5-5',
-          'claude-sonnet-5',
-          'claude-fable-5-1',
-          'claude-sonnet-4-6'
-        ],
-        allowedProviders: upData.allowedProviders || ['opuslive'],
-        isRealtime: true,
-        connectionStatus: upData.connectionStatus || 'Online',
-        rawPayload: upData
-      };
-    }
-  } catch {
-    // Upstream network error
-  }
-
-  if (serverError) {
-    throw new Error(serverError);
+    handleApiError(err);
   }
 
   throw new Error('Key inspection service temporarily unreachable. Please check network connection.');

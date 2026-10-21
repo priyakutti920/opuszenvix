@@ -13,11 +13,11 @@ CREATE TABLE IF NOT EXISTS public.api_keys (
     name VARCHAR(100) NOT NULL DEFAULT 'Default API Key',
     key_prefix VARCHAR(32) NOT NULL,
     key_token VARCHAR(128) NOT NULL UNIQUE,
-    tier VARCHAR(20) NOT NULL DEFAULT '5x' CHECK (tier IN ('5x', '20x', 'custom')),
+    tier VARCHAR(20) NOT NULL DEFAULT '5x' CHECK (tier IN ('5x', '20x', '5x_trial', 'custom')),
     status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'revoked', 'expired')),
     rate_limit_rpm INT NOT NULL DEFAULT 60,
     rate_limit_tpm INT NOT NULL DEFAULT 400000,
-    window_token_limit BIGINT NOT NULL DEFAULT 25000000,
+    window_token_limit BIGINT NOT NULL DEFAULT 5000000,
     window_tokens_used BIGINT NOT NULL DEFAULT 0,
     window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     window_resets_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '5 hours'),
@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.crypto_orders (
 CREATE INDEX IF NOT EXISTS idx_api_keys_token ON public.api_keys(key_token);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_key_id ON public.usage_logs(key_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON public.usage_logs(created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_crypto_orders_tx_hash ON public.crypto_orders(tx_hash) WHERE tx_hash IS NOT NULL;
 
 -- Row Level Security (RLS) policies
 ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
@@ -102,7 +103,7 @@ INSERT INTO public.api_keys (
     'active',
     60,
     400000,
-    25000000,
+    5000000,
     4280500,
     (NOW() - INTERVAL '1 hour 25 minutes'),
     (NOW() + INTERVAL '3 hours 35 minutes'),

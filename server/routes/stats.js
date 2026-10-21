@@ -12,8 +12,13 @@ router.get('/overview', async (req, res) => {
     const { data: logs } = await supabase.from('usage_logs').select('*');
 
     const totalKeys = (keys || []).length;
-    const totalRequests = (keys || []).reduce((acc, k) => acc + (k.total_requests || 0), 0);
-    const totalTokens = (keys || []).reduce((acc, k) => acc + (Number(k.total_tokens_consumed) || 0), 0);
+    const logRequests = (logs || []).length;
+    const keyRequests = (keys || []).reduce((acc, k) => acc + (k.total_requests || 0), 0);
+    const totalRequests = Math.max(keyRequests, logRequests);
+
+    const logTokens = (logs || []).reduce((acc, l) => acc + (Number(l.input_tokens) || 0) + (Number(l.output_tokens) || 0), 0);
+    const keyTokens = (keys || []).reduce((acc, k) => acc + (Number(k.total_tokens_consumed) || 0), 0);
+    const totalTokens = Math.max(keyTokens, logTokens);
 
     return res.json({
       success: true,
@@ -93,8 +98,12 @@ router.post('/orders/verify', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing or invalid orderId.' });
     }
 
+    let resolvedTier = typeof tier === 'string' ? tier.trim().toLowerCase() : '5x';
+    if (resolvedTier === 'max_5x' || resolvedTier === 'max-5x') resolvedTier = '5x';
+    if (resolvedTier === 'max_20x' || resolvedTier === 'max-20x') resolvedTier = '20x';
+
     const validTiers = ['5x', '20x', '5x_trial'];
-    if (!validTiers.includes(tier)) {
+    if (!validTiers.includes(resolvedTier)) {
       return res.status(400).json({ success: false, error: `Invalid tier. Must be one of: ${validTiers.join(', ')}` });
     }
 
@@ -136,21 +145,21 @@ router.post('/orders/verify', async (req, res) => {
 
     // Generate new key for the user
     const randomHex = crypto.randomBytes(12).toString('hex');
-    const prefix = `opm-live-${tier}`;
+    const prefix = `opm-live-${resolvedTier}`;
     const token = `${prefix}-${randomHex}`;
     const keyId = crypto.randomUUID ? crypto.randomUUID() : `key_${Date.now()}`;
 
-    const { limit: limitTokens, rpm, tpm, durationDays } = quotaFor(tier);
+    const { limit: limitTokens, rpm, tpm, durationDays } = quotaFor(resolvedTier);
 
     const now = new Date();
     const resetsAt = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
 
     const newKey = {
       id: keyId,
-      name: tier === '5x_trial' ? '5X Trial Key' : `${tier.toUpperCase()} Pro Key`,
+      name: resolvedTier === '5x_trial' ? '5X Trial Key' : `${resolvedTier.toUpperCase()} Pro Key`,
       key_prefix: prefix,
       key_token: token,
-      tier,
+      tier: resolvedTier,
       status: 'active',
       rate_limit_rpm: rpm,
       rate_limit_tpm: tpm,
@@ -171,8 +180,8 @@ router.post('/orders/verify', async (req, res) => {
 
     // Record verified transaction in crypto_orders for auditability and idempotency
     const orderInsertRes = await supabase.from('crypto_orders').insert({
-      tier,
-      amount_usdt: tier === '20x' ? 50.00 : tier === '5x_trial' ? 15.00 : 30.00,
+      tier: resolvedTier,
+      amount_usdt: resolvedTier === '20x' ? 50.00 : resolvedTier === '5x_trial' ? 15.00 : 30.00,
       wallet_network: 'TRC20',
       wallet_address: 'TJ8yQp3s9W8f2NmK1L9x7P4v6B3c8D1e0Z',
       tx_hash: cleanTxHash,

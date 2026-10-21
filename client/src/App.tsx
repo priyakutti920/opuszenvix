@@ -96,6 +96,9 @@ function resolveRoute(location: Location): { view: ActiveView; key: string | nul
 /** Turns a view + optional key into the clean path used to update the bar. */
 function buildPath(view: ActiveView, key: string | null): string {
   if (view === 'home') return '/';
+  if (view === 'usage') {
+    return key ? `/key-status?key=${encodeURIComponent(key)}` : '/key-status';
+  }
   return key ? `/${view}/${encodeURIComponent(key)}` : `/${view}`;
 }
 
@@ -108,7 +111,7 @@ function hashOnlyPath(hash: string): string {
   if (!part) return '/';
   if (SECTIONS.includes(part)) return `/#${part}`;
   if (PAGES.includes(part)) return `/${part}`;
-  if (USAGE_ALIASES.includes(part)) return '/usage';
+  if (USAGE_ALIASES.includes(part)) return '/key-status';
   return '/';
 }
 

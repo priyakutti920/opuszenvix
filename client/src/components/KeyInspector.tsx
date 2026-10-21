@@ -20,7 +20,8 @@ import {
   EyeOff,
   Radio,
   Layers,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { checkKey, resetKeyWindow } from '../lib/api';
 import { CheckKeyData } from '../types';
@@ -56,6 +57,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     seconds: '00'
   });
   const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
   const [showRawJson, setShowRawJson] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -66,7 +68,19 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
 
   const handleInspect = async (tokenToTest?: string, forceFresh?: boolean) => {
     const rawTarget = tokenToTest !== undefined ? tokenToTest : inputKey;
-    const target = (rawTarget || '').trim();
+    let target = (rawTarget || '').trim();
+    if (target.toLowerCase().startsWith('bearer ')) {
+      target = target.slice(7).trim();
+    }
+    if ((target.startsWith('"') && target.endsWith('"')) || (target.startsWith("'") && target.endsWith("'"))) {
+      target = target.slice(1, -1).trim();
+    }
+    if (target.includes('=')) {
+      target = target.split('=').pop()!.trim();
+    }
+    if (target !== rawTarget && tokenToTest === undefined) {
+      setInputKey(target);
+    }
 
     if (!target) {
       setError('Please enter a valid API key to inspect.');
@@ -95,12 +109,26 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
         ...data,
         isStale: false
       });
+      setError(null);
+
+      // Keep address bar synced with canonical format: /key-status?key=...
+      if (typeof window !== 'undefined' && window.history && target) {
+        const newUrl = `/key-status?key=${encodeURIComponent(target)}`;
+        if (window.location.pathname + window.location.search !== newUrl) {
+          window.history.replaceState(null, '', newUrl);
+        }
+      }
     } catch (err: any) {
       if (currentSeq !== inspectSeqRef.current) return;
       const errMsg = err.message || 'Key inspection failed. Please verify your token.';
       setError(errMsg);
-      // Retain last verified data if present, tagging with stale indicator
-      setKeyData((prev) => prev ? { ...prev, isStale: true } : null);
+      // If a new key was checked or this was an explicit manual inspect, clear old keyData
+      // Retain last verified data only if a background auto-refresh on the currently active key failed
+      if (keyData && keyData.key_token === target && tokenToTest === undefined && !forceFresh) {
+        setKeyData((prev) => prev ? { ...prev, isStale: true } : null);
+      } else {
+        setKeyData(null);
+      }
     } finally {
       if (currentSeq === inspectSeqRef.current) {
         setLoading(false);
@@ -191,6 +219,18 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     }
   };
 
+  const handleCopyLink = async () => {
+    const token = keyData?.key_token || inputKey;
+    if (!token) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.opuszyra.live';
+    const fullUrl = `${origin}/key-status?key=${encodeURIComponent(token)}`;
+    const success = await copyToClipboard(fullUrl);
+    if (success) {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
   const handleCopyJson = async () => {
     if (!keyData?.rawPayload) return;
     const success = await copyToClipboard(JSON.stringify(keyData.rawPayload, null, 2));
@@ -225,10 +265,12 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     }
   };
 
-  // Number metrics (Authoritative intended quota: 20,000,000 for Max 20x Key)
-  const defaultTierLimit = keyData?.tier === '20x' ? 20000000 : 25000000;
+  // Number metrics (Authoritative intended quota: 20,000,000 for Max 20x, 5,000,000 for Max 5x)
+  const defaultTierLimit = keyData?.tier === '20x' ? 20000000 : 5000000;
   const rawLimit = keyData?.window_token_limit;
-  const isStaleLimitOverride = keyData?.tier === '20x' && (rawLimit === 100000000 || rawLimit === 200000000);
+  const isStaleLimitOverride =
+    (keyData?.tier === '20x' && (rawLimit === 100000000 || rawLimit === 200000000)) ||
+    (keyData?.tier !== '20x' && (rawLimit === 25000000 || rawLimit === 2500000 || rawLimit === 100000000 || rawLimit === 200000000));
   const tokenLimit = (rawLimit && !isStaleLimitOverride) ? rawLimit : defaultTierLimit;
   const isUsageVerified = keyData ? (keyData.isUsageVerified !== false && keyData.window_tokens_used !== null) : false;
   const tokensUsed = keyData && typeof keyData.window_tokens_used === 'number' ? keyData.window_tokens_used : null;
@@ -236,17 +278,86 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     ? keyData.window_tokens_remaining
     : (tokensUsed !== null ? Math.max(0, tokenLimit - tokensUsed) : null);
   
-  const usedPercent = keyData?.percentUsed !== undefined && keyData.percentUsed !== null
+  const rawUsedPercent = keyData?.percentUsed !== undefined && keyData.percentUsed !== null
     ? keyData.percentUsed
     : (tokensUsed !== null ? Math.min(100, Math.max(0, Number(((tokensUsed / tokenLimit) * 100).toFixed(1)))) : null);
+  // Show precise percentage (up to 3 decimal places) when usage is nonzero but rounds to 0.0%
+  const usedPercent = rawUsedPercent !== null && rawUsedPercent === 0 && tokensUsed !== null && tokensUsed > 0
+    ? Math.min(100, Number(((tokensUsed / tokenLimit) * 100).toFixed(3)))
+    : rawUsedPercent;
   const remainingPercent = keyData?.percentRemaining !== undefined && keyData.percentRemaining !== null
     ? keyData.percentRemaining
     : (usedPercent !== null ? Math.max(0, Number((100 - usedPercent).toFixed(1))) : null);
 
   // 5-hour cycle calculations (18000s cycle)
-  const secRemaining = keyData?.secondsRemaining ?? 10800;
-  const cycleSecondsCompleted = Math.max(0, 18000 - secRemaining);
-  const cycleCompletedPercent = Math.min(100, Math.max(4, Math.round((cycleSecondsCompleted / 18000) * 100)));
+  const currentSecondsRemaining = useMemo(() => {
+    const h = parseInt(countdown.hours, 10) || 0;
+    const m = parseInt(countdown.minutes, 10) || 0;
+    const s = parseInt(countdown.seconds, 10) || 0;
+    return h * 3600 + m * 60 + s;
+  }, [countdown]);
+  const cycleSecondsCompleted = Math.max(0, 18000 - currentSecondsRemaining);
+  const cycleCompletedPercent = Math.min(100, Math.max(2, Math.round((cycleSecondsCompleted / 18000) * 100)));
+
+  // Dynamic status styling based on actual key status & quota
+  const statusConfig = useMemo(() => {
+    const s = (keyData?.status || 'active').toLowerCase();
+    if (s.includes('revok')) {
+      return {
+        label: 'REVOKED',
+        badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400',
+        dotClass: 'bg-rose-500',
+        borderClass: 'border-t-rose-500',
+        textClass: 'text-rose-600 dark:text-rose-400',
+        bgSubtle: 'bg-rose-500/10'
+      };
+    }
+    if (s.includes('expir')) {
+      return {
+        label: 'EXPIRED',
+        badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400',
+        dotClass: 'bg-rose-500',
+        borderClass: 'border-t-rose-500',
+        textClass: 'text-rose-600 dark:text-rose-400',
+        bgSubtle: 'bg-rose-500/10'
+      };
+    }
+    if (s.includes('pause') || s.includes('inact')) {
+      return {
+        label: 'PAUSED',
+        badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400',
+        dotClass: 'bg-amber-500',
+        borderClass: 'border-t-amber-500',
+        textClass: 'text-amber-600 dark:text-amber-400',
+        bgSubtle: 'bg-amber-500/10'
+      };
+    }
+    if (tokensRemaining !== null && tokensRemaining <= 0) {
+      return {
+        label: 'LIMIT REACHED',
+        badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400',
+        dotClass: 'bg-amber-500 animate-pulse',
+        borderClass: 'border-t-amber-500',
+        textClass: 'text-amber-600 dark:text-amber-400',
+        bgSubtle: 'bg-amber-500/10'
+      };
+    }
+    return {
+      label: 'ACTIVE',
+      badgeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400',
+      dotClass: 'bg-emerald-500 animate-pulse',
+      borderClass: 'border-t-emerald-500',
+      textClass: 'text-emerald-600 dark:text-emerald-400',
+      bgSubtle: 'bg-emerald-500/10'
+    };
+  }, [keyData?.status, tokensRemaining]);
+
+  const getProgressBarGradient = (pct: number | null) => {
+    if (pct === null) return 'from-teal-500 to-emerald-400';
+    if (pct >= 90) return 'from-rose-500 to-red-600';
+    if (pct >= 75) return 'from-amber-500 to-orange-500';
+    return 'from-teal-500 to-emerald-400';
+  };
 
   // Models the key can actually use, straight from the live key-status payload.
   // Kept as a derived value so the chips and the synthetic log rows below can
@@ -255,10 +366,13 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     if (keyData?.models_accessible && Array.isArray(keyData.models_accessible) && keyData.models_accessible.length > 0) {
       return keyData.models_accessible;
     }
+    if ((keyData as any)?.allowedModels && Array.isArray((keyData as any).allowedModels) && (keyData as any).allowedModels.length > 0) {
+      return (keyData as any).allowedModels;
+    }
     return ['claude-opus-5-5', 'claude-sonnet-5', 'claude-fable-5-1', 'claude-sonnet-4-6'];
   }, [keyData]);
 
-  // Map real upstream recent logs or generate realistic telemetry matching screenshot style
+  // Map real upstream recent logs — never fabricate synthetic entries
   const requestLogs: RequestLogItem[] = useMemo(() => {
     if (keyData?.recentLogs && Array.isArray(keyData.recentLogs) && keyData.recentLogs.length > 0) {
       return keyData.recentLogs.map((log: any, idx: number) => ({
@@ -270,30 +384,22 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
       }));
     }
 
-    const logs: RequestLogItem[] = [];
-    const baseDate = new Date();
-
-    for (let i = 0; i < 20; i++) {
-      const logDate = new Date(baseDate.getTime() - i * (45 * 1000 + (i % 3) * 15000));
-      const model = accessibleModels[i % accessibleModels.length];
-      logs.push({
-        id: `req-log-${i}`,
-        timestamp: formatShortTime(logDate.toISOString()),
-        model,
-        tokens: '-',
-        status: '200 OK'
-      });
-    }
-
-    return logs;
+    // No real logs available — return empty array (handled by empty state in UI)
+    return [];
   }, [keyData, accessibleModels]);
 
   return (
     <div className={`w-full max-w-5xl mx-auto ${isModal ? '' : 'my-4 sm:my-8 px-2 sm:px-4'}`}>
       
       {/* 1. KEY SEARCH INPUT BAR */}
-      <div className="p-2 sm:p-2.5 rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#121110] shadow-sm mb-8">
-        <div className="flex flex-col sm:flex-row items-center gap-2">
+      <div className="p-2 sm:p-2.5 rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-[#FDFCFB] dark:bg-[#121110] shadow-sm mb-6">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleInspect();
+          }}
+          className="flex flex-col sm:flex-row items-center gap-2"
+        >
           <div className="relative flex-1 w-full flex items-center">
             <span className="absolute left-4 text-stone-400">
               <Key className="w-4 h-4" />
@@ -302,98 +408,114 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
               type={showKeyText ? "text" : "password"}
               value={inputKey}
               onChange={(e) => setInputKey(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleInspect()}
-              placeholder="Paste your API key (e.g. sk-ant-opm-SZpYGY...)"
-              className="w-full pl-11 pr-16 py-3 rounded-2xl bg-white dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#2E2C2A] text-stone-900 dark:text-white placeholder-stone-400 font-mono text-xs sm:text-sm outline-none focus:border-[#EA580C] focus:ring-2 focus:ring-orange-500/20 transition-all font-semibold"
+              placeholder="Paste your API key (e.g. sk-ant-opm-..., opm-live-...)"
+              className="w-full pl-11 pr-24 py-3 rounded-2xl bg-white dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#2E2C2A] text-stone-900 dark:text-white placeholder-stone-400 font-mono text-xs sm:text-sm outline-none focus:border-[#EA580C] focus:ring-2 focus:ring-orange-500/20 transition-all font-semibold"
             />
-            <button
-              type="button"
-              onClick={() => setShowKeyText(!showKeyText)}
-              className="absolute right-3.5 text-xs font-semibold text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition px-2 py-1"
-            >
-              {showKeyText ? 'Hide' : 'Show'}
-            </button>
+            <div className="absolute right-3 flex items-center gap-1.5">
+              {inputKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputKey('');
+                    setError(null);
+                  }}
+                  title="Clear key input"
+                  className="p-1 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowKeyText(!showKeyText)}
+                className="text-xs font-semibold text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition px-2 py-1 rounded"
+              >
+                {showKeyText ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           <button
-            onClick={() => handleInspect()}
+            type="submit"
             disabled={loading}
             className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-[#EA580C] hover:bg-[#D94E0A] disabled:opacity-50 text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
           >
             <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>{loading ? 'Fetching...' : 'Fetch Live API'}</span>
           </button>
-        </div>
-
-        {/* Quick Key Presets */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 px-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
-          <span className="font-semibold text-stone-400 dark:text-stone-500">Quick Select:</span>
-          <button
-            type="button"
-            onClick={() => {
-              const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
-              setInputKey(sample);
-              handleInspect(sample);
-            }}
-            className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-[#1A1918] border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition cursor-pointer"
-          >
-            Dev Key (5x)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const sample = 'opm-live-20x-8d7e6f5c4b3a2109';
-              setInputKey(sample);
-              handleInspect(sample);
-            }}
-            className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-[#1A1918] border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition cursor-pointer"
-          >
-            Agent Key (20x)
-          </button>
-        </div>
+        </form>
       </div>
 
       {/* Error message */}
       {error && (
-        <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs sm:text-sm flex items-start gap-3 shadow-sm">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
-          <span className="font-medium">{error}</span>
+        <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs sm:text-sm flex items-start justify-between gap-3 shadow-sm animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+            <span className="font-medium">{error}</span>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-rose-400 hover:text-rose-600 dark:hover:text-rose-200 p-0.5 rounded transition"
+            title="Dismiss error"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
       {/* SAFE INITIAL / EMPTY STATE */}
       {!keyData && !loading && !error && (
         <div className="rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-white/50 dark:bg-[#121110]/50 p-8 sm:p-12 text-center shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C] flex items-center justify-center mx-auto mb-4">
-            <Key className="w-6 h-6" />
+          <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C] flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <Key className="w-7 h-7" />
           </div>
-          <h3 className="text-base font-bold text-stone-900 dark:text-white mb-2">
-            No API Key Loaded
+          <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-2">
+            Live Key Telemetry &amp; Status Inspector
           </h3>
-          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-md mx-auto mb-6">
-            Enter your personal API key above or choose a preset to inspect real-time rolling quota, sliding-window token usage, active rate limits, and model access.
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 max-w-lg mx-auto mb-8 leading-relaxed">
+            Enter your API key above and click <strong>Fetch Live API</strong> to inspect real-time sliding 5-hour quota, token consumption, rolling window countdown, rate limits, and model access.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => {
-                const sample = 'opm-live-5x-9f8a3c2e1b4d7f0a';
-                setInputKey(sample);
-                handleInspect(sample);
-              }}
-              className="px-4 py-2 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#252322] text-stone-800 dark:text-stone-200 text-xs font-mono font-semibold transition cursor-pointer"
-            >
-              Inspect Dev Key (5x)
-            </button>
-            <button
-              onClick={() => {
-                const sample = 'opm-live-20x-8d7e6f5c4b3a2109';
-                setInputKey(sample);
-                handleInspect(sample);
-              }}
-              className="px-4 py-2 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#252322] text-stone-800 dark:text-stone-200 text-xs font-mono font-semibold transition cursor-pointer"
-            >
-              Inspect Agent Key (20x)
-            </button>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-left">
+            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#262422]">
+              <div className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-mono text-[11px] font-bold mb-1">
+                <Clock className="w-3.5 h-3.5" />
+                <span>5H Window</span>
+              </div>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-snug">
+                Continuous rolling quota release
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#262422]">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] font-bold mb-1">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Live Telemetry</span>
+              </div>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-snug">
+                Direct upstream gateway sync
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#262422]">
+              <div className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400 font-mono text-[11px] font-bold mb-1">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Rate Limits</span>
+              </div>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-snug">
+                RPM / TPM live throughput
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-stone-50 dark:bg-[#181716] border border-[#E8E3D9] dark:border-[#262422]">
+              <div className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400 font-mono text-[11px] font-bold mb-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Model Access</span>
+              </div>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-snug">
+                Active multi-modal catalog
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -403,16 +525,16 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
         <div className="space-y-6 animate-fadeIn">
           
           {/* 2. TOP ACTIVE KEY IDENTITY CARD */}
-          <div className="rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-white dark:bg-[#121110] p-6 shadow-sm overflow-hidden relative border-t-4 border-t-emerald-500">
+          <div className={`rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-white dark:bg-[#121110] p-6 shadow-sm overflow-hidden relative border-t-4 ${statusConfig.borderClass}`}>
             
             {/* Top Badge Strip */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#E8E3D9] dark:border-[#262422]">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-mono font-bold uppercase text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-lg border border-orange-500/20">
-                  ACTIVE API KEY
+                <span className={`text-[11px] font-mono font-bold uppercase ${statusConfig.textClass} ${statusConfig.bgSubtle} px-2.5 py-1 rounded-lg border border-current/20`}>
+                  API KEY • {statusConfig.label}
                 </span>
                 <span className="text-[11px] font-mono font-bold uppercase text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                  LIVE FOR 2M+ REQS
+                  LIVE TELEMETRY
                 </span>
                 <span className="text-[11px] font-mono font-bold text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-[#1A1918] px-2.5 py-1 rounded-lg border border-stone-200 dark:border-stone-800">
                   {latencyMs}ms
@@ -429,6 +551,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 <button
                   onClick={() => handleInspect(inputKey)}
                   disabled={loading}
+                  title="Sync live API telemetry"
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#E8E3D9] dark:border-[#262422] bg-stone-50 dark:bg-[#181716] hover:bg-stone-100 dark:hover:bg-[#201F1E] text-stone-700 dark:text-stone-300 text-xs font-semibold transition cursor-pointer"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#EA580C]' : ''}`} />
@@ -447,9 +570,9 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   <span>Auto-Refresh</span>
                 </button>
 
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-mono font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>ACTIVE</span>
+                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg border text-xs font-mono font-bold ${statusConfig.badgeClass}`}>
+                  <span className={`w-2 h-2 rounded-full ${statusConfig.dotClass}`}></span>
+                  <span>{statusConfig.label}</span>
                 </span>
               </div>
             </div>
@@ -477,22 +600,43 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
               <div className="font-mono text-sm sm:text-base font-bold text-stone-900 dark:text-white tracking-wider break-all bg-stone-50 dark:bg-[#181716] p-3 rounded-xl border border-[#E8E3D9] dark:border-[#262422] flex-1">
                 {keyData.masked_token || (keyData.key_token && keyData.key_token.length > 12 ? `${keyData.key_token.slice(0, 10)}...${keyData.key_token.slice(-4)}` : '••••••••••••')}
               </div>
-              <button
-                onClick={handleCopyKey}
-                className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#282725] text-stone-800 dark:text-stone-200 font-bold text-xs font-mono transition shrink-0"
-              >
-                {copiedKey ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-stone-500" />
-                    <span>Copy ID</span>
-                  </>
-                )}
-              </button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  title="Copy shareable key status URL"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#282725] text-stone-800 dark:text-stone-200 font-bold text-xs font-mono transition cursor-pointer"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-emerald-600 dark:text-emerald-400">URL Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-stone-500" />
+                      <span>Copy Status URL</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyKey}
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-stone-100 dark:bg-[#1C1B1A] hover:bg-stone-200 dark:hover:bg-[#282725] text-stone-800 dark:text-stone-200 font-bold text-xs font-mono transition cursor-pointer"
+                >
+                  {copiedKey ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-stone-500" />
+                      <span>Copy ID</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* 4-Column Metadata Row */}
@@ -517,7 +661,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   )}
                 </div>
                 <span className="font-bold text-stone-900 dark:text-white text-sm">
-                  {keyData.planName || (keyData.tier === '20x' ? 'Max 20x' : 'Standard 5x')}
+                  {keyData.planName || (keyData.tier === '20x' ? 'Max 20x' : 'Max 5x')}
                 </span>
               </div>
 
@@ -529,7 +673,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   {keyData.rate_limit_rpm || 60} RPM • {((keyData.rate_limit_tpm || 1000000) >= 1000000 ? '1M' : '400K')} TPM
                 </span>
                 <span className="text-[10px] text-stone-400 block mt-0.5">
-                  60 req/min rate • 1M tok/min burst
+                  {keyData.rate_limit_rpm || 60} req/min rate • {((keyData.rate_limit_tpm || (keyData?.tier === '20x' ? 1000000 : 400000)) >= 1000000 ? '1M' : '400K')} tok/min burst
                 </span>
               </div>
 
@@ -623,7 +767,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                       <span className="text-xs font-semibold text-emerald-500/80">[{remainingPercent}%]</span>
                     </>
                   ) : (
-                    <span className="text-stone-400 dark:text-stone-500 text-base font-semibold">N/A</span>
+                    <span className="text-stone-400 dark:text-stone-500 text-base font-semibold">Unavailable</span>
                   )}
                 </div>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1">
@@ -695,7 +839,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
               </div>
               <div className="w-full h-3 rounded-full bg-stone-200 dark:bg-[#201F1E] overflow-hidden p-0.5">
                 <div 
-                  className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-500"
+                  className={`h-full rounded-full bg-gradient-to-r ${getProgressBarGradient(usedPercent)} transition-all duration-500`}
                   style={{ width: `${tokensUsed !== null ? Math.max(4, Math.min(100, usedPercent || 0)) : 0}%` }}
                 ></div>
               </div>
@@ -822,16 +966,32 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-[#E8E3D9] dark:border-[#262422]">
+                  <span className="text-stone-500">Total Lifetime Tokens</span>
+                  <div className="text-right">
+                    <span className="font-bold text-stone-900 dark:text-white">
+                      {Number(keyData.total_tokens_consumed || 0) >= 1000000
+                        ? `${(Number(keyData.total_tokens_consumed || 0) / 1000000).toFixed(2)}M`
+                        : `${Number(keyData.total_tokens_consumed || 0).toLocaleString()} tok`}
+                    </span>
+                    {Number(keyData.total_tokens_consumed || 0) >= 1000000 && (
+                      <span className="text-[10px] text-stone-400 block font-normal">
+                        {Number(keyData.total_tokens_consumed || 0).toLocaleString()} tok
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-[#E8E3D9] dark:border-[#262422]">
                   <span className="text-stone-500">Last 24h Requests</span>
                   <span className="font-bold text-stone-900 dark:text-white">
-                    {(keyData.last24hRequests || 326).toLocaleString()}
+                    {(keyData.last24hRequests ?? 0).toLocaleString()}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center py-2">
                   <span className="text-stone-500">Total API Requests</span>
                   <span className="font-bold text-stone-900 dark:text-white">
-                    {(keyData.total_requests || 18345).toLocaleString()}
+                    {(keyData.total_requests ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -852,7 +1012,11 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                 <div className="flex justify-between items-center py-2 border-b border-[#E8E3D9] dark:border-[#262422]">
                   <span className="text-stone-500">Last Request Processed</span>
                   <span className="font-bold text-stone-900 dark:text-white">
-                    {formatFullDate(new Date().toISOString())}
+                    {requestLogs.length > 0
+                      ? requestLogs[0].timestamp
+                      : (keyData.total_requests && keyData.total_requests > 0
+                        ? formatShortTime(keyData.lastSyncTime)
+                        : 'No requests in active window')}
                   </span>
                 </div>
 
@@ -900,7 +1064,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
             </div>
           </div>
 
-          {/* 6. RECENT REQUEST LOGS (LAST 20) */}
+          {/* 6. RECENT REQUEST LOGS */}
           <div className="rounded-3xl border border-[#E7E2D8] dark:border-[#262422] bg-white dark:bg-[#121110] overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-[#E8E3D9] dark:border-[#262422] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -908,46 +1072,58 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
                   <Layers className="w-4 h-4" />
                 </div>
                 <h4 className="text-sm font-bold text-stone-900 dark:text-white">
-                  Recent Request Logs (Last 20)
+                  Recent Request Logs
                 </h4>
               </div>
               <span className="text-[11px] font-mono text-stone-400 font-semibold">
-                20 records logged
+                {requestLogs.length > 0 ? `${requestLogs.length} records` : 'No records'}
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="bg-stone-50 dark:bg-[#181716] border-b border-[#E8E3D9] dark:border-[#262422] text-stone-400 uppercase text-[10px]">
-                    <th className="text-left px-6 py-3 font-bold">TIMESTAMP</th>
-                    <th className="text-left px-6 py-3 font-bold">MODEL</th>
-                    <th className="text-center px-6 py-3 font-bold">TOKENS</th>
-                    <th className="text-right px-6 py-3 font-bold">STATUS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E8E3D9] dark:divide-[#262422]">
-                  {requestLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-stone-50/60 dark:hover:bg-white/[0.02] transition">
-                      <td className="px-6 py-3 text-stone-600 dark:text-stone-300">
-                        {log.timestamp}
-                      </td>
-                      <td className="px-6 py-3 font-bold text-[#EA580C]">
-                        {log.model}
-                      </td>
-                      <td className="px-6 py-3 text-center text-stone-400">
-                        {log.tokens}
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
-                          {log.status}
-                        </span>
-                      </td>
+            {requestLogs.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead>
+                    <tr className="bg-stone-50 dark:bg-[#181716] border-b border-[#E8E3D9] dark:border-[#262422] text-stone-400 uppercase text-[10px]">
+                      <th className="text-left px-6 py-3 font-bold">TIMESTAMP</th>
+                      <th className="text-left px-6 py-3 font-bold">MODEL</th>
+                      <th className="text-center px-6 py-3 font-bold">TOKENS</th>
+                      <th className="text-right px-6 py-3 font-bold">STATUS</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E3D9] dark:divide-[#262422]">
+                    {requestLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-stone-50/60 dark:hover:bg-white/[0.02] transition">
+                        <td className="px-6 py-3 text-stone-600 dark:text-stone-300">
+                          {log.timestamp}
+                        </td>
+                        <td className="px-6 py-3 font-bold text-[#EA580C]">
+                          {log.model}
+                        </td>
+                        <td className="px-6 py-3 text-center text-stone-400">
+                          {typeof log.tokens === 'number' ? log.tokens.toLocaleString() : log.tokens}
+                        </td>
+                        <td className="px-6 py-3 text-right">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="px-6 py-10 text-center">
+                <Layers className="w-8 h-8 text-stone-300 dark:text-stone-600 mx-auto mb-3" />
+                <p className="text-xs font-mono text-stone-400 dark:text-stone-500 font-semibold">
+                  No request logs available in the current 5-hour window.
+                </p>
+                <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1">
+                  Logs appear here when API requests are made with this key.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* 7. DEVELOPER RAW JSON PAYLOAD DRAWER */}

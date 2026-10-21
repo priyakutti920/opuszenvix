@@ -146,11 +146,11 @@ await itAsync('5. Usage of 20,000,000 displays 0 remaining (100% used, capped)',
   assert.equal(res.remaining_percentage, 0.0);
 });
 
-// 6. Other plans remain unchanged
-it('6. Other plans remain unchanged: 5x, 5x_trial, custom keep 25,000,000', () => {
-  assert.equal(quotaFor('5x').limit, 25000000, '5x plan must remain 25,000,000');
-  assert.equal(quotaFor('5x_trial').limit, 25000000, '5x_trial plan must remain 25,000,000');
-  assert.equal(quotaFor('custom').limit, 25000000, 'custom plan must remain 25,000,000');
+// 6. Max 5x plans configured to authoritative 5,000,000 quota
+it('6. Max 5x plans configured: 5x, 5x_trial, custom have 5,000,000 tokens', () => {
+  assert.equal(quotaFor('5x').limit, 5000000, '5x plan must be 5,000,000');
+  assert.equal(quotaFor('5x_trial').limit, 5000000, '5x_trial plan must be 5,000,000');
+  assert.equal(quotaFor('custom').limit, 5000000, 'custom plan must be 5,000,000');
 });
 
 // 7. Duplicate request IDs do not double-count tokens
