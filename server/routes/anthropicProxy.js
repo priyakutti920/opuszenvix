@@ -90,11 +90,11 @@ router.get('/messages', (req, res) => {
   } catch {
     // Unconfigured upstream base
   }
-  const apiDomain = process.env.API_DOMAIN || 'https://api.opuszyra.live';
+  const apiDomain = process.env.API_DOMAIN || 'https://api.opuszenvix.live';
 
   return res.json({
     status: 'ok',
-    service: 'Opuszyra Middle-Man AI Gateway',
+    service: 'Opuszenvix Middle-Man AI Gateway',
     version: '1.0.0',
     upstream: upstreamBase || 'not configured',
     gateway_domain: apiDomain,

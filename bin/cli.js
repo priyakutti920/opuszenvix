@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Opuszyra CLI - 1-Step Setup Tool
- * Usage: npx opuszyra
+ * Opuszenvix CLI - 1-Step Setup Tool
+ * Usage: npx opuszenvix
  */
 
 import readline from 'node:readline';
@@ -10,14 +10,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-const GATEWAY_URL = 'https://api.opuszyra.live/v1';
+const GATEWAY_URL = 'https://api.opuszenvix.live/v1';
 
 const BANNER = `
-\x1b[38;2;234;88;12m   ___  ____  _   _ ____ ______   ______    _   \x1b[0m
-\x1b[38;2;234;88;12m  / _ \\|  _ \\| | | / ___|__  /\\ \\ / /  _ \\  / \\  \x1b[0m
-\x1b[38;2;234;88;12m | | | | |_) | | | \\___ \\ / /  \\ V /| |_) |/ _ \\ \x1b[0m
-\x1b[38;2;234;88;12m | |_| |  __/| |_| |___) / /_   | | |  _ </ ___ \\\x1b[0m
-\x1b[38;2;234;88;12m  \\___/|_|    \\___/|____/____|  |_| |_| \\_/_/   \\_\\\x1b[0m
+\x1b[38;2;234;88;12m   ___  ____  _   _ ____  _____ _   ___     _____  __ \x1b[0m
+\x1b[38;2;234;88;12m  / _ \\|  _ \\| | | / ___||__  /| \\ | \\ \\   / /_ _| \\ \\/ / \x1b[0m
+\x1b[38;2;234;88;12m | | | | |_) | | | \\___ \\  / / |  \\| |\\ \\ / / | |   \\  /  \x1b[0m
+\x1b[38;2;234;88;12m | |_| |  __/| |_| |___) |/ /_ | |\\  | \\ V /  | |   /  \\  \x1b[0m
+\x1b[38;2;234;88;12m  \\___/|_|    \\___/|____//____||_| \\_|  \\_/  |___| /_/\\_\\ \x1b[0m
 \x1b[38;2;249;115;22m  Anthropic AI Proxy & Gateway • 1M Context • 5h Rolling Quota\x1b[0m
 `;
 
@@ -33,7 +33,7 @@ const ask = (query) => new Promise((resolve) => rl.question(query, resolve));
 
 async function main() {
   try {
-    const rawKey = await ask('\x1b[1mEnter your Opuszyra API Key\x1b[0m (opm-live-...): ');
+    const rawKey = await ask('\x1b[1mEnter your Opuszenvix API Key\x1b[0m (opm-live-...): ');
     const apiKey = rawKey.trim();
 
     if (!apiKey) {
@@ -43,7 +43,7 @@ async function main() {
       return;
     }
 
-    console.log('\n\x1b[1mWhere would you like to configure Opuszyra?\x1b[0m');
+    console.log('\n\x1b[1mWhere would you like to configure Opuszenvix?\x1b[0m');
     console.log('  \x1b[36m1)\x1b[0m Claude Code CLI (~/.claude/settings.json)');
     console.log('  \x1b[36m2)\x1b[0m Cursor IDE');
     console.log('  \x1b[36m3)\x1b[0m Current Terminal Shell');
@@ -64,7 +64,7 @@ async function main() {
     }
 
     console.log('\n\x1b[32m\x1b[1m✔ Setup complete!\x1b[0m Ready to code with unbuffered Claude 3.7 / Opus / Sonnet streaming.');
-    console.log('\x1b[90mNeed help? Visit https://opuszyra.live/docs or contact support.\x1b[0m\n');
+    console.log('\x1b[90mNeed help? Visit https://opuszenvix.live/docs or contact support.\x1b[0m\n');
   } catch (err) {
     console.error('\x1b[31mError during setup:\x1b[0m', err.message);
   } finally {

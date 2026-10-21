@@ -1,8 +1,8 @@
-# Opuszyra — Claude LLM Proxy & API Gateway
+# Opuszenvix — Claude LLM Proxy & API Gateway
 
 A high-performance Anthropic API Gateway engineered with **React (Vite)**, **Tailwind CSS**, **Node.js (Express)**, and **Supabase** (PostgreSQL).
 
-Provides drop-in Anthropic compatibility with high-capacity 5-hour rolling reset windows, unbuffered Server-Sent Events (SSE) streaming, 100% free prompt caching reads, real-time key inspection, and crypto USDT (TRC-20) checkout automation.
+Provides drop-in Anthropic compatibility with high-capacity 5-hour rolling reset windows, unbuffered Server-Sent Events (SSE) streaming, 100% free prompt caching reads, real-time key inspection, and instant UPI & Card activation in INR.
 
 ---
 
@@ -10,17 +10,17 @@ Provides drop-in Anthropic compatibility with high-capacity 5-hour rolling reset
 
 1. **Middle-Man Passthrough API Bypass (`https://api.opuszen.shop`)**:
    - Acts as a high-performance middle-man gateway forwarding `/v1/messages`, `/v1/models`, and `/v1/chat/completions` to `https://api.opuszen.shop` with zero-latency unbuffered SSE streaming and prompt caching.
-   - Host under your own custom domain (`api.yourdomain.com` or `https://api.opuszyra.live`) and distribute keys to your users.
+   - Host under your own custom domain (`api.yourdomain.com` or `https://api.opuszenvix.live`) and distribute keys to your users.
 2. **Real-Time Token Status API (`/api/key-status`)**:
    - Queries `https://api.opuszen.shop/api/key-status` in real-time to retrieve exact remaining tokens, 5-hour rolling countdowns, allowed models, and node health.
 3. **Anthropic-Compatible Drop-In Proxy (`/v1/messages`)**:
    - Supports official Anthropic Python and TypeScript SDKs, Claude Code CLI, Cursor, Windsurf, Cline, and Roo Code.
-   - Simply change `base_url` to `https://api.opuszyra.live/v1` (or your middle-man domain).
+   - Simply change `base_url` to `https://api.opuszenvix.live/v1` (or your middle-man domain).
 4. **Interactive Middle-Man Documentation Page**:
    - Live interactive domain switcher that dynamically re-renders all SDK code snippets, cURL examples, IDE settings, and Nginx reverse proxy configs for your custom domain.
 5. **Rolling 5-Hour Reset Windows**:
    - Token capacity resets 5 hours from the first request—no rigid 24-hour lockouts or calendar day cliffs.
-6. **Opuszyra Key Inspector (`/check a key`)**:
+6. **Opuszenvix Key Inspector (`/check a key`)**:
    - Anonymous inspection tool displaying real-time 5-hour countdown timer, remaining token allowances, RPM/TPM limits, and model access.
 7. **Interactive Claude Playground**:
    - Test prompts against Claude 3.7 Sonnet (Hybrid Reasoning), Claude 3.5 Sonnet, Claude 3 Opus, and Claude 3.5 Haiku with live SSE streaming token output and metrics.
@@ -120,7 +120,7 @@ print(res.content[0].text)
 ## 📂 Project Architecture
 
 ```
-Opuszyra/
+opuszenvix/
 ├── client/                     # React + Vite + Tailwind CSS frontend
 │   ├── src/
 │   │   ├── components/         # Navbar, Hero, KeyInspector, Playground, Dashboard, etc.

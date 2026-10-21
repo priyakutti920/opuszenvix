@@ -52,7 +52,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
   const [sdkTab, setSdkTab] = useState<'python' | 'typescript' | 'curl' | 'sse' | 'openai'>('python');
 
-  const cleanDomain = 'https://api.opuszyra.live';
+  const cleanDomain = 'https://api.opuszenvix.live';
   const v1Base = `${cleanDomain}/v1`;
 
   const copyToClipboard = async (text: string, id: string) => {
@@ -82,7 +82,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <span>Developer Documentation &amp; AI Gateway</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-3">
-            <span className="text-[#EA580C]">Opuszyra</span> API &amp; Gateway Docs
+            <span className="text-[#EA580C]">Opuszenvix</span> API &amp; Gateway Docs
           </h1>
           <p className="text-stone-600 dark:text-stone-400 text-base max-w-3xl leading-relaxed">
             High-performance Anthropic Claude &amp; OpenAI compatible AI API gateway with real-time token status inspections, sub-20ms latency, and zero-buffering SSE token streaming.
@@ -147,7 +147,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 Overview
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-sm">
-                Opuszyra is an ultra-low latency, Anthropic-compatible AI API gateway. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your gateway domain:{' '}
+                Opuszenvix is an ultra-low latency, Anthropic-compatible AI API gateway. Developers can point their tools (Claude Code, Cursor, Windsurf, Cline, Roo Code, and official SDKs) directly to your gateway domain:{' '}
                 <code className="text-xs font-mono bg-orange-500/10 text-[#EA580C] px-1.5 py-0.5 rounded font-bold border border-orange-500/20">
                   {v1Base}
                 </code>.
@@ -178,7 +178,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   <div className="px-4 py-2 border-b border-[#262320] text-xs font-mono text-[#EA580C] bg-[#141312] font-semibold flex items-center justify-between">
                     <span>terminal</span>
                     <button
-                      onClick={() => copyToClipboard('npx opuszyra', 'cli-quickstart')}
+                      onClick={() => copyToClipboard('npx opuszenvix', 'cli-quickstart')}
                       className="flex items-center gap-1 text-stone-400 hover:text-white transition"
                     >
                       {copiedSnippetId === 'cli-quickstart' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -186,14 +186,14 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                     </button>
                   </div>
                   <pre className="p-4 text-xs font-mono text-white leading-relaxed overflow-x-auto">
-                    <code>npx opuszyra</code>
+                    <code>npx opuszenvix</code>
                   </pre>
                 </div>
               </div>
 
               <h3 className="text-base font-bold mb-3">Manual Environment Variables</h3>
               <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
-                Alternatively, configure your environment variables manually to point directly to your Opuszyra gateway:
+                Alternatively, configure your environment variables manually to point directly to your Opuszenvix gateway:
               </p>
 
               <div className="dark-code-box relative group rounded-2xl border border-[#262320] bg-[#0F0E0D] overflow-hidden mb-6 shadow-md">
@@ -304,7 +304,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 SDKs &amp; Code Examples
               </h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-6 text-xs sm:text-sm">
-                Opuszyra is fully compatible with standard Anthropic and OpenAI SDKs. Requests are routed through <code className="font-mono text-[#EA580C]">{v1Base}</code>.
+                Opuszenvix is fully compatible with standard Anthropic and OpenAI SDKs. Requests are routed through <code className="font-mono text-[#EA580C]">{v1Base}</code>.
               </p>
 
               {/* Code Tab Switcher */}
@@ -341,10 +341,10 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                         : sdkTab === 'typescript'
                         ? `import Anthropic from '@anthropic-ai/sdk';\n\nconst anthropic = new Anthropic({\n  apiKey: 'YOUR_API_KEY',\n  baseURL: '${cleanDomain}',\n});\n\nconst response = await anthropic.messages.create({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 1024,\n  messages: [{ role: 'user', content: 'Write a TypeScript quicksort.' }],\n});\n\nconsole.log(response.content[0]);`
                         : sdkTab === 'curl'
-                        ? `curl ${v1Base}/messages \\\n  -H "x-api-key: YOUR_API_KEY" \\\n  -H "anthropic-version: 2023-06-01" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "model": "claude-opus-4-8",\n    "max_tokens": 1024,\n    "messages": [{"role": "user", "content": "Hello via Opuszyra!"}]\n  }'`
+                        ? `curl ${v1Base}/messages \\\n  -H "x-api-key: YOUR_API_KEY" \\\n  -H "anthropic-version: 2023-06-01" \\\n  -H "content-type: application/json" \\\n  -d '{\n    "model": "claude-opus-4-8",\n    "max_tokens": 1024,\n    "messages": [{"role": "user", "content": "Hello via Opuszenvix!"}]\n  }'`
                         : sdkTab === 'sse'
                         ? `import anthropic\n\nclient = anthropic.Anthropic(api_key="YOUR_API_KEY", base_url="${cleanDomain}")\n\nwith client.messages.stream(\n    max_tokens=1024,\n    messages=[{"role": "user", "content": "Write an essay about AI autonomous swarms."}],\n    model="claude-sonnet-4-6",\n) as stream:\n    for text in stream.text_stream:\n        print(text, end="", flush=True)`
-                        : `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_API_KEY",\n    base_url="${v1Base}",\n)\n\nresponse = client.chat.completions.create(\n    model="claude-sonnet-4-6",\n    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Opuszyra!"}],\n)\nprint(response.choices[0].message.content)`;
+                        : `from openai import OpenAI\n\nclient = OpenAI(\n    api_key="YOUR_API_KEY",\n    base_url="${v1Base}",\n)\n\nresponse = client.chat.completions.create(\n    model="claude-sonnet-4-6",\n    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Opuszenvix!"}],\n)\nprint(response.choices[0].message.content)`;
                       copyToClipboard(snippet, `sdk-${sdkTab}`);
                     }}
                     className="flex items-center gap-1.5 text-stone-400 hover:text-white transition"
@@ -357,7 +357,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                   {sdkTab === 'python' && (
                     <code>{`import anthropic
 
-# Initialize the client pointing to your Opuszyra Gateway
+# Initialize the client pointing to your Opuszenvix Gateway
 client = anthropic.Anthropic(
     api_key="YOUR_API_KEY",
     base_url="${cleanDomain}",
@@ -377,7 +377,7 @@ print(message.content[0].text)`}</code>
                   {sdkTab === 'typescript' && (
                     <code>{`import Anthropic from '@anthropic-ai/sdk';
 
-// Initialize the client pointing to your Opuszyra Gateway
+// Initialize the client pointing to your Opuszenvix Gateway
 const anthropic = new Anthropic({
   apiKey: 'YOUR_API_KEY',
   baseURL: '${cleanDomain}',
@@ -401,7 +401,7 @@ console.log(response.content[0]);`}</code>
     "model": "claude-opus-4-8",
     "max_tokens": 1024,
     "messages": [
-      { "role": "user", "content": "Hello from raw cURL via Opuszyra!" }
+      { "role": "user", "content": "Hello from raw cURL via Opuszenvix!" }
     ]
   }'`}</code>
                   )}
@@ -427,7 +427,7 @@ with client.messages.stream(
                   {sdkTab === 'openai' && (
                     <code>{`from openai import OpenAI
 
-# OpenAI SDK directed to your Opuszyra Gateway
+# OpenAI SDK directed to your Opuszenvix Gateway
 client = OpenAI(
     api_key="YOUR_API_KEY",
     base_url="${v1Base}",
@@ -435,7 +435,7 @@ client = OpenAI(
 
 response = client.chat.completions.create(
     model="claude-sonnet-4-6",
-    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Opuszyra!"}],
+    messages=[{"role": "user", "content": "Hello from OpenAI SDK via Opuszenvix!"}],
 )
 
 print(response.choices[0].message.content)`}</code>
@@ -716,7 +716,7 @@ print(response.choices[0].message.content)`}</code>
                     a: 'Your 5-hour rolling token window has reached capacity. Wait for the quota replenishment window to reset.'
                   },
                   {
-                    q: 'How does Opuszyra ensure low latency?',
+                    q: 'How does Opuszenvix ensure low latency?',
                     a: 'Requests to /v1/messages are processed with real-time zero-buffering Server-Sent Events (SSE) streaming and sub-20ms time-to-first-token.'
                   },
                   {
@@ -734,7 +734,7 @@ print(response.choices[0].message.content)`}</code>
               {/* Bottom Support Callout */}
               <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 text-center">
                 <h3 className="text-base font-bold text-[#EA580C] mb-1">
-                  Ready to build with Opuszyra?
+                  Ready to build with Opuszenvix?
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
                   Get high-performance, low-latency access to Claude Opus, Sonnet, and next-generation models.

@@ -2,22 +2,34 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('opuszenvix_theme');
+          var isLight = saved === 'light';
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark', 'dim');
+          root.classList.add(isLight ? 'light' : 'dark');
+          root.style.colorScheme = isLight ? 'light' : 'dark';
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Opuszyra — Claude LLM Proxy & High-Capacity API Gateway</title>
+    <title>Opuszenvix — Claude LLM Proxy & High-Capacity API Gateway</title>
     <meta name="description" content="High-capacity Anthropic Claude API gateway with 5-hour rolling windows, drop-in SDK compatibility, and instant UPI activation in INR." />
-    <link rel="canonical" href="https://opuszyra.live/" />
+    <link rel="canonical" href="https://opuszenvix.live/" />
 
     <!-- Open Graph Metadata -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Opuszyra — Claude LLM Proxy & High-Capacity API Gateway" />
+    <meta property="og:title" content="Opuszenvix — Claude LLM Proxy & High-Capacity API Gateway" />
     <meta property="og:description" content="High-capacity Anthropic Claude API gateway with 5-hour rolling windows, drop-in SDK compatibility, and instant UPI activation in INR." />
     <meta property="og:image" content="/logo.png" />
 
     <!-- Twitter Card Metadata -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Opuszyra — Claude LLM Proxy & High-Capacity API Gateway" />
+    <meta name="twitter:title" content="Opuszenvix — Claude LLM Proxy & High-Capacity API Gateway" />
     <meta name="twitter:description" content="High-capacity Anthropic Claude API gateway with 5-hour rolling windows, drop-in SDK compatibility, and instant UPI activation in INR." />
     <meta name="twitter:image" content="/logo.png" />
 

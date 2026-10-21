@@ -68,22 +68,22 @@ export const ModelsMatrix: React.FC = () => {
   return (
     <div id="models" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center max-w-3xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-mono mb-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-mono mb-3">
           <Sparkles className="w-3.5 h-3.5" />
           <span>Full Anthropic Model Lineup</span>
         </div>
-        <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Every Claude Model. <span className="text-gradient-orange">Zero Tier Gating</span>.
         </h2>
-        <p className="text-base sm:text-lg text-slate-400 mt-4 leading-relaxed">
-          Both 5× and 20× Opuszyra plans unlock the complete Claude family on a per-request basis with identical low latency.
+        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 mt-4 leading-relaxed">
+          Both 5× and 20× Opuszenvix plans unlock the complete Claude family on a per-request basis with identical low latency.
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-dark-900/80 backdrop-blur-xl shadow-2xl">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-dark-900/80 backdrop-blur-xl shadow-lg dark:shadow-2xl">
         <table className="w-full text-left text-xs sm:text-sm border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.08] bg-dark-950/80 font-mono text-slate-400 text-[11px] uppercase tracking-wider">
+            <tr className="border-b border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-dark-950/80 font-mono text-slate-600 dark:text-slate-400 text-[11px] uppercase tracking-wider">
               <th className="py-4 px-6">Model</th>
               <th className="py-4 px-4">Context Window</th>
               <th className="py-4 px-4">Reasoning Engine</th>
@@ -92,37 +92,37 @@ export const ModelsMatrix: React.FC = () => {
               <th className="py-4 px-4">Best For</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.05]">
+          <tbody className="divide-y divide-slate-200 dark:divide-white/[0.05]">
             {MODELS_DATA.map((m) => (
-              <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+              <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                 <td className="py-4 px-6">
-                  <div className="font-bold text-white font-mono text-sm">{m.name}</div>
+                  <div className="font-bold text-slate-900 dark:text-white font-mono text-sm">{m.name}</div>
                   <div className="text-[11px] text-slate-500 font-mono mt-0.5">{m.id}</div>
-                  <span className="inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                  <span className="inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
                     {m.badge}
                   </span>
                 </td>
-                <td className="py-4 px-4 font-mono text-slate-300">{m.context}</td>
+                <td className="py-4 px-4 font-mono text-slate-700 dark:text-slate-300">{m.context}</td>
                 <td className="py-4 px-4">
-                  <span className="px-2.5 py-1 rounded-md bg-white/[0.04] text-slate-300 font-mono text-xs border border-white/5">
+                  <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-mono text-xs border border-slate-200 dark:border-white/5">
                     {m.reasoning}
                   </span>
                 </td>
                 <td className="py-4 px-4 text-center">
                   <div className="flex justify-center">
-                    <span className="p-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                    <span className="p-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                       <Check className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </td>
                 <td className="py-4 px-4 text-center">
                   <div className="flex justify-center">
-                    <span className="p-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                    <span className="p-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                       <Check className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </td>
-                <td className="py-4 px-4 text-slate-400 text-xs max-w-xs">{m.bestFor}</td>
+                <td className="py-4 px-4 text-slate-600 dark:text-slate-400 text-xs max-w-xs">{m.bestFor}</td>
               </tr>
             ))}
           </tbody>

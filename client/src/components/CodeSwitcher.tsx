@@ -9,10 +9,10 @@ const SNIPPETS = [
     lang: 'bash',
     filename: 'terminal.sh',
     code: `# Instant 1-step interactive configuration
-npx opuszyra
+npx opuszenvix
 
 # Automatically configures Claude Code, Cursor, and shell environments
-# with https://api.opuszyra.live/v1 and your key!`,
+# with https://api.opuszenvix.pro and your key!`,
   },
   {
     id: 'claudecode',
@@ -20,10 +20,10 @@ npx opuszyra
     lang: 'bash',
     filename: 'terminal.sh',
     code: `# Auto-configure via CLI:
-npx opuszyra
+npx opuszenvix
 
 # Or export manually:
-export ANTHROPIC_BASE_URL="https://api.opuszyra.live/v1"
+export ANTHROPIC_BASE_URL="https://api.opuszenvix.pro"
 export ANTHROPIC_API_KEY="opm-live-5x-your_api_key_here"
 
 # Run Claude Code with full 5-hour rolling capacity
@@ -36,7 +36,7 @@ claude`,
     filename: '.cursorrules / settings.json',
     code: `// In Cursor > Settings > Models > OpenAI/Anthropic API Key
 {
-  "anthropic.overrideBaseUrl": "https://api.opuszyra.live/v1",
+  "anthropic.overrideBaseUrl": "https://api.opuszenvix.pro",
   "anthropic.apiKey": "opm-live-20x-your_api_key_here",
   "defaultModel": "claude-3-7-sonnet-20250219"
 }`,
@@ -50,7 +50,7 @@ claude`,
 
 client = anthropic.Anthropic(
     api_key="opm-live-5x-your_api_key_here",
-    base_url="https://api.opuszyra.live/v1"  # Drop-in Opuszyra proxy
+    base_url="https://api.opuszenvix.pro"  # Drop-in Opuszenvix proxy
 )
 
 response = client.messages.create(
@@ -70,7 +70,7 @@ print(response.content[0].text)`,
 
 const anthropic = new Anthropic({
   apiKey: 'opm-live-20x-your_api_key_here',
-  baseURL: 'https://api.opuszyra.live/v1', // Unbuffered SSE streaming
+  baseURL: 'https://api.opuszenvix.pro', // Unbuffered SSE streaming
 });
 
 const stream = await anthropic.messages.create({
@@ -92,7 +92,7 @@ for await (const chunk of stream) {
     code: `{
   "apiProvider": "anthropic",
   "apiModelId": "claude-3-7-sonnet-20250219",
-  "anthropicBaseUrl": "https://api.opuszyra.live/v1",
+  "anthropicBaseUrl": "https://api.opuszenvix.pro",
   "apiKey": "opm-live-5x-your_api_key_here"
 }`,
   },
@@ -101,14 +101,14 @@ for await (const chunk of stream) {
     name: 'cURL',
     lang: 'bash',
     filename: 'request.sh',
-    code: `curl https://api.opuszyra.live/v1/messages \\
+    code: `curl https://api.opuszenvix.pro/messages \\
   -H "content-type: application/json" \\
   -H "x-api-key: opm-live-5x-your_api_key_here" \\
   -H "anthropic-version: 2023-06-01" \\
   -d '{
     "model": "claude-3-7-sonnet-20250219",
     "max_tokens": 1024,
-    "messages": [{"role": "user", "content": "Hello via Opuszyra!"}]
+    "messages": [{"role": "user", "content": "Hello via Opuszenvix!"}]
   }'`,
   },
 ];
@@ -125,7 +125,7 @@ function tokenizeLine(line: string): Token[] {
   }
 
   const tokens: Token[] = [];
-  const regex = /(#.*$|\/\/.*$|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:import|from|export|const|let|var|await|async|for|of|in|def|class|print|curl)\b|\b(?:npx\s+opuszyra|claude)\b|\b(?:true|false|null|\d+)\b|[A-Za-z0-9_.-]+(?=\s*:))/g;
+  const regex = /(#.*$|\/\/.*$|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:import|from|export|const|let|var|await|async|for|of|in|def|class|print|curl)\b|\b(?:npx\s+opuszenvix|claude)\b|\b(?:true|false|null|\d+)\b|[A-Za-z0-9_.-]+(?=\s*:))/g;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -150,7 +150,7 @@ function tokenizeLine(line: string): Token[] {
       }
     } else if (/^(import|from|export|const|let|var|await|async|for|of|in|def|class|print|curl)$/.test(val)) {
       tokens.push({ text: val, className: 'text-sky-400 font-semibold' });
-    } else if (/^(npx\s+opuszyra|claude)$/.test(val)) {
+    } else if (/^(npx\s+opuszenvix|claude)$/.test(val)) {
       tokens.push({ text: val, className: 'text-emerald-400 font-bold' });
     } else if (/^(true|false|null|\d+)$/.test(val)) {
       tokens.push({ text: val, className: 'text-purple-300 font-medium' });

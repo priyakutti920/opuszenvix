@@ -11,8 +11,8 @@ interface NavbarProps {
   onOpenCheckKey?: () => void;
   activeView: string;
   setActiveView: (view: ActiveView) => void;
-  theme: Theme;
-  onToggleTheme: (e: React.MouseEvent) => void;
+  theme?: Theme;
+  onToggleTheme?: (e: React.MouseEvent) => void;
 }
 
 interface NavItem {
@@ -97,135 +97,132 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [mobileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 h-16 w-full border-b border-white/[0.08] bg-dark-950/80 backdrop-blur-xl transition-colors duration-300">
-      <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4 sm:px-8 lg:px-10">
-
-        {" "}
-        {/* Brand Logo */}
-        <button
-          onClick={() => go('home')}
-          className="inline-flex items-center gap-2.5 sm:gap-3 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1"
-          aria-label="Opuszyra home"
-        >
-          <img
-            src="/logo.png"
-            alt="Opuszyra Logo"
-            width="44"
-            height="44"
-            className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform group-hover:scale-105 drop-shadow-[0_2px_10px_rgba(234,88,12,0.35)]"
-          />
-          <span className="text-[17px] sm:text-[18px] font-bold tracking-tight text-white font-mono">
-            Opus<span className="text-brand-500">zyra</span>
-          </span>
-        </button>
-
-        {/* Center Desktop Navigation: Pricing, Docs, Playground, Status */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {DESKTOP_ITEMS.map((item) => {
-            const isActive = activeView === item.view;
-            return (
-              <button
-                key={item.view}
-                onClick={itemFor(item.view)}
-                className={`relative px-3.5 py-1.5 text-[13px] font-medium transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                  isActive
-                    ? 'text-white bg-white/[0.1] font-semibold'
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-              >
-                {item.view === 'status' && (
-                  <span className="absolute left-1 top-1/2 -translate-y-1/2 flex h-1.5 w-1.5">
-                    <span className="relative inline-flex rounded-full h-full w-full bg-emerald-500"></span>
-                  </span>
-                )}
-                <span className={item.view === 'status' ? 'pl-2' : ''}>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Right Action: Check Usage placed near Dark Mode Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {" "}
-          {/* Check Usage Button: visible on tablet/desktop */}
+    <header className="fixed top-0 z-50 w-full">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 pt-4">
+        <nav className="flex h-14 items-center justify-between rounded-full border border-slate-200/90 dark:border-white/10 bg-white/80 dark:bg-dark-950/85 pl-4 pr-2 backdrop-blur-md transition-colors duration-200 sm:pl-5 sm:pr-2.5 shadow-sm dark:shadow-[0_1px_2px_0_rgba(0,0,0,0.25)]">
+          {/* Brand Logo */}
           <button
-            onClick={handleNavCheckUsage}
-            className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
-              activeView === 'usage'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 ring-2 ring-amber-400'
-                : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/30 hover:border-amber-500/50'
-            }`}
-            title="Check API Key Usage & Quota"
+            onClick={() => go('home')}
+            className="shrink-0 inline-flex items-center gap-2.5 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-full"
+            aria-label="OpusZenvix home"
           >
-            <Key className="w-3.5 h-3.5" />
-            <span>Check Usage</span>
+            <img
+              src="/logo.png"
+              alt="OpusZenvix"
+              width="32"
+              height="32"
+              className="h-8 w-8 rounded-lg object-contain transition-transform group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(234,88,12,0.35)]"
+            />
+            <span className="font-semibold tracking-tight text-slate-900 dark:text-white text-[15px]">
+              Opus<span className="text-brand-500">Zenvix</span>
+            </span>
           </button>
 
-          {" "}
-          {/* White / Dark Theme Toggle Button */}
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          {/* Desktop Navigation Links */}
+          <div className="hidden items-center gap-1 md:flex">
+            {DESKTOP_ITEMS.map((item) => {
+              const isActive = activeView === item.view;
+              return (
+                <button
+                  key={item.view}
+                  onClick={itemFor(item.view)}
+                  className={`relative rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none ${
+                    isActive
+                      ? 'text-slate-900 bg-slate-100 dark:text-white dark:bg-white/10'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {item.view === 'status' && (
+                    <span className="inline-block mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle"></span>
+                  )}
+                  {item.label}
+                </button>
+              );
+            })}
 
-          {" "}
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg p-2 text-slate-400 hover:text-white hover:bg-white/5 md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-nav-drawer"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
+            <span aria-hidden="true" className="mx-2 h-5 w-px bg-slate-200 dark:bg-white/10" />
 
-      {" "}
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <nav id="mobile-nav-drawer" aria-label="Mobile navigation" className="border-b border-white/[0.08] bg-dark-950/95 backdrop-blur-2xl px-5 py-4 space-y-2 md:hidden animate-fadeIn">
-          {MOBILE_ITEMS.map((item) => {
-            const isActive = activeView === item.view;
-            return (
-              <button
-                key={item.view}
-                onClick={itemFor(item.view)}
-                className={`block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                  isActive
-                    ? 'text-white bg-white/10 font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {item.view === 'status' ? (
-                  <span className="flex items-center justify-between">
-                    <span>{item.label}</span>
-                    <span className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      Operational
-                    </span>
-                  </span>
-                ) : (
-                  item.mobileLabel || item.label
-                )}
-              </button>
-            );
-          })}
-
-          <div className="pt-2 border-t border-white/5">
+            {/* Check a key pill button */}
             <button
               onClick={handleNavCheckUsage}
-              className={`w-full text-left py-2.5 px-3 rounded-lg text-sm font-mono flex items-center gap-2 transition-all ${
+              className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-semibold transition-all focus-visible:outline-none ${
                 activeView === 'usage'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                  : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300'
+                  : 'bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-dark-950 dark:hover:bg-slate-200 shadow-sm'
               }`}
-              aria-current={activeView === 'usage' ? 'page' : undefined}
             >
-              <Key className="w-4 h-4 text-amber-400" />
-              <span className="font-semibold">Check Key Usage</span>
+              <Key className="h-3.5 w-3.5" />
+              <span>Check a key</span>
+            </button>
+
+            {/* Theme Toggle Button */}
+            <div className="ml-1">
+              <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            </div>
+          </div>
+
+          {/* Mobile hamburger button & ThemeToggle */}
+          <div className="flex items-center gap-1.5 md:hidden">
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
             </button>
           </div>
         </nav>
+      </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="mx-4 mt-2 max-w-6xl sm:mx-auto">
+          <nav
+            id="mobile-nav-drawer"
+            aria-label="Mobile navigation"
+            className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-dark-950/95 p-4 shadow-2xl backdrop-blur-2xl space-y-1.5 md:hidden"
+          >
+            {MOBILE_ITEMS.map((item) => {
+              const isActive = activeView === item.view;
+              return (
+                <button
+                  key={item.view}
+                  onClick={itemFor(item.view)}
+                  className={`block w-full text-left py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-slate-900 bg-slate-100 dark:text-white dark:bg-white/10 font-semibold'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {item.view === 'status' ? (
+                    <span className="flex items-center justify-between">
+                      <span>{item.label}</span>
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Operational
+                      </span>
+                    </span>
+                  ) : (
+                    item.mobileLabel || item.label
+                  )}
+                </button>
+              );
+            })}
+
+            <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+              <button
+                onClick={handleNavCheckUsage}
+                className="w-full justify-center inline-flex h-10 items-center gap-2 rounded-full bg-slate-900 text-white dark:bg-white dark:text-dark-950 px-4 text-sm font-semibold transition-opacity hover:opacity-90 shadow-sm"
+              >
+                <Key className="h-4 w-4" />
+                <span>Check a key</span>
+              </button>
+            </div>
+          </nav>
+        </div>
       )}
     </header>
   );

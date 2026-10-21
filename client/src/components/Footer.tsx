@@ -1,6 +1,5 @@
 import React from 'react';
-import { Zap, Heart, Shield, ArrowUpRight } from 'lucide-react';
-import { getSupportTelUrl, getDisplaySupportPhoneNumber, getWhatsAppSupportUrl } from '../lib/support';
+import { getDisplaySupportPhoneNumber, getSupportTelUrl, getWhatsAppSupportUrl } from '../lib/support';
 
 interface FooterProps {
   onOpenPricing: () => void;
@@ -17,50 +16,82 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenCheckKey,
   onNavigateSection,
 }) => {
-  const whatsappUrl = getWhatsAppSupportUrl("Hi! I have an inquiry about Opuszyra.");
+  const whatsappUrl = getWhatsAppSupportUrl('Hi! I have an inquiry about OpusZenvix.');
   const supportTel = getSupportTelUrl();
   const displayPhone = getDisplaySupportPhoneNumber();
 
   return (
-    <footer className="border-t border-white/[0.08] bg-dark-950 py-12 text-slate-400">
-      <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
-          {/* Brand Info */}
-          <div className="sm:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
+    <footer className="border-t border-slate-200 dark:border-white/10 bg-slate-100/70 dark:bg-dark-950/60 text-slate-600 dark:text-slate-400 transition-colors">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-8">
+          
+          {/* Brand Column */}
+          <div>
+            <a href="/" className="inline-flex items-center gap-2.5 group">
               <img
                 src="/logo.png"
-                alt="Opuszyra Logo"
-                width="44"
-                height="44"
-                className="h-10 w-10 sm:h-11 sm:w-11 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
+                alt="OpusZenvix"
+                width="32"
+                height="32"
+                className="h-8 w-8 rounded-lg object-contain transition-transform group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(234,88,12,0.35)]"
               />
-              <span className="text-[18px] font-bold tracking-tight text-white font-mono">
-                Opus<span className="text-brand-500">zyra</span>
+              <span className="font-semibold tracking-tight text-slate-900 dark:text-white text-base">
+                Opus<span className="text-brand-500">Zenvix</span>
               </span>
-            </div>
-            <p className="max-w-sm text-xs leading-relaxed text-slate-400">
-              High-throughput Anthropic Claude API gateway. Unbuffered SSE streaming, 5-hour
-              rolling capacity windows, and instant UPI &amp; Card activation in INR.
+            </a>
+
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              An Anthropic-compatible gateway for the full Claude lineup. One base URL, one key,
+              per-key budgets and limits.
             </p>
-            <button
-              onClick={onOpenStatus}
-              className="flex items-center gap-2 text-xs font-mono text-emerald-400 hover:underline text-left"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span>All 15 Claude Gateway Nodes Operational</span>
-            </button>
+
+            <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+              api.opuszenvix.pro
+            </p>
+
+            {/* Support links */}
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-mono">
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-600 dark:text-emerald-400 hover:underline transition-colors"
+                >
+                  WhatsApp Support
+                </a>
+              )}
+              {whatsappUrl && supportTel && <span className="text-slate-400 dark:text-slate-600">·</span>}
+              {supportTel && (
+                <a href={supportTel} className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
+                  {displayPhone}
+                </a>
+              )}
+            </div>
           </div>
 
-          {/* Navigation Columns */}
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300 font-mono">
-              Product
-            </h4>
-            <ul className="mt-3 space-y-2 text-xs">
+          {/* Build Nav */}
+          <nav aria-label="Build">
+            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-slate-900 dark:text-white">
+              Build
+            </p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li>
+                <button
+                  onClick={onOpenDocs}
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-left"
+                >
+                  Setup guide
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onOpenDocs}
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-left"
+                >
+                  API reference
+                </button>
+              </li>
               <li>
                 <a
                   href="#models"
@@ -70,127 +101,83 @@ export const Footer: React.FC<FooterProps> = ({
                       onNavigateSection('models');
                     }
                   }}
-                  className="hover:text-white transition"
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
                 >
-                  Claude Models
+                  Models
                 </a>
               </li>
               <li>
-                <button onClick={onOpenPricing} className="hover:text-white transition">
+                <button
+                  onClick={onOpenDocs}
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-left"
+                >
+                  Troubleshooting
+                </button>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Operate Nav */}
+          <nav aria-label="Operate">
+            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-slate-900 dark:text-white">
+              Operate
+            </p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li>
+                <button
+                  onClick={onOpenCheckKey}
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-left"
+                >
+                  Check a key
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onOpenStatus}
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-left"
+                >
+                  Service status
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onOpenPricing}
+                  className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors text-left"
+                >
                   Pricing &amp; Plans
                 </button>
               </li>
+            </ul>
+          </nav>
+
+          {/* Legal Nav */}
+          <nav aria-label="Legal">
+            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-slate-900 dark:text-white">
+              Legal
+            </p>
+            <ul className="mt-4 space-y-2.5 text-sm">
               <li>
-                <a
-                  href="#features"
-                  onClick={(e) => {
-                    if (onNavigateSection) {
-                      e.preventDefault();
-                      onNavigateSection('features');
-                    }
-                  }}
-                  className="hover:text-white transition"
-                >
-                  Features
+                <a href="#terms" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
+                  Terms of use
                 </a>
               </li>
               <li>
-                <button onClick={onOpenCheckKey} className="hover:text-white transition">
-                  Check Key Usage
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300 font-mono">
-              Integrations
-            </h4>
-            <ul className="mt-3 space-y-2 text-xs">
-              <li>
-                <button onClick={onOpenDocs} className="hover:text-white transition">
-                  Claude Code CLI
-                </button>
-              </li>
-              <li>
-                <button onClick={onOpenDocs} className="hover:text-white transition">
-                  Cursor IDE
-                </button>
-              </li>
-              <li>
-                <button onClick={onOpenDocs} className="hover:text-white transition">
-                  VS Code &amp; Cline
-                </button>
-              </li>
-              <li>
-                <button onClick={onOpenDocs} className="hover:text-white transition">
-                  Python SDK
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300 font-mono">
-              Legal &amp; Ops
-            </h4>
-            <ul className="mt-3 space-y-2 text-xs">
-              <li>
-                <span className="hover:text-white cursor-pointer transition">
-                  Privacy Policy
-                </span>
-              </li>
-              <li>
-                <span className="hover:text-white cursor-pointer transition">
-                  Terms of Service
-                </span>
-              </li>
-              <li>
-                <button onClick={onOpenStatus} className="hover:text-white transition text-left">
-                  Status Page
-                </button>
-              </li>
-              <li>
-                <a
-                  href="https://opuszyra.live/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-brand-400 hover:text-brand-300"
-                >
-                  <span>opuszyra.live</span>
-                  <ArrowUpRight className="w-3 h-3" />
+                <a href="#privacy" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
+                  Privacy policy
                 </a>
               </li>
-              {whatsappUrl && (
-                <li>
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition"
-                  >
-                    WhatsApp Support
-                  </a>
-                </li>
-              )}
-              {supportTel && displayPhone && (
-                <li>
-                  <a
-                    href={supportTel}
-                    className="hover:text-white transition"
-                  >
-                    Phone: {displayPhone}
-                  </a>
-                </li>
-              )}
             </ul>
-          </div>
+          </nav>
+
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/[0.08] pt-8 sm:flex-row text-xs">
-          <p>© {new Date().getFullYear()} Opuszyra. All rights reserved.</p>
-          <p className="flex items-center gap-1 font-mono text-[11px] text-slate-400">
-            Engineered with React, Tailwind CSS, Node.js &amp; Supabase
+        {/* Bottom Sub-bar */}
+        <div className="mt-12 flex flex-col gap-3 border-t border-slate-200 dark:border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            © 2026 OpusZenvix
+          </p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            Keys are delivered instantly via automated gateway
           </p>
         </div>
       </div>

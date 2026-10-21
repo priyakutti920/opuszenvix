@@ -40,32 +40,32 @@ export const CheckUsagePage: React.FC<CheckUsagePageProps> = ({
 
         {/* Information Grid: How the 5-Hour Cycle Works */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
+          <div className="p-6 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 flex items-center justify-center mb-4">
               <Clock className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">5-Hour Rolling Window</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">5-Hour Rolling Window</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Quota operates on a rolling 5-hour window. Token usage older than 5 hours is automatically released back to your available balance without needing manual top-ups.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
+          <div className="p-6 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 flex items-center justify-center mb-4">
               <Sparkles className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Free Prompt Caching</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Free Prompt Caching</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Cached prompt reads consume 0 tokens from your allowance. High-context codebase work in Claude Code or Cursor runs at maximum efficiency.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center mb-4">
+          <div className="p-6 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-500 dark:text-brand-400 flex items-center justify-center mb-4">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Zero Log Retention</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Zero Log Retention</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               We never log or store request prompts, source code, or completion payloads. Only aggregate token metrics are tracked for rolling window replenishment.
             </p>
           </div>

@@ -5,15 +5,15 @@ import { AnimatedTitle } from './AnimatedTitle';
 
 export const Migration: React.FC = () => {
   return (
-    <section className="py-16 md:py-24 lg:py-28 bg-[#0a0c12] text-slate-100 border-t border-white/[0.08]" id="migration">
+    <section className="py-16 md:py-24 lg:py-28 bg-slate-50/70 dark:bg-[#0a0c12] text-slate-900 dark:text-slate-100 border-t border-slate-200 dark:border-white/[0.08] transition-colors" id="migration">
       <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-600 dark:text-brand-400 font-semibold">
               03 — Migration
             </p>
             <AnimatedTitle
-              className="mt-4 text-4xl font-bold leading-[1.02] tracking-[-0.035em] sm:text-5xl"
+              className="mt-4 text-4xl font-bold leading-[1.02] tracking-[-0.035em] sm:text-5xl text-slate-900 dark:text-white"
               lines={[
                 ['One', 'line'],
                 ['changes.'],
@@ -25,7 +25,7 @@ export const Migration: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-5 max-w-md text-[16px] leading-relaxed text-slate-400"
+              className="mt-5 max-w-md text-[16px] leading-relaxed text-slate-600 dark:text-slate-400"
             >
               No SDK fork, no wrapper library, no rewrite. Repoint the base URL and every request,
               stream and tool call keeps working exactly as it did.
@@ -39,7 +39,7 @@ export const Migration: React.FC = () => {
               className="mt-8 flex items-center gap-3"
             >
               <span className="h-0.5 w-24 bg-brand-500 rounded-full"></span>
-              <span className="text-xs font-mono text-slate-400">100% Protocol drop-in</span>
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">100% Protocol drop-in</span>
             </motion.div>
           </div>
 
@@ -51,18 +51,18 @@ export const Migration: React.FC = () => {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: '-20px' }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden rounded-xl border border-red-500/20 bg-dark-950 shadow-lg"
+              className="overflow-hidden rounded-xl border border-red-500/20 bg-white dark:bg-dark-950 shadow-md dark:shadow-lg"
             >
-              <div className="flex items-center gap-2 border-b border-red-500/20 bg-red-950/20 px-4 py-2.5">
-                <span className="h-2 w-2 rounded-full bg-red-400/80"></span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-red-400 font-semibold">
+              <div className="flex items-center gap-2 border-b border-red-500/20 bg-red-500/10 dark:bg-red-950/20 px-4 py-2.5">
+                <span className="h-2 w-2 rounded-full bg-red-500 dark:bg-red-400/80"></span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-red-600 dark:text-red-400 font-semibold">
                   Before — Anthropic Official
                 </span>
               </div>
-              <div className="overflow-x-auto px-5 py-4 font-mono text-[13px] text-slate-400">
+              <div className="overflow-x-auto px-5 py-4 font-mono text-[13px] text-slate-600 dark:text-slate-400">
                 <span>base_url = </span>
-                <span className="text-red-400 line-through">"https://api.anthropic.com"</span>
-                <span className="block mt-1 text-[11px] text-slate-400"># Subject to waitlists &amp; strict tier limits</span>
+                <span className="text-red-600 dark:text-red-400 line-through">"https://api.anthropic.com"</span>
+                <span className="block mt-1 text-[11px] text-slate-500 dark:text-slate-400"># Subject to waitlists &amp; strict tier limits</span>
               </div>
             </motion.div>
 
@@ -72,18 +72,18 @@ export const Migration: React.FC = () => {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: '-20px' }}
               transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden rounded-xl border border-emerald-500/30 bg-dark-950 shadow-xl shadow-emerald-500/5"
+              className="overflow-hidden rounded-xl border border-emerald-500/30 bg-white dark:bg-dark-950 shadow-md dark:shadow-xl dark:shadow-emerald-500/5"
             >
-              <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-950/20 px-4 py-2.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-400/80 animate-ping"></span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-emerald-400 font-semibold">
-                  After — Opuszyra Gateway
+              <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/10 dark:bg-emerald-950/20 px-4 py-2.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400/80 animate-ping"></span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  After — Opuszenvix Gateway
                 </span>
               </div>
-              <div className="overflow-x-auto px-5 py-4 font-mono text-[13px] text-slate-400">
+              <div className="overflow-x-auto px-5 py-4 font-mono text-[13px] text-slate-700 dark:text-slate-400">
                 <span>base_url = </span>
-                <span className="text-emerald-400 font-semibold">"https://api.opuszyra.live/v1"</span>
-                <span className="block mt-1 text-[11px] text-emerald-400/80 font-mono">
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">"https://api.opuszenvix.pro"</span>
+                <span className="block mt-1 text-[11px] text-emerald-600 dark:text-emerald-400/80 font-mono">
                   ✓ Instant 1M context, 5h rolling allowance &amp; zero waitlist
                 </span>
               </div>

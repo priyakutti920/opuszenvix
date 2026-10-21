@@ -1,10 +1,11 @@
 {
-  "name": "opuszyra",
+  "name": "opuszenvix",
   "version": "1.0.0",
-  "description": "Opuszyra - Anthropic-Compatible AI Proxy & API Gateway with React, Tailwind CSS, Node.js, and Supabase",
+  "description": "Opuszenvix - Anthropic-Compatible AI Proxy & API Gateway with React, Tailwind CSS, Node.js, and Supabase",
   "private": true,
   "type": "module",
   "bin": {
+    "opuszenvix": "./bin/cli.js",
     "opuszyra": "./bin/cli.js"
   },
   "workspaces": [

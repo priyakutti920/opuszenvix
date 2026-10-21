@@ -204,27 +204,27 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="pricing-modal-title"
-        className="dark-box relative w-full max-w-4xl overflow-hidden rounded-3xl border border-[#262320] bg-[#0F0E0D] shadow-2xl max-h-[92vh] flex flex-col text-[#F5F2EB]"
+        className="dark-box relative w-full max-w-4xl overflow-hidden rounded-3xl border border-stone-200 dark:border-[#262320] bg-white dark:bg-[#0F0E0D] shadow-2xl max-h-[92vh] flex flex-col text-stone-900 dark:text-[#F5F2EB]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#262320] px-6 py-4 bg-[#141312]">
+        <div className="flex items-center justify-between border-b border-stone-200 dark:border-[#262320] px-6 py-4 bg-stone-50 dark:bg-[#141312]">
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
-              alt="Opuszyra Logo"
+              alt="Opuszenvix Logo"
               width="44"
               height="44"
               className="h-11 w-11 object-contain drop-shadow-[0_2px_8px_rgba(234,88,12,0.3)]"
             />
             <div>
-              <h2 id="pricing-modal-title" className="text-lg font-bold text-white">Opuszyra Plans &amp; Activation</h2>
-              <p className="text-xs text-stone-400">Instant API keys · UPI (INR) &amp; WhatsApp Onboarding</p>
+              <h2 id="pricing-modal-title" className="text-lg font-bold text-stone-900 dark:text-white">Opuszenvix Plans &amp; Activation</h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400">Instant API keys · UPI (INR) &amp; WhatsApp Onboarding</p>
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close pricing modal"
-            className="rounded-xl p-2 text-stone-400 hover:bg-white/5 hover:text-white transition"
+            className="rounded-xl p-2 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-white transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -233,7 +233,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         {/* Content Body */}
         <div className="overflow-y-auto p-6 space-y-6">
           {error && (
-            <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 font-mono">
+            <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-500 dark:text-red-400 font-mono">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -242,23 +242,23 @@ export const PricingModal: React.FC<PricingModalProps> = ({
           {issuedKey ? (
             /* Key Success View */
             <div className="space-y-6 py-4 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/20">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/20">
                 <Check className="h-8 w-8 stroke-[3]" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-white">Your Key is Ready!</h3>
-                <p className="mt-2 text-sm text-stone-400">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">Your Key is Ready!</h3>
+                <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
                   Your <strong className="text-[#EA580C]">{selectedTier.toUpperCase()} Key</strong> is active with full Anthropic compatibility.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-emerald-500/30 bg-[#141312] p-4 text-left font-mono">
-                <div className="flex items-center justify-between text-xs text-stone-400 mb-2">
+              <div className="rounded-2xl border border-emerald-500/30 bg-stone-50 dark:bg-[#141312] p-4 text-left font-mono">
+                <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-2">
                   <span>API TOKEN</span>
-                  <span className="text-emerald-400 font-bold">● ACTIVE</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">● ACTIVE</span>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl bg-black/50 border border-white/5 p-3">
-                  <span className="text-sm text-amber-300 break-all select-all font-bold">
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-white dark:bg-black/50 border border-stone-200 dark:border-white/5 p-3">
+                  <span className="text-sm text-amber-700 dark:text-amber-300 break-all select-all font-bold">
                     {issuedKey.key_token}
                   </span>
                   <button
@@ -277,7 +277,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                     setIssuedKey(null);
                     setOrder(null);
                   }}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 hover:bg-white/5"
+                  className="rounded-xl border border-stone-300 dark:border-white/10 px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-white/5"
                 >
                   Issue Another Key
                 </button>
@@ -302,24 +302,24 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                       className={`cursor-pointer rounded-2xl border p-5 transition-all flex flex-col justify-between ${
                         isSelected
                           ? 'border-[#EA580C] bg-orange-500/10 shadow-lg shadow-orange-600/15 ring-1 ring-[#EA580C]'
-                          : 'border-[#262320] bg-[#141312] hover:border-white/20'
+                          : 'border-stone-200 dark:border-[#262320] bg-stone-50 dark:bg-[#141312] hover:border-stone-300 dark:hover:border-white/20'
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-stone-300 uppercase tracking-wider">
+                          <span className="rounded-full bg-stone-200 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
                             {plan.badge}
                           </span>
-                          <span className="text-xs text-stone-400">{plan.duration}</span>
+                          <span className="text-xs text-stone-500 dark:text-stone-400">{plan.duration}</span>
                         </div>
-                        <h4 className="text-lg font-extrabold text-white">{plan.title}</h4>
+                        <h4 className="text-lg font-extrabold text-stone-900 dark:text-white">{plan.title}</h4>
                         <div className="mt-2 flex items-baseline gap-1.5">
-                          <span className="text-2xl font-black text-white">{plan.priceInr}</span>
-                          <span className="text-xs text-stone-400">INR</span>
+                          <span className="text-2xl font-black text-stone-900 dark:text-white">{plan.priceInr}</span>
+                          <span className="text-xs text-stone-500 dark:text-stone-400">INR</span>
                         </div>
                       </div>
 
-                      <ul className="mt-4 space-y-1.5 text-xs text-stone-300">
+                      <ul className="mt-4 space-y-1.5 text-xs text-stone-600 dark:text-stone-300">
                         {plan.features.slice(0, 3).map((f, i) => (
                           <li key={i} className="flex items-start gap-1.5">
                             <Check className="w-3.5 h-3.5 text-[#EA580C] shrink-0 mt-0.5 stroke-[2.5]" />
@@ -334,14 +334,14 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
               {/* Instant WhatsApp Help & Checkout */}
               {whatsappUrl && (
-                <div className="rounded-2xl bg-[#141312] border border-[#262320] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="rounded-2xl bg-stone-50 dark:bg-[#141312] border border-stone-200 dark:border-[#262320] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                       <MessageCircle className="w-5 h-5 fill-current" />
                     </div>
                     <div>
-                      <h5 className="text-xs font-bold text-white">Instant UPI &amp; WhatsApp Key Delivery</h5>
-                      <p className="text-[11px] text-stone-400">
+                      <h5 className="text-xs font-bold text-stone-900 dark:text-white">Instant UPI &amp; WhatsApp Key Delivery</h5>
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400">
                         Connect directly with Admin for GPay / PhonePe / Paytm / Cards payment and instantaneous activation.
                       </p>
                     </div>
@@ -359,16 +359,16 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               )}
 
               {/* Developer Test Mode Key Generation */}
-              <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center">
-                <p className="text-xs text-stone-400 mb-2">
+              <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/10 p-4 text-center">
+                <p className="text-xs text-stone-600 dark:text-stone-400 mb-2">
                   Need to evaluate in Cursor / Claude Code immediately?
                 </p>
                 <button
                   onClick={handleInstantFreeDevKey}
                   disabled={loading}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-white/10 dark:hover:bg-white/15 text-xs font-bold text-stone-800 dark:text-white transition disabled:opacity-50"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                   <span>Issue Instant Test Key for {currentPlan.title}</span>
                 </button>
               </div>

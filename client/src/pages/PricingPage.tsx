@@ -64,7 +64,7 @@ const COMPARISON_ROWS = [
 ];
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCheckKey }) => {
-  const whatsappUrl = getWhatsAppSupportUrl("Hi Admin! I want to subscribe to an Opuszyra API plan.");
+  const whatsappUrl = getWhatsAppSupportUrl("Hi Admin! I want to subscribe to an Opuszenvix API plan.");
 
   return (
     <div className="min-h-screen py-10 md:py-16 pb-28 animate-fadeIn transition-colors text-stone-900 dark:text-[#F5F2EB]">
@@ -149,23 +149,23 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
           </div>
 
           {/* CARD 2: 20x Plan (Featured) */}
-          <div className="dark-box rounded-3xl p-7 relative transition-all duration-200 flex flex-col justify-between bg-[#0F0E0D] border-2 border-[#262320] text-[#F5F2EB] shadow-2xl ring-1 ring-orange-500/20 lg:-translate-y-2">
+          <div className="dark-box rounded-3xl p-7 relative transition-all duration-200 flex flex-col justify-between bg-white dark:bg-[#0F0E0D] border-2 border-[#EA580C] text-[#1C1917] dark:text-[#F5F2EB] shadow-xl ring-2 ring-orange-500/20 lg:-translate-y-2">
             {/* Popular Pill */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#EA580C] text-white text-[10px] font-black uppercase tracking-widest shadow-md">
               Most Popular
             </div>
 
             <div>
-              <h3 className="text-xl font-extrabold mb-2 text-white">20x Plan</h3>
-              <p className="text-xs leading-relaxed mb-6 text-[#A8A29E]">
+              <h3 className="text-xl font-extrabold mb-2 text-[#1C1917] dark:text-white">20x Plan</h3>
+              <p className="text-xs leading-relaxed mb-6 text-[#78716C] dark:text-[#A8A29E]">
                 For agentic workloads that run all day. Matches Claude Max 20×.
               </p>
 
               <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
-                <span className="text-4xl font-black tracking-tight text-white">
+                <span className="text-4xl font-black tracking-tight text-[#1C1917] dark:text-white">
                   ₹6,999
                 </span>
-                <span className="text-xs font-semibold uppercase text-[#A8A29E]">
+                <span className="text-xs font-semibold uppercase text-[#78716C] dark:text-[#A8A29E]">
                   INR / month
                 </span>
               </div>
@@ -178,15 +178,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                 >
                   <span>Get this plan →</span>
                 </button>
-                <p className="text-[11px] text-center mt-2 font-medium text-[#78716C]">
+                <p className="text-[11px] text-center mt-2 font-medium text-[#78716C] dark:text-[#A8A29E]">
                   Instant key delivery after payment
                 </p>
               </div>
 
-              <hr className="my-6 border-t border-[#262320]" />
+              <hr className="my-6 border-t border-[#E8E3D9] dark:border-[#262320]" />
 
               <div>
-                <p className="text-[11px] font-black uppercase tracking-widest mb-4 text-[#A8A29E]">
+                <p className="text-[11px] font-black uppercase tracking-widest mb-4 text-[#78716C] dark:text-[#A8A29E]">
                   INCLUDES
                 </p>
                 <ul className="space-y-3">
@@ -202,7 +202,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                     "API key management",
                     "Priority support"
                   ].map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-xs font-medium text-[#D6D3D1]">
+                    <li key={i} className="flex items-start gap-2.5 text-xs font-medium text-[#44403C] dark:text-[#D6D3D1]">
                       <Check className="w-4 h-4 text-[#EA580C] mt-0.5 shrink-0 stroke-[2.5]" />
                       <span>{feature}</span>
                     </li>
@@ -306,7 +306,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
               <span>Architectural Advantage</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Why Engineers Switch to Opuszyra
+              Why Engineers Switch to Opuszenvix
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-2">
               Continuous rolling throughput, zero cliff lockouts, and 100% free prompt caching reads.
@@ -322,7 +322,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSelectPlan, onOpenCh
                       Capability
                     </th>
                     <th className="py-4 px-6 font-black text-[#EA580C] uppercase tracking-wider text-[11px] bg-orange-500/5">
-                      Opuszyra Gateway ⚡
+                      Opuszenvix Gateway ⚡
                     </th>
                     <th className="py-4 px-6 font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider text-[11px]">
                       Claude Pro ($20/mo)

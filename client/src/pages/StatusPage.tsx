@@ -54,19 +54,19 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Hero */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-white/10 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-200 dark:border-white/10 mb-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono mb-3">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span>All 15 Claude Gateway Nodes Operational</span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-              Opuszyra System Status
+            <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+              Opuszenvix System Status
             </h1>
-            <p className="text-sm text-slate-400 mt-2">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
               Real-time uptime, system availability, and streaming gateway health.
             </p>
           </div>
@@ -75,19 +75,19 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
             <button
               onClick={runLivePing}
               disabled={pinging}
-              className="px-4 py-2.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-slate-300 hover:text-white border border-white/10 text-xs font-mono font-medium flex items-center gap-2 transition"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-dark-900 hover:bg-slate-50 dark:hover:bg-dark-850 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 text-xs font-mono font-medium flex items-center gap-2 transition shadow-sm dark:shadow-none"
             >
-              <RotateCw className={`w-3.5 h-3.5 ${pinging ? 'animate-spin text-brand-400' : ''}`} />
+              <RotateCw className={`w-3.5 h-3.5 ${pinging ? 'animate-spin text-brand-500 dark:text-brand-400' : ''}`} />
               <span>{pinging ? 'Pinging...' : 'Ping Gateway'}</span>
               {livePing !== null && !pinging && (
-                <span className="text-emerald-400 font-bold ml-1">{livePing}ms</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-1">{livePing}ms</span>
               )}
             </button>
 
             {onOpenCheckUsage && (
               <button
                 onClick={onOpenCheckUsage}
-                className="px-4 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-mono font-medium flex items-center gap-1.5 transition"
+                className="px-4 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-mono font-medium flex items-center gap-1.5 transition"
               >
                 <Zap className="w-3.5 h-3.5" />
                 <span>Check Your Key</span>
@@ -98,39 +98,39 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
 
         {/* Global Key Metrics Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div className="p-5 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <span className="text-xs font-mono uppercase text-slate-500 block mb-1">Global Uptime (30d)</span>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">99.98%</div>
-            <span className="text-[11px] text-slate-400 mt-1 block">Zero unexpected downtime</span>
+          <div className="p-5 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <span className="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 block mb-1">Global Uptime (30d)</span>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">99.98%</div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Zero unexpected downtime</span>
           </div>
 
-          <div className="p-5 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <span className="text-xs font-mono uppercase text-slate-500 block mb-1">Avg TTFT Latency</span>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white">18ms</div>
-            <span className="text-[11px] text-emerald-400 mt-1 block">Fast token-first-byte</span>
+          <div className="p-5 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <span className="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 block mb-1">Avg TTFT Latency</span>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900 dark:text-white">18ms</div>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 block">Fast token-first-byte</span>
           </div>
 
-          <div className="p-5 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <span className="text-xs font-mono uppercase text-slate-500 block mb-1">Active Edge Nodes</span>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white">15 / 15</div>
-            <span className="text-[11px] text-emerald-400 mt-1 block">100% Nodes Healthy</span>
+          <div className="p-5 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <span className="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 block mb-1">Active Edge Nodes</span>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900 dark:text-white">15 / 15</div>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 block">100% Nodes Healthy</span>
           </div>
 
-          <div className="p-5 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl">
-            <span className="text-xs font-mono uppercase text-slate-500 block mb-1">Prompt Cache Hit</span>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-brand-400">99.9%</div>
-            <span className="text-[11px] text-slate-400 mt-1 block">Zero-cost prefix reads</span>
+          <div className="p-5 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-sm dark:shadow-none">
+            <span className="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 block mb-1">Prompt Cache Hit</span>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-brand-600 dark:text-brand-400">99.9%</div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">Zero-cost prefix reads</span>
           </div>
         </div>
 
         {/* 90-Day Uptime Calendar Visual */}
-        <div className="p-6 sm:p-8 rounded-2xl bg-dark-900/60 border border-white/10 backdrop-blur-xl mb-10">
+        <div className="p-6 sm:p-8 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 backdrop-blur-xl mb-10 shadow-sm dark:shadow-none">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
-              <h3 className="text-lg font-bold text-white">90-Day Operational History</h3>
-              <p className="text-xs text-slate-400">Continuous monitoring across all edge clusters</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">90-Day Operational History</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Continuous monitoring across all edge clusters</p>
             </div>
-            <span className="text-xs font-mono text-emerald-400 font-bold">100.0% Availability</span>
+            <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">100.0% Availability</span>
           </div>
 
           {/* Bar chart ticks */}
@@ -153,9 +153,9 @@ export const StatusPage: React.FC<{ onOpenCheckUsage?: () => void }> = ({ onOpen
 
 
         {/* Incident History Log */}
-        <div className="p-6 sm:p-8 rounded-2xl bg-dark-900/60 border border-white/10 text-center font-mono">
-          <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2">Past Incident Log</h4>
-          <p className="text-xs text-emerald-400 flex items-center justify-center gap-2">
+        <div className="p-6 sm:p-8 rounded-2xl bg-white/80 dark:bg-dark-900/60 border border-slate-200 dark:border-white/10 text-center font-mono shadow-sm dark:shadow-none">
+          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Past Incident Log</h4>
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2">
             <ShieldCheck className="w-4 h-4" />
             <span>No incidents reported in the past 90 days. All systems operating with 100% SLA.</span>
           </p>

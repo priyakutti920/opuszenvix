@@ -21,7 +21,6 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { ApiKey, PlanTier } from './types';
 import { AnimatedTitle } from './components/AnimatedTitle';
 import { useTheme } from './lib/theme';
-
 export type ActiveView = 'home' | 'pricing' | 'docs' | 'status' | 'usage' | 'switcher';
 
 /** Every view that renders a dedicated page instead of the home sections. */
@@ -199,7 +198,18 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080c] text-slate-100 flex flex-col font-sans selection:bg-brand-500/30 selection:text-brand-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#07080c] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-brand-500/30 selection:text-brand-300 relative overflow-x-hidden transition-colors duration-200">
+      {/* Global Dotted Ambient Pattern Layer (UI/UX Pro Max & UI Styling Standards) */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 dotted-bg-veil opacity-90"
+        aria-hidden="true"
+      />
+      {/* Subtle Ambient Radial Lighting for Spatial Depth */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_80%_45%_at_50%_-10%,rgba(249,115,22,0.12),transparent_75%)]"
+        aria-hidden="true"
+      />
+
       {/* Navbar with Pricing, Docs, Status & Check Usage (last button next to Theme Toggle) */}
       <Navbar
         onOpenPricing={() => handleNavigate('pricing')}
@@ -213,13 +223,17 @@ export function App() {
       />
 
       {/* Main View Router */}
-      <main className="flex-1">
+      <main className="flex-1 relative pt-[72px]">
+
+
         {/* Home Page View */}
         {activeView === 'home' && (
-          <>
+          <div className="relative z-10">
             {/* Hero Section */}
             <Hero
               onOpenRegister={() => handleNavigate('pricing')}
+              onOpenCheckKey={() => handleNavigate('usage')}
+              onOpenDocs={() => handleNavigate('docs')}
             />
 
             {/* Marquee Bar */}
@@ -228,30 +242,30 @@ export function App() {
             {/* Section 01: The Lineup */}
             <ModelLineup />
 
-            {/* Section 02: What you get */}
+            {/* Section 02: Control Grid */}
             <Features />
 
             {/* Section 03: Migration */}
             <Migration />
 
-            {/* Section 04: Getting started */}
+            {/* Section 04: Setup Steps */}
             <GettingStarted
               onOpenPricing={() => handleNavigate('pricing')}
               onOpenDocs={() => handleNavigate('docs')}
             />
 
             {/* Interactive Code Switcher Section */}
-            <section className="py-16 md:py-24 border-t border-white/[0.08]" id="code-setup">
+            <section className="py-16 md:py-24 border-t border-slate-200 dark:border-white/[0.08]" id="code-setup">
               <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10">
                 <div className="text-center max-w-2xl mx-auto mb-10">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-400">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-600 dark:text-brand-400 font-semibold">
                     Integration Guide
                   </p>
-                  <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                  <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
                     Works in your favorite tools today
                   </h2>
-                  <p className="mt-3 text-sm text-slate-400">
-                    Switch base URL to Opuszyra and begin developing with 1M context in seconds.
+                  <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                    Switch base URL to OpusZenvix and begin developing with 1M context in seconds.
                   </p>
                 </div>
                 <div className="max-w-4xl mx-auto">
@@ -260,44 +274,44 @@ export function App() {
               </div>
             </section>
 
-            {/* Final Call to Action */}
-            <section className="py-20 md:py-28 border-t border-white/[0.08] relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-500/5 to-transparent pointer-events-none"></div>
-              <div className="mx-auto w-full max-w-2xl px-5 sm:px-8 lg:px-10 text-center relative">
-                <AnimatedTitle
-                  as="h2"
-                  className="text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-white sm:text-5xl"
-                  lines={[
-                    ['Stop', 'waiting', 'for'],
-                    ['API', 'access.'],
-                  ]}
-                  highlightWords={['API', 'access']}
-                />
-                <p className="mx-auto mt-6 max-w-md text-[16px] leading-relaxed text-slate-400">
-                  Deploy high-throughput Claude applications on Opuszyra. Select a plan, activate via UPI, and
-                  have an API key configured in your terminal in minutes.
-                </p>
+            {/* Final Call to Action - Inverted Aperture Banner matching opusmax.pro */}
+            <section className="relative overflow-hidden bg-white text-dark-950">
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[0.08]">
+                <div className="aperture-grid-fine aperture-fade absolute inset-0" />
+              </div>
+              <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 relative py-16 md:py-24 lg:py-28">
+                <div className="max-w-2xl">
+                  <p className="font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-dark-950/50">
+                    Get started
+                  </p>
+                  <h2 className="mt-4 text-3xl font-semibold tracking-[-0.025em] text-dark-950 sm:text-4xl lg:text-5xl">
+                    Change one line. Keep everything else.
+                  </h2>
+                  <p className="mt-5 max-w-lg text-base leading-relaxed text-dark-950/70">
+                    The setup guide covers every client we support, end to end. If you already have a key,
+                    you are about sixty seconds from your first request.
+                  </p>
 
-                <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                  <button
-                    onClick={() => handleNavigate('pricing')}
-                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-500 hover:bg-brand-600 px-7 text-[15px] font-semibold text-white shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-                  >
-                    <span>Get instant access</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
+                  <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button
+                      onClick={() => handleNavigate('pricing')}
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 bg-dark-950 px-7 text-[15px] font-medium text-white transition-opacity hover:opacity-90 sm:w-auto"
+                    >
+                      <span>Choose an INR plan</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
 
-                  <button
-                    onClick={() => handleNavigate('usage')}
-                    className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/10 bg-dark-900/80 px-6 text-[15px] font-medium text-slate-200 transition-colors hover:border-white/20 hover:bg-dark-850 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                  >
-                    <span>Check your usage</span>
-                    <ArrowUpRight className="h-4 w-4" />
-                  </button>
+                    <button
+                      onClick={() => handleNavigate('docs')}
+                      className="inline-flex h-12 w-full items-center justify-center border border-dark-950/25 px-7 text-[15px] font-medium text-dark-950 transition-colors hover:bg-dark-950/10 sm:w-auto"
+                    >
+                      <span>Open the setup guide</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
-          </>
+          </div>
         )}
 
         {/* Dedicated Pricing Page */}
@@ -339,6 +353,7 @@ export function App() {
             onThemeChange={(newTheme) => setTheme(newTheme)}
           />
         )}
+
       </main>
 
       {/* Footer */}

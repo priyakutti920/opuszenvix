@@ -16,9 +16,9 @@ const INTEGRATIONS = [
 
 export const Marquee: React.FC = () => {
   return (
-    <section className="border-y border-white/[0.08] bg-dark-900/40 py-5 overflow-hidden">
+    <section className="border-b border-slate-200 dark:border-white/[0.08] bg-slate-100/40 dark:bg-dark-900/40 py-5 overflow-hidden transition-colors">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center max-w-7xl mx-auto px-4 sm:px-6">
-        <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 font-mono">
+        <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 font-mono">
           Works where you already work
         </p>
 
@@ -27,11 +27,11 @@ export const Marquee: React.FC = () => {
             {[...INTEGRATIONS, ...INTEGRATIONS].map((item, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center gap-2 whitespace-nowrap text-[13.5px] text-slate-400 font-mono"
+                className="inline-flex items-center gap-2 whitespace-nowrap text-[13.5px] text-slate-500 dark:text-slate-400 font-mono"
               >
-                <Terminal className="h-3.5 w-3.5 text-brand-400/80" />
-                <span className="text-slate-200">{item}</span>
-                <span className="ml-4 h-1 w-1 rounded-full bg-white/20"></span>
+                <Terminal className="h-3.5 w-3.5 text-brand-500/80" />
+                <span className="text-slate-800 dark:text-slate-200">{item}</span>
+                <span className="ml-4 h-1 w-1 rounded-full bg-slate-300 dark:bg-white/20"></span>
               </span>
             ))}
           </div>

@@ -20,7 +20,7 @@ import { getUpstreamBase } from './lib/config.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const API_DOMAIN = process.env.API_DOMAIN || 'https://api.opuszyra.live';
+const API_DOMAIN = process.env.API_DOMAIN || 'https://api.opuszenvix.live';
 
 const getActiveUpstream = () => {
   try {
@@ -97,7 +97,7 @@ app.get('/api/status', async (req, res) => {
 
   return res.json({
     status: 'ok',
-    service: 'Opuszyra Middle-Man AI Gateway',
+    service: 'Opuszenvix Middle-Man AI Gateway',
     timestamp: new Date().toISOString(),
     refreshInterval: 30,
     overall: upstreamStatus?.overall || 'operational',
@@ -138,7 +138,7 @@ app.get('/api/health', (req, res) => {
   const upstreamBase = getActiveUpstream();
   res.json({
     status: 'online',
-    service: 'Opuszyra AI Gateway',
+    service: 'Opuszenvix AI Gateway',
     role: 'Middle Man Passthrough Proxy',
     upstream: upstreamBase || 'not configured',
     gateway: `${API_DOMAIN}/v1`,
@@ -204,7 +204,7 @@ const isDirectRun = process.argv[1] && (
 if (isDirectRun && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`🚀 Opuszyra Middle-Man AI Gateway running on port ${PORT}`);
+    console.log(`🚀 Opuszenvix Middle-Man AI Gateway running on port ${PORT}`);
     console.log(`🌐 Middle-Man Public Domain: ${API_DOMAIN}`);
     console.log(`📡 Upstream Passthrough URL: ${getActiveUpstream() || 'NOT CONFIGURED'}`);
     console.log(`⚡ Anthropic Proxy: http://localhost:${PORT}/v1/messages`);

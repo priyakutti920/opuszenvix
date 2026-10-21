@@ -104,7 +104,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-modal-title"
-        className="dark-box relative w-full max-w-lg rounded-3xl bg-[#0f0e0d] border border-[#262320] shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto text-[#f5f2eb]"
+        className="dark-box relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#0f0e0d] border border-stone-200 dark:border-[#262320] shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto text-stone-900 dark:text-[#f5f2eb]"
       >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -112,7 +112,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-stone-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+          className="absolute top-5 right-5 p-2 rounded-xl text-stone-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/[0.06] transition-colors"
           aria-label="Close checkout modal"
         >
           <X className="w-5 h-5" />
@@ -123,31 +123,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
             <div className="flex items-center gap-3 mb-6">
               <img
                 src="/logo.png"
-                alt="Opuszyra Logo"
+                alt="Opuszenvix Logo"
                 width="56"
                 height="56"
                 className="w-14 h-14 object-contain drop-shadow-[0_2px_12px_rgba(234,88,12,0.35)]"
               />
               <div>
-                <h3 id="checkout-modal-title" className="text-xl font-extrabold tracking-tight text-white">
+                <h3 id="checkout-modal-title" className="text-xl font-extrabold tracking-tight text-stone-900 dark:text-white">
                   Activate <span className="text-[#ea580c]">{plan.name}</span>
                 </h3>
-                <p className="text-xs text-stone-400">Instant key delivery after payment • {plan.duration}</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Instant key delivery after payment • {plan.duration}</p>
               </div>
             </div>
 
             {/* Price banner */}
-            <div className="p-4 rounded-2xl bg-[#161514] border border-[#2b2724] mb-5 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-stone-50 dark:bg-[#161514] border border-stone-200 dark:border-[#2b2724] mb-5 flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-stone-400 uppercase font-semibold block tracking-wider">Amount Due</span>
+                <span className="text-[11px] text-stone-500 dark:text-stone-400 uppercase font-semibold block tracking-wider">Amount Due</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-white">₹{plan.priceInr.toLocaleString('en-IN')}</span>
-                  <span className="text-xs text-stone-400 font-bold">INR</span>
+                  <span className="text-2xl font-black text-stone-900 dark:text-white">₹{plan.priceInr.toLocaleString('en-IN')}</span>
+                  <span className="text-xs text-stone-500 dark:text-stone-400 font-bold">INR</span>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[11px] text-stone-400 uppercase font-semibold block tracking-wider">Validity</span>
-                <span className="text-xs font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-lg border border-orange-500/20 inline-block">
+                <span className="text-[11px] text-stone-500 dark:text-stone-400 uppercase font-semibold block tracking-wider">Validity</span>
+                <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-lg border border-orange-500/20 inline-block">
                   {plan.duration}
                 </span>
               </div>
@@ -156,27 +156,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
             {/* UPI Payment Details */}
             <div className="space-y-4 mb-6">
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-stone-400">
+                <label className="block text-xs font-medium text-stone-600 dark:text-stone-400">
                   UPI ID (GPay / PhonePe / Paytm / BHIM / Any UPI App):
                 </label>
-                <div className="p-3 rounded-xl bg-[#141312] border border-[#2b2724] flex items-center justify-between gap-2">
-                  <code className="text-xs font-mono font-bold text-white truncate">{upiId}</code>
+                <div className="p-3 rounded-xl bg-stone-50 dark:bg-[#141312] border border-stone-200 dark:border-[#2b2724] flex items-center justify-between gap-2">
+                  <code className="text-xs font-mono font-bold text-stone-900 dark:text-white truncate">{upiId}</code>
                   <button
                     onClick={handleCopyUpi}
-                    className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-xs font-semibold text-stone-300 hover:text-white transition-colors flex items-center gap-1 shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-stone-200/80 hover:bg-stone-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.14] text-xs font-semibold text-stone-800 dark:text-stone-300 dark:hover:text-white transition-colors flex items-center gap-1 shrink-0"
                   >
-                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedUpi ? 'Copied' : 'Copy UPI'}</span>
                   </button>
                 </div>
               </div>
 
               {whatsappUrl && (
-                <div className="p-3.5 rounded-xl bg-[#1a1918] border border-[#2b2724] text-xs text-stone-300 space-y-2">
-                  <div className="flex items-center gap-2 text-stone-200 font-semibold">
+                <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-[#1a1918] border border-stone-200 dark:border-[#2b2724] text-xs text-stone-700 dark:text-stone-300 space-y-2">
+                  <div className="flex items-center gap-2 text-stone-900 dark:text-stone-200 font-semibold">
                     <span>⚡ Quick WhatsApp Activation:</span>
                   </div>
-                  <p className="text-[11px] text-stone-400 leading-relaxed">
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
                     Pay ₹{plan.priceInr.toLocaleString('en-IN')} via any UPI app or card, and connect directly with Admin for priority instantaneous key provisioning.
                   </p>
                   <a
@@ -192,7 +192,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-mono text-stone-400">
+                <label className="block text-xs font-mono text-stone-600 dark:text-stone-400">
                   UPI Reference / UTR Number (Optional):
                 </label>
                 <input
@@ -200,7 +200,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
                   placeholder="e.g. 429182749102"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#141312] border border-[#2b2724] focus:border-orange-500/50 text-stone-200 font-mono text-xs outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-[#141312] border border-stone-200 dark:border-[#2b2724] focus:border-orange-500/50 text-stone-900 dark:text-stone-200 font-mono text-xs outline-none"
                 />
               </div>
             </div>
@@ -223,8 +223,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
         {step === 'verifying' && (
           <div className="py-12 text-center space-y-4">
             <RotateCw className="w-12 h-12 text-[#ea580c] animate-spin mx-auto" />
-            <h3 className="text-lg font-bold font-mono text-white">Verifying Transaction...</h3>
-            <p className="text-xs text-stone-400 max-w-sm mx-auto">
+            <h3 className="text-lg font-bold font-mono text-stone-900 dark:text-white">Verifying Transaction...</h3>
+            <p className="text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto">
               Connecting with payment gateway node confirmations and provisioning your {plan.name} allowance.
             </p>
           </div>
@@ -232,26 +232,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
 
         {step === 'success' && (
           <div className="text-center space-y-5">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div>
-              <h3 className="text-2xl font-black text-white">
+              <h3 className="text-2xl font-black text-stone-900 dark:text-white">
                 Payment Confirmed!
               </h3>
-              <p className="text-xs text-stone-400 mt-1">
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                 Your <strong className="text-[#ea580c]">{plan.name}</strong> is now live with full Anthropic compatibility.
               </p>
             </div>
 
             {/* Key Presentation Box */}
-            <div className="p-4 rounded-2xl bg-[#141312] border border-emerald-500/30 text-left space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-stone-400 font-mono">
-                <span>YOUR OPUSZYRA API KEY</span>
-                <span className="text-emerald-400 font-bold">Status: Active</span>
+            <div className="p-4 rounded-2xl bg-stone-50 dark:bg-[#141312] border border-emerald-500/30 text-left space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400 font-mono">
+                <span>YOUR OPUSZENVIX API KEY</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">Status: Active</span>
               </div>
-              <div className="p-2.5 rounded-lg bg-[#0a0a09] border border-white/5 font-mono text-xs text-amber-300 break-all select-all">
+              <div className="p-2.5 rounded-lg bg-white dark:bg-[#0a0a09] border border-stone-200 dark:border-white/5 font-mono text-xs text-amber-700 dark:text-amber-300 break-all select-all">
                 {generatedKey}
               </div>
               <button
@@ -263,13 +263,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ tier, isOpen = tru
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-stone-400 text-left font-mono">
-              💡 Instant Setup: <code className="text-orange-400 font-bold">npx opuszyra</code> (or export ANTHROPIC_BASE_URL=https://api.opuszyra.live/v1)
+            <div className="p-3 rounded-xl bg-stone-100 dark:bg-white/[0.03] border border-stone-200 dark:border-white/5 text-[11px] text-stone-600 dark:text-stone-400 text-left font-mono">
+              💡 Instant Setup: <code className="text-orange-600 dark:text-orange-400 font-bold">npx opuszenvix</code> (or export ANTHROPIC_BASE_URL=https://api.opuszenvix.live/v1)
             </div>
 
             <button
               onClick={onClose}
-              className="w-full py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white font-bold text-xs transition-colors"
+              className="w-full py-3 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.14] text-stone-900 dark:text-white font-bold text-xs transition-colors"
             >
               Done &amp; Start Building
             </button>

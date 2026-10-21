@@ -5,21 +5,82 @@
 @layer base {
   :root {
     color-scheme: dark;
+
+    /* Dotted background design tokens */
+    --dot-color: rgba(255, 255, 255, 0.08);
+    --dot-size: 1.25px;
+    --dot-spacing: 24px;
+    --dot-mask: radial-gradient(ellipse 85% 75% at 50% 18%, #000 35%, transparent 100%);
+    --border: rgba(255, 255, 255, 0.08);
+    --aperture-grid-color: rgba(255, 255, 255, 0.07);
+    --aperture-fine-color: rgba(255, 255, 255, 0.09);
+  }
+
+  html.light {
+    color-scheme: light;
+    --dot-color: rgba(15, 23, 42, 0.08);
+    --border: rgba(15, 23, 42, 0.08);
+    --aperture-grid-color: rgba(15, 23, 42, 0.05);
+    --aperture-fine-color: rgba(15, 23, 42, 0.07);
   }
   
   body {
-    background-color: #07080c;
-    color: #f1f5f9;
     font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
-/* Background grid veil */
-.grid-veil {
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+/* =========================================================================
+   APERTURE GRID SYSTEM (from opusmax.pro reverse-engineering)
+   ========================================================================= */
+.aperture-grid {
+  background-image: linear-gradient(to right, var(--aperture-grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--aperture-grid-color) 1px, transparent 1px);
+  background-position: 50% 50%;
   background-size: 64px 64px;
+}
+
+.aperture-grid-fine {
+  background-image: linear-gradient(to right, var(--aperture-fine-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--aperture-fine-color) 1px, transparent 1px);
+  background-position: 50% 50%;
+  background-size: 24px 24px;
+}
+
+.aperture-fade {
+  -webkit-mask-image: radial-gradient(#000 30%, transparent 78%);
+  mask-image: radial-gradient(#000 30%, transparent 78%);
+}
+
+/* =========================================================================
+   DOTTED MATRIX SYSTEM (UI/UX Pro Max & UI Styling Standards)
+   ========================================================================= */
+
+/* Standard Dotted Pattern */
+.dotted-pattern {
+  background-image: radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size));
+  background-size: var(--dot-spacing) var(--dot-spacing);
+}
+
+/* Dotted Background Veil with Soft Radial Vignette Mask */
+.dotted-bg-veil {
+  background-image: radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size));
+  background-size: var(--dot-spacing) var(--dot-spacing);
+  mask-image: var(--dot-mask);
+  -webkit-mask-image: var(--dot-mask);
+}
+
+/* Focal Hero Dotted Matrix */
+.dot-pattern-hero {
+  background-image: radial-gradient(var(--dot-color) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 65% at 50% 15%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 65% at 50% 15%, black 30%, transparent 100%);
+}
+
+/* Background grid veil updated to cohesive dotted pattern */
+.grid-veil {
+  background-image: radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size));
+  background-size: var(--dot-spacing) var(--dot-spacing);
 }
 
 /* Staggered word reveal animation */
@@ -161,385 +222,26 @@
 }
 
 /* =========================================================================
-   DARK / LIGHT MODE CIRCULAR WIPE ANIMATION (VIEW TRANSITIONS API)
+   THEME STYLES (Dark & Light support)
    ========================================================================= */
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
+html.dark {
+  color-scheme: dark;
+  background-color: #07080c;
 }
 
-::view-transition-old(root) {
-  z-index: 1;
-}
-
-::view-transition-new(root) {
-  z-index: 99999;
+html.dark body {
+  background-color: #07080c;
+  color: #f1f5f9;
 }
 
 html.light {
   color-scheme: light;
+  background-color: #f8fafc;
 }
 
 html.light body {
-  background-color: #fafbfc;
-  color: #09090b;
-}
-
-/* Page Root Backgrounds */
-html.light .bg-\[\#07080c\],
-html.light .bg-dark-950,
-html.light .bg-dark-950\/95,
-html.light .bg-dark-950\/90,
-html.light .bg-dark-950\/80,
-html.light .bg-dark-950\/70,
-html.light .bg-dark-950\/60,
-html.light .bg-dark-950\/50,
-html.light .bg-dark-950\/40 {
-  background-color: #f8fafc !important;
-}
-
-html.light .bg-\[\#0a0c12\] {
-  background-color: #f1f5f9 !important;
-}
-
-/* Navbar & Header */
-html.light header.bg-dark-950\/80 {
-  background-color: rgba(255, 255, 255, 0.85) !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Card Backgrounds */
-html.light .bg-dark-900,
-html.light .bg-dark-900\/95,
-html.light .bg-dark-900\/90,
-html.light .bg-dark-900\/80,
-html.light .bg-dark-900\/70,
-html.light .bg-dark-900\/60,
-html.light .bg-dark-900\/40,
-html.light .bg-dark-850,
-html.light .bg-dark-850\/90,
-html.light .bg-dark-850\/80,
-html.light .bg-dark-850\/60 {
-  background-color: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-}
-
-/* Typography Overrides */
-html.light .text-white {
-  color: #09090b !important;
-}
-
-html.light .text-slate-100 {
-  color: #09090b !important;
-}
-
-html.light .text-slate-200 {
-  color: #18181b !important;
-}
-
-html.light .text-slate-300 {
-  color: #334155 !important;
-}
-
-html.light .text-slate-400 {
-  color: #64748b !important;
-}
-
-/* Borders */
-html.light .border-white\/\[0\.08\],
-html.light .border-white\/10,
-html.light .border-white\/5,
-html.light .border-white\/20 {
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Grid Veil in Light Mode */
-html.light .grid-veil {
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
-}
-
-/* Table Header */
-html.light tr.bg-dark-950\/70 {
-  background-color: #f1f5f9 !important;
-}
-
-html.light tr:hover {
-  background-color: rgba(0, 0, 0, 0.02) !important;
-}
-
-/* Footer in Light Mode */
-html.light footer {
-  background-color: #f8fafc !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Keep Interactive Code Terminal in Sleek High-Contrast Dark */
-html.light .terminal-3d {
-  background-color: #0c0e14 !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.12);
-}
-
-html.light .terminal-3d .text-slate-200 {
-  color: #e2e8f0 !important;
-}
-
-html.light .terminal-3d .text-slate-300 {
-  color: #cbd5e1 !important;
-}
-
-html.light .terminal-3d .text-slate-400 {
-  color: #94a3b8 !important;
-}
-
-html.light .terminal-3d .text-white {
-  color: #ffffff !important;
-}
-
-html.light .terminal-3d .bg-dark-900\/90 {
-  background-color: #161a24 !important;
-}
-
-html.light .terminal-3d .border-white\/\[0\.08\],
-html.light .terminal-3d .border-white\/5,
-html.light .terminal-3d .border-white\/10 {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* =========================================================================
-   PRESERVE HIGH CONTRAST IN DARK CONTAINERS, CODE TERMINALS & CODE BLOCKS
-   ========================================================================= */
-
-/* 1. All Pre, Code, and Terminal elements in Light Mode */
-html.light pre,
-html.light pre code,
-html.light pre span,
-html.light code.text-white,
-html.light .dark-code-box,
-html.light .dark-code-box pre,
-html.light .dark-code-box code {
-  color: #f8fafc !important;
-}
-
-/* 2. Target any container styled with intentionally dark backgrounds */
-html.light .dark-code-box,
-html.light .dark-box,
-html.light .code-box,
-html.light .bg-\[\#0F0E0D\],
-html.light .bg-\[\#0f0e0d\],
-html.light .bg-\[\#141312\],
-html.light .bg-\[\#161514\],
-html.light .bg-\[\#1a1918\],
-html.light .bg-\[\#1A1918\],
-html.light .bg-\[\#121110\],
-html.light [class*="bg-[#0F0E0D]"],
-html.light [class*="bg-[#0f0e0d]"],
-html.light [class*="bg-[#141312]"],
-html.light [class*="bg-[#161514]"],
-html.light [class*="bg-[#1a1918]"],
-html.light [class*="bg-[#1A1918]"],
-html.light [class*="bg-[#121110]"] {
-  color: #f5f2eb !important;
-}
-
-/* 3. Ensure white/slate text classes inside dark containers and code blocks are bright white */
-html.light pre .text-white,
-html.light pre .text-slate-100,
-html.light pre .text-slate-200,
-html.light pre .text-slate-300,
-html.light .dark-code-box .text-white,
-html.light .dark-code-box .text-slate-100,
-html.light .dark-code-box .text-slate-200,
-html.light .dark-code-box .text-slate-300,
-html.light .bg-\[\#0F0E0D\] .text-white,
-html.light .bg-\[\#0F0E0D\] .text-slate-100,
-html.light .bg-\[\#0F0E0D\] .text-slate-200,
-html.light .bg-\[\#0F0E0D\] .text-slate-300,
-html.light .bg-\[\#0f0e0d\] .text-white,
-html.light .bg-\[\#0f0e0d\] .text-slate-100,
-html.light .bg-\[\#0f0e0d\] .text-slate-200,
-html.light .bg-\[\#0f0e0d\] .text-slate-300,
-html.light .bg-\[\#141312\] .text-white,
-html.light .bg-\[\#141312\] .text-slate-100,
-html.light .bg-\[\#141312\] .text-slate-200,
-html.light .bg-\[\#161514\] .text-white,
-html.light .bg-\[\#1a1918\] .text-white,
-html.light [class*="bg-[#0F0E0D]"] .text-white,
-html.light [class*="bg-[#0F0E0D]"] .text-slate-100,
-html.light [class*="bg-[#0F0E0D]"] .text-slate-200,
-html.light [class*="bg-[#0F0E0D]"] .text-slate-300,
-html.light [class*="bg-[#0f0e0d]"] .text-white,
-html.light [class*="bg-[#0f0e0d]"] .text-slate-100,
-html.light [class*="bg-[#0f0e0d]"] .text-slate-200,
-html.light [class*="bg-[#0f0e0d]"] .text-slate-300,
-html.light [class*="bg-[#141312]"] .text-white,
-html.light [class*="bg-[#141312]"] .text-slate-100,
-html.light [class*="bg-[#161514]"] .text-white,
-html.light [class*="bg-[#1a1918]"] .text-white,
-html.light [class*="bg-black/60"],
-html.light [class*="bg-black/40"],
-html.light [class*="bg-black/60"] .text-white,
-html.light [class*="bg-black/40"] .text-white,
-html.light [class*="bg-black"] .text-white {
-  color: #ffffff !important;
-}
-
-/* 4. Muted text inside dark containers */
-html.light .dark-code-box .text-stone-300,
-html.light .dark-code-box .text-stone-400,
-html.light .dark-code-box .text-slate-400,
-html.light .bg-\[\#0F0E0D\] .text-stone-300,
-html.light .bg-\[\#0F0E0D\] .text-stone-400,
-html.light .bg-\[\#0F0E0D\] .text-slate-400,
-html.light .bg-\[\#0f0e0d\] .text-stone-300,
-html.light .bg-\[\#0f0e0d\] .text-stone-400,
-html.light .bg-\[\#141312\] .text-stone-400,
-html.light .bg-\[\#161514\] .text-stone-400,
-html.light [class*="bg-[#0F0E0D]"] .text-stone-300,
-html.light [class*="bg-[#0F0E0D]"] .text-stone-400,
-html.light [class*="bg-[#0F0E0D]"] .text-slate-400,
-html.light [class*="bg-[#0f0e0d]"] .text-stone-300,
-html.light [class*="bg-[#0f0e0d]"] .text-stone-400,
-html.light [class*="bg-[#141312]"] .text-stone-400,
-html.light [class*="bg-[#161514]"] .text-stone-400,
-html.light pre .text-stone-300,
-html.light pre .text-stone-400,
-html.light pre .text-slate-400 {
-  color: #a8a29e !important;
-}
-
-html.light .dark-code-box .text-stone-500,
-html.light .dark-code-box .text-slate-500,
-html.light .bg-\[\#0F0E0D\] .text-stone-500,
-html.light .bg-\[\#0f0e0d\] .text-stone-500,
-html.light [class*="bg-[#0F0E0D]"] .text-stone-500,
-html.light [class*="bg-[#0f0e0d]"] .text-stone-500,
-html.light pre .text-stone-500,
-html.light pre .text-slate-500 {
-  color: #78716c !important;
-}
-
-/* 5. Highlight colors inside dark containers */
-html.light .dark-code-box .text-amber-300,
-html.light .bg-\[\#0F0E0D\] .text-amber-300,
-html.light [class*="bg-[#0F0E0D]"] .text-amber-300,
-html.light pre .text-amber-300 {
-  color: #fcd34d !important;
-}
-
-html.light .dark-code-box .text-emerald-400,
-html.light .bg-\[\#0F0E0D\] .text-emerald-400,
-html.light [class*="bg-[#0F0E0D]"] .text-emerald-400,
-html.light pre .text-emerald-400 {
-  color: #34d399 !important;
-}
-
-/* 6. Buttons with colored backgrounds: Keep text white */
-html.light button.bg-\[\#EA580C\],
-html.light button.bg-orange-500,
-html.light button.bg-orange-600,
-html.light button.bg-brand-500,
-html.light button.bg-brand-600,
-html.light button[class*="bg-orange"],
-html.light button[class*="bg-brand"],
-html.light button[class*="bg-[#EA580C]"],
-html.light a[class*="bg-orange"],
-html.light a[class*="bg-brand"],
-html.light a[class*="bg-[#EA580C]"],
-html.light .dark-code-box button {
-  color: #ffffff;
-}
-
-/* 7. CodeSwitcher & Interactive code viewer */
-html.light .dark-code-box pre,
-html.light .dark-code-box code,
-html.light .dark-code-box .text-slate-200,
-html.light .dark-code-box .text-slate-300 {
-  color: #f1f5f9 !important;
-}
-
-html.light .dark-code-box .text-slate-400,
-html.light .dark-code-box .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-/* Mobile Navigation Drawer in Light Mode */
-html.light #mobile-nav-drawer {
-  background-color: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-}
-
-html.light #mobile-nav-drawer button {
-  color: #0f172a !important;
-}
-
-html.light #mobile-nav-drawer .text-slate-400 {
-  color: #64748b !important;
-}
-
-html.light #mobile-nav-drawer .border-white\/5 {
-  border-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-html.light #mobile-nav-drawer button:hover {
-  color: #ea580c !important;
-}
-
-html.light #mobile-nav-drawer .text-brand-400,
-html.light #mobile-nav-drawer .text-brand-500 {
-  color: #ea580c !important;
-}
-
-html.light #mobile-nav-drawer .text-emerald-400,
-html.light #mobile-nav-drawer .text-emerald-500 {
-  color: #059669 !important;
-}
-
-html.light #mobile-nav-drawer button.bg-amber-500 {
-  background-color: #f59e0b !important;
-  color: #0f172a !important;
-}
-
-html.light #mobile-nav-drawer button.bg-amber-500\/10 {
-  background-color: rgba(245, 158, 11, 0.1) !important;
-  color: #b45309 !important;
-  border-color: rgba(245, 158, 11, 0.3) !important;
-}
-
-html.light #mobile-nav-drawer button.bg-amber-500\/10 span,
-html.light #mobile-nav-drawer button.bg-amber-500\/10 svg {
-  color: #b45309 !important;
-}
-
-/* Modals in Light Mode */
-html.light .fixed .bg-dark-900 {
-  background-color: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-}
-
-html.light .fixed .bg-dark-950,
-html.light .fixed .bg-dark-950\/80 {
-  background-color: #f8fafc !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-html.light .fixed input,
-html.light .fixed textarea,
-html.light .fixed select {
-  background-color: #ffffff !important;
-  color: #09090b !important;
-  border-color: #cbd5e1 !important;
-}
-
-html.light .fixed input::placeholder,
-html.light .fixed textarea::placeholder {
-  color: #94a3b8 !important;
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
 /* =========================================================================

@@ -97,6 +97,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
     try {
       if (forceFresh && typeof window !== 'undefined') {
         const safeToken = target.slice(0, 48);
+        localStorage.removeItem(`opuszenvix_window_anchor_${safeToken}`);
         localStorage.removeItem(`opuszyra_window_anchor_${safeToken}`);
       }
       const data = await checkKey(target);
@@ -222,7 +223,7 @@ export const KeyInspector: React.FC<KeyInspectorProps> = ({
   const handleCopyLink = async () => {
     const token = keyData?.key_token || inputKey;
     if (!token) return;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.opuszyra.live';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.opuszenvix.live';
     const fullUrl = `${origin}/key-status?key=${encodeURIComponent(token)}`;
     const success = await copyToClipboard(fullUrl);
     if (success) {

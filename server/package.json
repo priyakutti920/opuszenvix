@@ -1,7 +1,7 @@
 {
-  "name": "opuszyra-server",
+  "name": "opuszenvix-server",
   "version": "1.0.0",
-  "description": "Node.js API Gateway for Opuszyra Anthropic Proxy",
+  "description": "Node.js API Gateway for Opuszenvix Anthropic Proxy",
   "main": "server.js",
   "type": "module",
   "scripts": {
